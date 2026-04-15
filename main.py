@@ -29,7 +29,8 @@ is_running = False
 last_run_time = 0
 lock = threading.Lock()
 
-INTERVAL = 10
+INTERVAL = 1000
+headless_mode = True
 
 
 def kill_chrome_processes():
@@ -119,7 +120,7 @@ def my_script(api_keys):
         logger.warning("   ⚠️ Данные из интерфейса не получены из-за ошибки браузера")
 
         # Пытаемся запустить браузер
-        browser_started = interface_parser.start_browser(headless=False)
+        browser_started = interface_parser.start_browser(headless=headless_mode)
 
         if not browser_started:
             logger.error("   ❌ Не удалось запустить браузер после всех попыток")
