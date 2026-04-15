@@ -17,25 +17,6 @@ import time
 import random
 from datetime import datetime
 
-import gspread
-from gspread.utils import rowcol_to_a1
-from gspread_formatting import (
-    CellFormat,
-    Color,
-    TextFormat,
-    format_cell_range,
-    set_frozen,
-    set_column_width,
-    Border,
-    Borders
-)
-from google.oauth2.service_account import Credentials
-from config import spread_id
-import json
-import time
-import random
-from datetime import datetime
-
 
 # ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
 def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
@@ -234,7 +215,7 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
     dashboard_rows = []
     total_revenue = 0
     total_orders = 0
-    total_expenses = 0
+    total_expenses = 0  # ← восстановлена переменная
 
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
@@ -242,43 +223,71 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         total_ordered_units = item.get("total_ordered_units", 0)
 
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
-        total_expenses_item = 0
+
+        # ========= НОВЫЙ РАСЧЕТ DRR ИЗ РЕКЛАМНЫХ АНАЛИТИК =========
+        drr_values = []  # список для сбора всех DRR > 0
 
         for camp in offer_campaigns:
             camping_type = camp.get('camping_type', '')
+            drr_raw = camp.get('drr', None)
 
-            if camping_type in ['Поиск', 'Поиск и рекомендации']:
-                expense = camp.get('expense', 0)
-                if expense and expense != '—' and expense != '':
-                    try:
-                        expense_clean = float(str(expense).replace(',', '.').strip()) if isinstance(expense,
-                                                                                                    str) else float(
-                            expense)
-                        total_expenses_item += expense_clean
-                    except (ValueError, TypeError):
-                        pass
+            # Проверяем, есть ли DRR в этой кампании
+            if drr_raw is not None and drr_raw != '' and drr_raw != '—':
+                try:
+                    # Очищаем строку от символов и пробелов
+                    drr_str = str(drr_raw).replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
+                    drr_str = drr_str.replace('%', '')
 
-            elif camping_type == 'Оплата за заказ':
-                expense = camp.get('expense', 0)
-                if expense and expense != '—' and expense != '':
-                    try:
-                        expense_clean = float(str(expense).replace(',', '.').strip()) if isinstance(expense,
-                                                                                                    str) else float(
-                            expense)
-                        total_expenses_item += expense_clean
-                    except (ValueError, TypeError):
-                        pass
+                    if drr_str and drr_str != '' and drr_str != '—':
+                        drr_value = float(drr_str)
+                        if drr_value > 0:  # учитываем только положительные значения
+                            drr_values.append(drr_value)
+                            print(f"    📊 DRR для {offer_id} ({camping_type}): {drr_value}%")
+                except (ValueError, TypeError):
+                    pass
 
-                expense_model = camp.get('expense_model', 0)
-                if expense_model and expense_model != '—' and expense_model != '':
-                    try:
-                        expense_model_clean = float(str(expense_model).replace(',', '.').strip()) if isinstance(
-                            expense_model, str) else float(expense_model)
-                        total_expenses_item += expense_model_clean
-                    except (ValueError, TypeError):
-                        pass
+        # Усредняем DRR по всем кампаниям, где есть значение
+        if drr_values:
+            drr_value = round(sum(drr_values) / len(drr_values), 2)
+        else:
+            # Если DRR нигде нет, считаем по старой формуле (расходы / выручка)
+            total_expenses_item = 0
+            for camp in offer_campaigns:
+                camping_type = camp.get('camping_type', '')
 
-        drr_value = round((total_expenses_item / total_revenue_item) * 100, 2) if total_revenue_item > 0 else 0
+                if camping_type in ['Поиск', 'Поиск и рекомендации']:
+                    expense = camp.get('expense', 0)
+                    if expense and expense != '—' and expense != '':
+                        try:
+                            expense_clean = float(str(expense).replace(',', '.').strip()) if isinstance(expense,
+                                                                                                        str) else float(
+                                expense)
+                            total_expenses_item += expense_clean
+                        except (ValueError, TypeError):
+                            pass
+
+                elif camping_type == 'Оплата за заказ':
+                    expense = camp.get('expense', 0)
+                    if expense and expense != '—' and expense != '':
+                        try:
+                            expense_clean = float(str(expense).replace(',', '.').strip()) if isinstance(expense,
+                                                                                                        str) else float(
+                                expense)
+                            total_expenses_item += expense_clean
+                        except (ValueError, TypeError):
+                            pass
+
+                    expense_model = camp.get('expense_model', 0)
+                    if expense_model and expense_model != '—' and expense_model != '':
+                        try:
+                            expense_model_clean = float(str(expense_model).replace(',', '.').strip()) if isinstance(
+                                expense_model, str) else float(expense_model)
+                            total_expenses_item += expense_model_clean
+                        except (ValueError, TypeError):
+                            pass
+
+            drr_value = round((total_expenses_item / total_revenue_item) * 100, 2) if total_revenue_item > 0 else 0
+            total_expenses += total_expenses_item  # ← добавляем в общую сумму расходов
 
         dashboard_rows.append({
             'offer_id': offer_id,
@@ -289,7 +298,7 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
 
         total_revenue += total_revenue_item
         total_orders += total_ordered_units
-        total_expenses += total_expenses_item
+        # total_expenses уже обновляется внутри else
 
     # Сортируем по количеству продаж
     dashboard_rows.sort(key=lambda x: x['orders'], reverse=True)
@@ -299,7 +308,14 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         dashboard_data.append([row['offer_id'], row['revenue'], row['orders'], row['drr']])
 
     dashboard_data.append(["", "", "", ""])
-    total_avg_drr = round((total_expenses / total_revenue) * 100, 2) if total_revenue > 0 else 0
+
+    # Итоговый DRR - среднее арифметическое DRR всех товаров
+    if dashboard_rows:
+        avg_drr_sum = sum([row['drr'] for row in dashboard_rows])
+        total_avg_drr = round(avg_drr_sum / len(dashboard_rows), 2)
+    else:
+        total_avg_drr = 0
+
     dashboard_data.append(["ИТОГО", total_revenue, total_orders, total_avg_drr])
 
     if dashboard_data:
@@ -317,8 +333,45 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
 
         last_row_with_data = len(dashboard_data) + 1
 
+        # ========= ДОБАВЛЯЕМ ФИЛЬТРЫ ПОСЛЕ ВСТАВКИ ДАННЫХ (ТОЛЬКО НА ДАННЫЕ, БЕЗ ИТОГО) =========
+        try:
+            # Получаем ID листа
+            dashboard_id = dashboard.id
+
+            # Количество строк с данными (без строки ИТОГО)
+            # dashboard_data содержит: все товары + пустая строка + строка ИТОГО
+            # Нужно отфильтровать только строки с товарами (от строки 2 до last_row_with_data - 2)
+            data_end_row = last_row_with_data - 2  # исключаем пустую строку и ИТОГО
+
+            if data_end_row > 1:  # если есть хотя бы одна строка с данными
+                body = {
+                    "requests": [
+                        {
+                            "setBasicFilter": {
+                                "filter": {
+                                    "range": {
+                                        "sheetId": dashboard_id,
+                                        "startRowIndex": 0,  # с первой строки (заголовки)
+                                        "endRowIndex": data_end_row,  # только до последней строки с данными
+                                        "startColumnIndex": 0,  # с колонки A
+                                        "endColumnIndex": 4  # до колонки D
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+
+                spreadsheet.batch_update(body)
+                print(f"  ✅ Фильтры добавлены на строки 1-{data_end_row} (ИТОГО не фильтруется)")
+            time.sleep(1)
+        except Exception as e:
+            print(f"  ⚠️ Не удалось добавить фильтры: {e}")
+
+        # Продолжаем форматирование...
         execute_with_retry(format_cell_range, dashboard, f"A{last_row_with_data}:D{last_row_with_data}",
                            CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.95, 0.95, 0.95)))
+
         time.sleep(2)
 
         if len(dashboard_data) > 0:
@@ -497,19 +550,19 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
 
             # Устанавливаем ширину колонок
             for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 200)
+                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
                 time.sleep(0.5)
 
             for col in ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 200)
+                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
                 time.sleep(0.5)
 
             for col in ['X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 200)
+                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
                 time.sleep(0.5)
 
             for col in ['AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 200)
+                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
                 time.sleep(0.5)
 
             time.sleep(3)

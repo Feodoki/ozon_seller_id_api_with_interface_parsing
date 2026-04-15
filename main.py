@@ -147,8 +147,8 @@ def my_script(api_keys):
             time.sleep(2)
 
             logger.info("📌 Шаг 6.5: Очистка процессов Chrome...")
-            kill_chrome_processes()
-            kill_chrome_processes_alternative()
+            #kill_chrome_processes()
+            #kill_chrome_processes_alternative()
             time.sleep(1)
 
         #print(all_items_dict, advert_analytic, position_analytic, sep='\n')
