@@ -230,6 +230,7 @@ class InterfaceParser:
                                 camping_budget = row.find_elements(By.XPATH, ".//td")[6].text.replace('\u202f', '')
                                 if '₽' in camping_budget:
                                     camping_budget = float(camping_budget.split('₽')[0])
+
                                 analytic_advert_dict[camping_id] = {"camping_url": camping_url,
                                                                     "camping_type": camping_type,
                                                                     "camping_strategy": camping_strategy,
@@ -351,6 +352,7 @@ class InterfaceParser:
                         views = all_td[13].text.replace('\n', '').strip()
                         clicks = all_td[14].text.replace('\n', '').strip()
                         product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
+                        expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
 
                         offer_dict = {
                             'offer_id': offer_id,
@@ -368,6 +370,7 @@ class InterfaceParser:
                             'views': views,
                             'clicks': clicks,
                             'product_price': product_price,
+                            'expense': expense,
                         }
                         if offer_id in result_advert_dict.keys():
                             result_advert_dict[offer_id].append(offer_dict)
@@ -471,6 +474,8 @@ class InterfaceParser:
 
                             drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
 
+                            expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+                            expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
                             offer_dict = {
                                 'offer_id': offer_id,
                                 'sku': sku,
@@ -482,6 +487,8 @@ class InterfaceParser:
                                 'product_buy_pay': product_buy_pay,
                                 'product_buy_combo_model': product_buy_combo_model,
                                 'drr': drr,
+                                'expense': expense,
+                                'expense_combo': expense_combo,
                             }
 
                             if offer_id in analytic_advert_dict.keys():
@@ -660,5 +667,6 @@ if __name__ == "__main__":
 
     parser.start_browser(headless=False)
     parser.auth()
+    #parser.get_all_advert_analytic()
     time.sleep(2)
     parser.close()

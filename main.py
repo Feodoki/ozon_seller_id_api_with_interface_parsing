@@ -104,7 +104,6 @@ def my_script(api_keys):
     # Инициализируем переменные для данных из интерфейса
     advert_analytic = {}
     position_analytic = {}
-    browser_started = False
 
     try:
         logger.info("📌 Шаг 1: Инициализация OzonSellerParse...")
@@ -117,7 +116,6 @@ def my_script(api_keys):
         logger.info("📌 Шаг 3 (без браузера): Получение аналитики из API...")
         all_items_dict = parse.main()
         logger.info(f"   ✅ Получено {len(all_items_dict)} товаров из API")
-        logger.warning("   ⚠️ Данные из интерфейса не получены из-за ошибки браузера")
 
         # Пытаемся запустить браузер
         browser_started = interface_parser.start_browser(headless=headless_mode)
@@ -149,10 +147,11 @@ def my_script(api_keys):
             time.sleep(2)
 
             logger.info("📌 Шаг 6.5: Очистка процессов Chrome...")
-            #kill_chrome_processes()
-            #kill_chrome_processes_alternative()
+            kill_chrome_processes()
+            kill_chrome_processes_alternative()
             time.sleep(1)
 
+        #print(all_items_dict, advert_analytic, position_analytic, sep='\n')
         logger.info("📌 Шаг 7: Загрузка данных в Google Sheets...")
         upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic)
         logger.info("   ✅ Данные загружены в Google Sheets")

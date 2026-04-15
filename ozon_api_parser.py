@@ -562,5 +562,4 @@ if __name__ == "__main__":
     parse = OzonSellerParse()
     res = parse.main()
     print(f"\nРезультат: {len(res)} товаров")
-    for offer_id, data in list(res.items())[:3]:  # Показываем первые 3
-        print(f"  - {offer_id}: {data.get('product_name', '')[:50]}...")
+    upload_to_google_sheets(res)
