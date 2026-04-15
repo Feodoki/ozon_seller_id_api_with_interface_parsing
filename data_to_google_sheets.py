@@ -15,7 +15,40 @@ from config import spread_id
 import json
 import time
 import random
+from datetime import datetime
 
+
+def write_parser_error_to_sheet(error_message):
+    """Записывает ошибки парсера в лист ERROR_PARS"""
+    try:
+        creds = Credentials.from_service_account_file(
+            "google_sheets.json",
+            scopes=[
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive"
+            ]
+        )
+
+        client = gspread.authorize(creds)
+        spreadsheet = client.open_by_key(spread_id)
+
+        # Получаем или создаем лист ERROR_PARS
+        try:
+            sheet = spreadsheet.worksheet("ERROR_PARS")
+            # Очищаем лист
+            sheet.clear()
+        except gspread.exceptions.WorksheetNotFound:
+            sheet = spreadsheet.add_worksheet(title="ERROR_PARS", rows=100, cols=5)
+
+        # Записываем ошибку в ячейку A1
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        full_error = f"[{timestamp}] {error_message}"
+        sheet.update("A1", full_error)
+
+        print(f"✅ Ошибка записана в лист ERROR_PARS: {error_message[:100]}...")
+
+    except Exception as e:
+        print(f"❌ Не удалось записать ошибку в ERROR_PARS: {e}")
 
 def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
     """

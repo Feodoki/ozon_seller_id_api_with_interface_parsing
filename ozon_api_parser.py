@@ -4,6 +4,7 @@ import math
 import traceback
 import inspect
 import pytz
+import logging
 
 import requests
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,11 @@ from ozon_perfomance_api import OzonPerfomanceAPI
 from config import OZON_PERFORMANCE_TOKEN
 from config import ozon_api_key, ozon_client_id
 
-from data_to_google_sheets import upload_to_google_sheets
+from data_to_google_sheets import upload_to_google_sheets, write_parser_error_to_sheet
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
 
 class OzonSellerParse:
     def __init__(self):
@@ -27,20 +32,89 @@ class OzonSellerParse:
         }
         self.update_token()
 
-    def update_token(self):
-        token = OzonPerfomanceAPI()._get_access_token()
-        self.headers_perfomance = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-        time.sleep(1)
+    def update_token(self, max_retries: int = 3):
+        """Обновление токена с повторными попытками"""
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"   🔑 Обновление токена (попытка {attempt + 1}/{max_retries})")
+                token = OzonPerfomanceAPI()._get_access_token()
+                self.headers_perfomance = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                }
+                logger.info("   ✅ Токен успешно обновлен")
+                time.sleep(1)
+                return True
+            except Exception as e:
+                logger.error(f"   ❌ Ошибка при обновлении токена (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(3)
+                    continue
+                else:
+                    error_msg = f"Не удалось обновить токен после {max_retries} попыток: {e}"
+                    logger.error(f"   ❌ {error_msg}")
+                    write_parser_error_to_sheet(error_msg)
+                    return False
+        return False
 
-    def get_all_products_in_sale(self):
+    def _make_request(self, url: str, method: str = 'POST', payload: dict = None, headers: dict = None,
+                      max_retries: int = 3, backoff_factor: int = 2):
+        """Универсальный метод для выполнения запросов с повторными попытками"""
+        if headers is None:
+            headers = self.headers
+
+        for attempt in range(max_retries):
+            try:
+                if method.upper() == 'POST':
+                    response = requests.post(url, json=payload, headers=headers)
+                elif method.upper() == 'GET':
+                    response = requests.get(url, headers=headers, params=payload)
+                else:
+                    raise ValueError(f"Unsupported method: {method}")
+
+                if response.status_code == 200:
+                    return response
+                elif response.status_code == 429:  # Too Many Requests
+                    wait_time = backoff_factor ** attempt * 2
+                    logger.warning(
+                        f"   ⚠️ Превышен лимит запросов (429). Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"   ❌ Ошибка API: статус {response.status_code}, текст: {response.text[:200]}")
+                    if attempt < max_retries - 1:
+                        time.sleep(backoff_factor)
+                        continue
+                    else:
+                        return None
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"   ❌ Ошибка запроса (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    wait_time = backoff_factor ** attempt
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    return None
+            except Exception as e:
+                logger.error(f"   ❌ Неожиданная ошибка (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(backoff_factor)
+                    continue
+                else:
+                    return None
+
+        return None
+
+    def get_all_products_in_sale(self, max_retries: int = 3):
+        """Получение всех товаров в продаже с повторными попытками"""
         url = "https://api-seller.ozon.ru/v3/product/list"
         all_items = []
         all_product_id = {}
         last_id = ''
         old_len = 0
+
+        logger.info("   📦 Начинаем получение списка товаров в продаже...")
 
         while True:
             payload = {
@@ -50,73 +124,107 @@ class OzonSellerParse:
                 "last_id": f"{last_id}",
                 "limit": 1000
             }
-            response = requests.post(url, json=payload, headers=self.headers)
-            if response.status_code == 200:
-                data = response.json()
 
+            response = self._make_request(url, 'POST', payload, self.headers, max_retries)
+
+            if response and response.status_code == 200:
+                data = response.json()
                 products = data.get("result", {}).get("items", [])
 
-                print(f"\nТОВАРЫ В ПРОДАЖЕ ({len(products)}):")
+                logger.info(f"   📄 Получено {len(products)} товаров (last_id: {last_id or 'начало'})")
+
                 for p in products:
                     product_id = p.get("product_id")
                     offer_id = p.get("offer_id")
 
-                    new_item = offer_id
-                    if new_item not in all_items:
-                        all_items.append(new_item)
+                    if offer_id not in all_items:
+                        all_items.append(offer_id)
                     if product_id not in all_product_id:
                         all_product_id[offer_id] = product_id
 
                 last_id = data.get("result", {}).get("last_id")
                 if old_len == len(all_items):
+                    logger.info(f"   ✅ Всего получено {len(all_items)} товаров в продаже")
                     return all_items, all_product_id
                 else:
                     old_len = len(all_items)
             else:
-                print(inspect.currentframe().f_code.co_name)
-                print(response.status_code)
-                print(response.text)
+                logger.error(f"   ❌ Ошибка при получении списка товаров")
                 return all_items, all_product_id
 
-
-    def get_items_info_for_product_id(self, offer_ids: list):
+    def get_items_info_for_product_id(self, offer_ids: list, max_retries: int = 3):
+        """Получение информации о товарах по offer_id с повторными попытками"""
         all_skus = []
         all_items_dict = {}
         api_url = "https://api-seller.ozon.ru/v3/product/info/list"
 
         # Разбиваем offer_ids на части по 100, чтобы не превысить лимит
         chunk_size = 100
-        for i in range(0, len(offer_ids), chunk_size):
+        total_chunks = math.ceil(len(offer_ids) / chunk_size)
+        logger.info(f"   📝 Получение информации для {len(offer_ids)} товаров ({total_chunks} частей по {chunk_size})")
+
+        for chunk_idx, i in enumerate(range(0, len(offer_ids), chunk_size)):
             chunk = offer_ids[i:i + chunk_size]
-            r = requests.post(api_url, headers=self.headers, json={'offer_id': chunk})
-            if r.status_code == 200:
-                data_json = r.json()
-                for item in data_json.get("items", []):
-                    item_name = item.get("name")
-                    item_product_id = str(item.get("id"))
-                    item_offer_id = str(item.get("offer_id"))
-                    all_item_skus = []
-                    items_skus = item.get("sources")
-                    for item_sku in items_skus:
-                        all_item_skus.append(str(item_sku["sku"]))
-                        all_skus.append(str(item_sku["sku"]))
+            logger.info(f"   🔄 Обработка части {chunk_idx + 1}/{total_chunks} ({len(chunk)} товаров)")
 
-                    ready_json = {
-                        "name": item_name,
-                        "offer_id": item_offer_id,
-                        "product_id": item_product_id,
-                        "skus": all_item_skus,
-                        "skus_metrics": [],
-                    }
-                    all_items_dict[item_offer_id] = ready_json
-            else:
-                print(r.status_code)
-                print(r.text)
-            time.sleep(0.5)
+            for attempt in range(max_retries):
+                try:
+                    response = requests.post(api_url, headers=self.headers, json={'offer_id': chunk})
 
+                    if response.status_code == 200:
+                        data_json = response.json()
+                        items_count = 0
+                        for item in data_json.get("items", []):
+                            item_name = item.get("name")
+                            item_product_id = str(item.get("id"))
+                            item_offer_id = str(item.get("offer_id"))
+                            all_item_skus = []
+                            items_skus = item.get("sources")
+                            for item_sku in items_skus:
+                                all_item_skus.append(str(item_sku["sku"]))
+                                all_skus.append(str(item_sku["sku"]))
+
+                            ready_json = {
+                                "name": item_name,
+                                "offer_id": item_offer_id,
+                                "product_id": item_product_id,
+                                "skus": all_item_skus,
+                                "skus_metrics": [],
+                            }
+                            all_items_dict[item_offer_id] = ready_json
+                            items_count += 1
+
+                        logger.info(f"   ✅ Получена информация для {items_count} товаров")
+                        time.sleep(0.5)
+                        break  # Успешно, выходим из цикла повторных попыток
+
+                    elif response.status_code == 429:  # Too Many Requests
+                        wait_time = 2 ** attempt * 2
+                        logger.warning(
+                            f"   ⚠️ Превышен лимит (429). Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"   ❌ Ошибка API: статус {response.status_code}, текст: {response.text[:200]}")
+                        if attempt < max_retries - 1:
+                            time.sleep(2)
+                            continue
+                        else:
+                            break
+
+                except Exception as e:
+                    logger.error(f"   ❌ Ошибка при получении информации о товарах (попытка {attempt + 1}): {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    else:
+                        break
+
+        logger.info(f"   ✅ Всего получена информация для {len(all_items_dict)} товаров, найдено {len(all_skus)} SKU")
         return all_items_dict, all_skus
 
-    def stat_product_to_pay(self):
+    def stat_product_to_pay(self, max_retries: int = 3):
+        """Получение статистики оплаты за товар с повторными попытками"""
         dict_ = {}
 
         # Используем московское время
@@ -129,23 +237,46 @@ class OzonSellerParse:
 
         api_url = f"https://api-performance.ozon.ru:443/api/client/statistics/campaign/media/json?dateFrom={date_from}&dateTo={date_to}"
 
-        response = requests.get(api_url, headers=self.headers_perfomance)
-        if response.status_code == 200:
-            print("stat_product_to_pay получены данные")
-            data_json = response.json()
-            for row in data_json.get('rows', []):
-                item_status = row.get("status")
-                if item_status == 'running':
-                    item_id = row.get('id')
-                    dict_[item_id] = row
-            return dict_
-        else:
-            print(inspect.currentframe().f_code.co_name)
-            print(response.status_code)
-            print(response.text)
-            return {}
+        logger.info(f"   📊 Запрос статистики медийных кампаний за {date_from} - {date_to}")
 
-    def stat_pay_to_click(self):
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(api_url, headers=self.headers_perfomance)
+
+                if response.status_code == 200:
+                    logger.info("   ✅ Статистика медийных кампаний получена")
+                    data_json = response.json()
+                    for row in data_json.get('rows', []):
+                        item_status = row.get("status")
+                        if item_status == 'running':
+                            item_id = row.get('id')
+                            dict_[item_id] = row
+                    logger.info(f"   📊 Найдено {len(dict_)} активных медийных кампаний")
+                    return dict_
+                elif response.status_code == 429:
+                    wait_time = 2 ** attempt * 2
+                    logger.warning(
+                        f"   ⚠️ Превышен лимит (429). Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"   ❌ Ошибка API: статус {response.status_code}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    else:
+                        return {}
+
+            except Exception as e:
+                logger.error(f"   ❌ Ошибка при получении статистики (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                else:
+                    return {}
+
+    def stat_pay_to_click(self, max_retries: int = 3):
+        """Получение статистики оплаты за клик с повторными попытками"""
         dict_ = {}
 
         # Используем московское время
@@ -156,30 +287,54 @@ class OzonSellerParse:
         date_from = (now_moscow - timedelta(days=1)).strftime("%Y-%m-%d")
         date_to = now_moscow.strftime("%Y-%m-%d")
 
-        print(f"Запрашиваем статистику кликов за период: {date_from} - {date_to}")
+        logger.info(f"   📊 Запрос статистики кликов за {date_from} - {date_to}")
         api_url = f'https://api-performance.ozon.ru:443/api/client/statistics/campaign/product/json?dateFrom={date_from}&dateTo={date_to}'
-        response = requests.get(api_url, headers=self.headers_perfomance)
-        if response.status_code == 200:
-            print("stat_pay_to_click получены данные")
-            data_json = response.json()
-            for row in data_json.get('rows', []):
-                item_status = row.get("status")
-                if item_status == 'running':
-                    item_id = row.get('id')
-                    dict_[item_id] = row
-            return dict_
-        else:
-            print(inspect.currentframe().f_code.co_name)
-            print(response.status_code)
-            print(response.text)
-            return {}
 
-    def get_analytic(self):
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(api_url, headers=self.headers_perfomance)
+
+                if response.status_code == 200:
+                    logger.info("   ✅ Статистика кликов получена")
+                    data_json = response.json()
+                    for row in data_json.get('rows', []):
+                        item_status = row.get("status")
+                        if item_status == 'running':
+                            item_id = row.get('id')
+                            dict_[item_id] = row
+                    logger.info(f"   📊 Найдено {len(dict_)} активных кампаний")
+                    return dict_
+                elif response.status_code == 429:
+                    wait_time = 2 ** attempt * 2
+                    logger.warning(
+                        f"   ⚠️ Превышен лимит (429). Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"   ❌ Ошибка API: статус {response.status_code}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    else:
+                        return {}
+
+            except Exception as e:
+                logger.error(f"   ❌ Ошибка при получении статистики (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                else:
+                    return {}
+
+    def get_analytic(self, max_retries: int = 3):
+        """Получение аналитики с повторными попытками"""
         api_url = f"https://api-seller.ozon.ru/v1/analytics/data"
         moscow_tz = pytz.timezone('Europe/Moscow')
         now_moscow = datetime.now(moscow_tz)
 
         date_yesterday = now_moscow.strftime("%Y-%m-%d")
+
+        logger.info(f"   📊 Запрос аналитики за {date_yesterday}")
 
         params = {
             "date_from": date_yesterday,
@@ -204,16 +359,40 @@ class OzonSellerParse:
             "dimension": ["sku"],
         }
 
-        response = requests.post(api_url, headers=self.headers, json=params)
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(api_url, headers=self.headers, json=params)
 
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Ошибка: {response.status_code}")
-            return {"result": {"data": []}}
+                if response.status_code == 200:
+                    logger.info("   ✅ Аналитика успешно получена")
+                    return response.json()
+                elif response.status_code == 429:
+                    wait_time = 2 ** attempt * 2
+                    logger.warning(
+                        f"   ⚠️ Превышен лимит (429). Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"   ❌ Ошибка API: статус {response.status_code}, текст: {response.text[:200]}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    else:
+                        return {"result": {"data": []}}
+
+            except Exception as e:
+                logger.error(f"   ❌ Ошибка при получении аналитики (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                else:
+                    return {"result": {"data": []}}
+
+        return {"result": {"data": []}}
 
     def match_metrics_with_skus(self, products_data, analytics_data):
         """Сопоставляет метрики из аналитики с SKU товаров"""
+        logger.info("   🔗 Сопоставление метрик с SKU товаров...")
 
         sku_to_offer = {}
         for offer_id, product_info in products_data.items():
@@ -225,6 +404,7 @@ class OzonSellerParse:
                 }
 
         result = {}
+        items_processed = 0
 
         for item in analytics_data.get('result', {}).get('data', []):
             dimensions = item.get('dimensions', [])
@@ -236,6 +416,7 @@ class OzonSellerParse:
                 if sku_id in sku_to_offer:
                     offer_data = sku_to_offer[sku_id]
                     offer_id = offer_data['offer_id']
+                    items_processed += 1
 
                     revenue = metrics[0]
                     ordered_units = metrics[1]
@@ -293,6 +474,8 @@ class OzonSellerParse:
                         result[offer_id]['conv_tocart_weighted'] += conv_tocart * hits_view
                         result[offer_id]['total_weight'] += hits_view
 
+        logger.info(f"   🔗 Обработано {items_processed} SKU, сформировано {len(result)} товаров")
+
         for offer_id, data in result.items():
             if data['positions_list']:
                 data['avg_position_category'] = round(sum(data['positions_list']) / len(data['positions_list']), 0)
@@ -306,14 +489,13 @@ class OzonSellerParse:
             # Добавить для совместимости
             data['avg_conversion_search_to_pdp'] = data['conversion_search_to_pdp']
 
-
-
             data['conversion_view_to_order'] = round((data['total_ordered_units'] / data['total_hits_view'] * 100),
                                                      2) if data['total_hits_view'] > 0 else 0
 
             if data['total_weight'] > 0:
                 data['avg_conv_tocart_search'] = round(data['conv_tocart_search_weighted'] / data['total_weight'], 2)
-                data['avg_conv_tocart'] = round((data['total_hits_tocart'] / data['total_hits_view'] * 100), 2) if data['total_hits_view'] > 0 else 0
+                data['avg_conv_tocart'] = round((data['total_hits_tocart'] / data['total_hits_view'] * 100), 2) if data[
+                                                                                                                       'total_hits_view'] > 0 else 0
             else:
                 data['avg_conv_tocart_search'] = 0
                 data['avg_conv_tocart'] = 0
@@ -328,25 +510,57 @@ class OzonSellerParse:
         return result
 
     def main(self):
-        self.update_token()
+        """Основной метод с общей обработкой ошибок"""
+        try:
+            logger.info("=" * 60)
+            logger.info("🚀 НАЧАЛО РАБОТЫ OZON API PARSER")
+            logger.info("=" * 60)
 
-        # Получаем все offer_id, которые в продаже
-        all_items_offer_id, all_product_id = self.get_all_products_in_sale()
-        print(f"ALL ITEMS OFFER ID AND ALL PRODUCT ID - DONE")
-        time.sleep(1)
+            # Обновляем токен
+            if not self.update_token():
+                logger.error("❌ Не удалось обновить токен, работа API парсера остановлена")
+                return {}
 
-        # Получаем все SKU по offer_id
-        all_skus_for_offer_id, all_sku = self.get_items_info_for_product_id(all_items_offer_id)
+            # Получаем все offer_id, которые в продаже
+            all_items_offer_id, all_product_id = self.get_all_products_in_sale()
+            if not all_items_offer_id:
+                logger.warning("⚠️ Не найдено товаров в продаже")
+                return {}
 
-        # Получаем аналитику
-        analytics_data = self.get_analytic()
+            logger.info(f"✅ Получено {len(all_items_offer_id)} offer_id товаров в продаже")
+            time.sleep(1)
 
-        matched_data = self.match_metrics_with_skus(all_skus_for_offer_id, analytics_data)
-        return matched_data
+            # Получаем все SKU по offer_id
+            all_skus_for_offer_id, all_sku = self.get_items_info_for_product_id(all_items_offer_id)
+            if not all_skus_for_offer_id:
+                logger.warning("⚠️ Не удалось получить информацию о товарах")
+                return {}
 
+            # Получаем аналитику
+            analytics_data = self.get_analytic()
+            if not analytics_data or not analytics_data.get('result', {}).get('data'):
+                logger.warning("⚠️ Не удалось получить аналитику")
+                return {}
+
+            matched_data = self.match_metrics_with_skus(all_skus_for_offer_id, analytics_data)
+
+            logger.info("=" * 60)
+            logger.info(f"✅ API ПАРСЕР УСПЕШНО ЗАВЕРШИЛ РАБОТУ")
+            logger.info(f"   Обработано товаров: {len(matched_data)}")
+            logger.info("=" * 60)
+
+            return matched_data
+
+        except Exception as e:
+            logger.error(f"❌ Критическая ошибка в API парсере: {e}")
+            logger.error(traceback.format_exc())
+            write_parser_error_to_sheet(f"Критическая ошибка в API парсере: {str(e)}")
+            return {}
 
 
 if __name__ == "__main__":
     parse = OzonSellerParse()
     res = parse.main()
-    print(res)
+    print(f"\nРезультат: {len(res)} товаров")
+    for offer_id, data in list(res.items())[:3]:  # Показываем первые 3
+        print(f"  - {offer_id}: {data.get('product_name', '')[:50]}...")

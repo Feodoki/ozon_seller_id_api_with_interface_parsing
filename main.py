@@ -9,7 +9,7 @@ import time
 
 from ozon_api_parser import OzonSellerParse
 from ozon_interface_parser import InterfaceParser
-from data_to_google_sheets import upload_to_google_sheets
+from data_to_google_sheets import upload_to_google_sheets, write_parser_error_to_sheet
 
 app = Flask(__name__)
 
@@ -89,6 +89,7 @@ def kill_chrome_processes_alternative():
     except Exception as e:
         logger.error(f"   ❌ Ошибка при завершении процессов: {e}")
 
+
 # ================= ТВОЙ СКРИПТ =================
 def my_script(api_keys):
     global is_running, last_run_time
@@ -99,6 +100,11 @@ def my_script(api_keys):
     logger.info(f"   API KEYS: {api_keys}")
     logger.info("=" * 80)
 
+    # Инициализируем переменные для данных из интерфейса
+    advert_analytic = {}
+    position_analytic = {}
+    browser_started = False
+
     try:
         logger.info("📌 Шаг 1: Инициализация OzonSellerParse...")
         parse = OzonSellerParse()
@@ -106,30 +112,45 @@ def my_script(api_keys):
 
         logger.info("📌 Шаг 2: Инициализация InterfaceParser...")
         interface_parser = InterfaceParser()
-        interface_parser.start_browser(headless=False)
-        logger.info("   ✅ InterfaceParser инициализирован")
 
-        logger.info("📌 Шаг 3: Получение аналитики из API...")
+        logger.info("📌 Шаг 3 (без браузера): Получение аналитики из API...")
         all_items_dict = parse.main()
         logger.info(f"   ✅ Получено {len(all_items_dict)} товаров из API")
+        logger.warning("   ⚠️ Данные из интерфейса не получены из-за ошибки браузера")
 
-        logger.info("📌 Шаг 4: Получение рекламной аналитики...")
-        advert_analytic = interface_parser.get_all_advert_analytic()
-        logger.info(f"   ✅ Получена рекламная аналитика")
+        # Пытаемся запустить браузер
+        browser_started = interface_parser.start_browser(headless=False)
 
-        logger.info("📌 Шаг 5: Получение позиций товаров...")
-        position_analytic = interface_parser.get_position_product_from_sku()
-        logger.info(f"   ✅ Получены позиции товаров")
+        if not browser_started:
+            logger.error("   ❌ Не удалось запустить браузер после всех попыток")
+            write_parser_error_to_sheet("Критическая ошибка: не удалось запустить браузер")
+            # Продолжаем выполнение, но advert_analytic и position_analytic останутся пустыми
+        else:
+            logger.info("   ✅ InterfaceParser инициализирован")
 
-        logger.info("📌 Шаг 6: Закрытие браузера...")
-        interface_parser.close()
-        logger.info("   ✅ Браузер закрыт")
-        time.sleep(2)
+            logger.info("📌 Шаг 4: Получение рекламной аналитики...")
+            advert_analytic = interface_parser.get_all_advert_analytic()
+            if advert_analytic:
+                logger.info(f"   ✅ Получена рекламная аналитика для {len(advert_analytic)} товаров")
+            else:
+                logger.warning("   ⚠️ Рекламная аналитика не получена (пустой результат)")
 
-        logger.info("📌 Шаг 6.5: Очистка процессов Chrome...")
-        kill_chrome_processes()
-        kill_chrome_processes_alternative()
-        time.sleep(1)
+            logger.info("📌 Шаг 5: Получение позиций товаров...")
+            position_analytic = interface_parser.get_position_product_from_sku()
+            if position_analytic:
+                logger.info(f"   ✅ Получены позиции для {len(position_analytic)} SKU")
+            else:
+                logger.warning("   ⚠️ Позиции товаров не получены (пустой результат)")
+
+            logger.info("📌 Шаг 6: Закрытие браузера...")
+            interface_parser.close()
+            logger.info("   ✅ Браузер закрыт")
+            time.sleep(2)
+
+            logger.info("📌 Шаг 6.5: Очистка процессов Chrome...")
+            #kill_chrome_processes()
+            #kill_chrome_processes_alternative()
+            time.sleep(1)
 
         logger.info("📌 Шаг 7: Загрузка данных в Google Sheets...")
         upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic)
@@ -144,6 +165,8 @@ def my_script(api_keys):
         logger.info(f"   Время окончания: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"   Длительность: {duration:.2f} секунд")
         logger.info(f"   Обработано товаров: {len(all_items_dict)}")
+        logger.info(f"   Получено рекламных данных: {'да' if advert_analytic else 'нет'}")
+        logger.info(f"   Получены позиции: {'да' if position_analytic else 'нет'}")
         logger.info("=" * 80)
 
     except Exception as e:
@@ -164,6 +187,8 @@ def my_script(api_keys):
             f.write(f"[{error_time.strftime('%Y-%m-%d %H:%M:%S')}] ОШИБКА\n")
             f.write(traceback.format_exc())
             f.write(f"\n{'=' * 80}\n")
+
+        write_parser_error_to_sheet(f"Критическая ошибка в скрипте: {str(e)}")
 
     finally:
         is_running = False

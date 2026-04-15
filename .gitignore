@@ -3,4 +3,5 @@
 __pycache__
 google_sheets.json
 .docx
+.doc
 selenium_profile
