@@ -2,6 +2,8 @@ import os
 import time
 import random
 import logging
+import traceback
+
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,15 +11,18 @@ from selenium.webdriver.common.by import By
 from datetime import datetime
 from data_to_google_sheets import write_error_to_sheet, write_parser_error_to_sheet
 import json
+import shutil
+
+from config import profile_name
 
 # Настройка логирования для парсера
 logger = logging.getLogger(__name__)
 
 
 class InterfaceParser:
-    def __init__(self, profile_name: str = "selenium_profile"):
+    def __init__(self):
         self.project_root = os.getcwd()
-        self.profile_path = os.path.join(self.project_root, "selenium_profile")
+        self.profile_path = os.path.join(self.project_root, profile_name)
 
         self.random_sleep_from = 1
         self.random_sleep_to = 2
@@ -26,6 +31,51 @@ class InterfaceParser:
         os.makedirs(self.profile_path, exist_ok=True)
 
         self.driver = None
+
+    def clean_profile_cache(self):
+        """Очищает кэш и временные файлы профиля, сохраняя авторизацию"""
+        try:
+            # Файлы и папки, которые можно безопасно удалить
+            items_to_remove = [
+                "Cache",
+                "Code Cache",
+                "Service Worker",
+                "File System",
+                "IndexedDB",
+                "Local Storage",
+                "Session Storage",
+                "Web Data",
+                "Web Data-journal",
+                "Cookies-journal",  # Не удаляем сами Cookies
+                "History",
+                "History-journal",
+                "Visited Links",
+                "Top Sites",
+                "Top Sites-journal",
+                "QuotaManager",
+                "QuotaManager-journal",
+                "GPUCache",
+                "DawnCache",
+                "ShaderCache",
+                "GrShaderCache",
+                "graphite_dawn_cache",
+            ]
+
+            for item in items_to_remove:
+                item_path = os.path.join(self.profile_path, item)
+                if os.path.exists(item_path):
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                        logger.info(f"   🗑️ Удалена папка: {item}")
+                    else:
+                        os.remove(item_path)
+                        logger.info(f"   🗑️ Удалён файл: {item}")
+
+            logger.info("   ✅ Профиль очищен от кэша")
+            return True
+        except Exception as e:
+            logger.warning(f"   ⚠️ Ошибка при очистке профиля: {e}")
+            return False
 
     def _get_options(self):
         options = uc.ChromeOptions()
@@ -39,10 +89,50 @@ class InterfaceParser:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
 
+        # ОТКЛЮЧАЕМ КЭШ, но сохраняем авторизацию
+        options.add_argument("--disable-cache")
+        options.add_argument("--disable-application-cache")
+        options.add_argument("--disable-offline-load-strict-mode")
+        options.add_argument("--disk-cache-size=0")
+        options.add_argument("--media-cache-size=0")
+
+        # Ограничиваем размер профиля
+        options.add_argument("--disable-session-crashed-bubble")
+        options.add_argument("--disable-component-update")
+
+        # Не сохраняем историю и данные форм
+        options.add_argument("--disable-save-password-bubble")
+        options.add_argument("--disable-autofill")
+
+        # Очищаем кэш при запуске (дополнительно)
+        prefs = {
+            "profile.block_third_party_cookies": False,
+            "profile.default_content_setting_values.images": 1,
+            "profile.default_content_setting_values.javascript": 1,
+            "profile.managed_default_content_settings.stylesheets": 1,
+            # Отключаем сохранение кэша
+            "disk-cache-size": 0,
+            "media-cache-size": 0,
+            # Не сохраняем пароли
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+        }
+        options.add_experimental_option("prefs", prefs)
+
+        # Удаляем ненужные аргументы командной строки, которые создают лишние файлы
+        options.add_argument("--disable-logging")
+        options.add_argument("--log-level=3")
+        options.add_argument("--silent")
+
         return options
 
-    def start_browser(self, headless: bool = False, max_retries: int = 3):
+    def start_browser(self, headless: bool = False, max_retries: int = 3, clean_cache: bool = True):
         """Запуск браузера с повторными попытками"""
+
+        # Очищаем кэш перед запуском (опционально)
+        if clean_cache:
+            self.clean_profile_cache()
+
         for attempt in range(max_retries):
             try:
                 logger.info(f"   🌐 Попытка запуска браузера {attempt + 1}/{max_retries}")
@@ -203,42 +293,65 @@ class InterfaceParser:
                     button = tippy_content.find_element(By.XPATH, ".//div[text()='Активна']")
                     button.click()
 
-                all_pages_with_active_status = driver.find_element(By.XPATH,
-                                                                   "//div[starts-with(@class,'_wrapper_lftsu')]")
-                self.scroll_to_element_center(all_pages_with_active_status)
-                self.random_sleep()
-                all_pages_with_active_status = all_pages_with_active_status.find_element(By.XPATH,
-                                                                                         ".//ul").find_elements(
-                    By.XPATH, ".//li")
+                try:
+                    all_pages_with_active_status = driver.find_element(By.XPATH,
+                                                                       "//div[starts-with(@class,'_wrapper_lftsu')]")
+                    self.scroll_to_element_center(all_pages_with_active_status)
+                    self.random_sleep()
+                    all_pages_with_active_status = all_pages_with_active_status.find_element(By.XPATH,
+                                                                                             ".//ul").find_elements(
+                        By.XPATH, ".//li")
+                except:
+                    all_pages_with_active_status = []
+
+
                 self.random_sleep()
                 logger.info(f"   📄 Всего страниц - {len(all_pages_with_active_status)}")
 
-                for page in all_pages_with_active_status:
-                    for page_attempt in range(3):
-                        try:
-                            self.scroll_to_element_center(page)
-                            page.click()
-                            self.random_sleep(2)
-                            WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
-                            tbody = driver.find_element(By.XPATH, "//tbody")
-                            tbody_elements = tbody.find_elements(By.XPATH, ".//tr")
-                            for row in tbody_elements:
-                                camping_id = str(row.find_elements(By.XPATH, ".//td")[1].text)
-                                camping_url = f'https://seller.ozon.ru/app/advertisement/product/cpc/{camping_id}'
-                                camping_strategy = row.find_elements(By.XPATH, ".//td")[4].text
-                                camping_type = row.find_elements(By.XPATH, ".//td")[5].text
-                                camping_budget = row.find_elements(By.XPATH, ".//td")[6].text.replace('\u202f', '')
-                                if '₽' in camping_budget:
-                                    camping_budget = float(camping_budget.split('₽')[0])
+                if all_pages_with_active_status:
+                    for page in all_pages_with_active_status:
+                        for page_attempt in range(3):
+                            try:
+                                self.scroll_to_element_center(page)
+                                page.click()
+                                self.random_sleep(2)
+                                WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
+                                tbody = driver.find_element(By.XPATH, "//tbody")
+                                tbody_elements = tbody.find_elements(By.XPATH, ".//tr")
+                                for row in tbody_elements:
+                                    camping_id = str(row.find_elements(By.XPATH, ".//td")[1].text)
+                                    camping_url = f'https://seller.ozon.ru/app/advertisement/product/cpc/{camping_id}'
+                                    camping_strategy = row.find_elements(By.XPATH, ".//td")[4].text
+                                    camping_type = row.find_elements(By.XPATH, ".//td")[5].text
+                                    camping_budget = row.find_elements(By.XPATH, ".//td")[6].text.replace('\u202f', '')
+                                    if '₽' in camping_budget:
+                                        camping_budget = float(camping_budget.split('₽')[0])
 
-                                analytic_advert_dict[camping_id] = {"camping_url": camping_url,
-                                                                    "camping_type": camping_type,
-                                                                    "camping_strategy": camping_strategy,
-                                                                    "camping_budget": camping_budget}
-                            break
-                        except Exception as e:
-                            logger.warning(f"   ⚠️ Ошибка при обработке страницы: {e}")
-                            continue
+                                    analytic_advert_dict[camping_id] = {"camping_url": camping_url,
+                                                                        "camping_type": camping_type,
+                                                                        "camping_strategy": camping_strategy,
+                                                                        "camping_budget": camping_budget}
+                                break
+                            except Exception as e:
+                                logger.warning(f"   ⚠️ Ошибка при обработке страницы: {e}")
+                                continue
+                else:
+                    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
+                    tbody = driver.find_element(By.XPATH, "//tbody")
+                    tbody_elements = tbody.find_elements(By.XPATH, ".//tr")
+                    for row in tbody_elements:
+                        camping_id = str(row.find_elements(By.XPATH, ".//td")[1].text)
+                        camping_url = f'https://seller.ozon.ru/app/advertisement/product/cpc/{camping_id}'
+                        camping_strategy = row.find_elements(By.XPATH, ".//td")[4].text
+                        camping_type = row.find_elements(By.XPATH, ".//td")[5].text
+                        camping_budget = row.find_elements(By.XPATH, ".//td")[6].text.replace('\u202f', '')
+                        if '₽' in camping_budget:
+                            camping_budget = float(camping_budget.split('₽')[0])
+
+                        analytic_advert_dict[camping_id] = {"camping_url": camping_url,
+                                                            "camping_type": camping_type,
+                                                            "camping_strategy": camping_strategy,
+                                                            "camping_budget": camping_budget}
 
                 res = self.parser_advert_dict(analytic_advert_dict)
                 if res:
@@ -426,20 +539,83 @@ class InterfaceParser:
                     except:
                         continue
 
-                all_pages_with_active_status = driver.find_element(By.XPATH,
-                                                                   "//div[starts-with(@class,'_wrapper_lftsu')]")
-                self.scroll_to_element_center(all_pages_with_active_status)
-                self.random_sleep()
-                all_pages_with_active_status = all_pages_with_active_status.find_element(By.XPATH,
-                                                                                         ".//ul").find_elements(
-                    By.XPATH, ".//li")
+                try:
+                    all_pages_with_active_status = driver.find_element(By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")
+                    self.scroll_to_element_center(all_pages_with_active_status)
+                    self.random_sleep()
+                    all_pages_with_active_status = all_pages_with_active_status.find_element(By.XPATH,
+                                                                                             ".//ul").find_elements(
+                        By.XPATH, ".//li")
+                except:
+                    all_pages_with_active_status = []
+
                 self.random_sleep()
                 logger.info(f"   📄 Всего страниц - {len(all_pages_with_active_status)}")
 
-                for page in all_pages_with_active_status:
-                    self.scroll_to_element_center(page)
-                    page.click()
-                    self.random_sleep(2)
+                if all_pages_with_active_status:
+                    for page in all_pages_with_active_status:
+                        self.scroll_to_element_center(page)
+                        page.click()
+                        self.random_sleep(2)
+                        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
+                        time.sleep(2)
+                        tbody = driver.find_element(By.XPATH, "//tbody")
+                        tbody_elements = tbody.find_elements(By.XPATH, ".//tr")
+                        for row in tbody_elements:
+                            try:
+                                all_td = row.find_elements(By.XPATH, ".//td")
+                                sku_and_offer_id = all_td[2].text
+                                sku_split = sku_and_offer_id.split("\n")
+
+                                sku = sku_split[0].strip().replace("\n", "").strip().replace('\u202f', '')
+                                offer_id = sku_split[1].strip().replace("\n", "").strip().replace('\u202f', '')
+
+                                bet_data = all_td[5].text.split('\n')
+                                if len(bet_data) == 2:
+                                    bet_percent = bet_data[0].replace('\n', '').strip().replace('%', '').strip().replace(
+                                        '\u202f', '')
+                                    bet_amount = bet_data[1].replace('\n', '').strip().replace('₽', '').strip().replace(
+                                        '\u202f', '')
+                                else:
+                                    bet_percent = bet_data[0].replace('\n', '').strip().replace('%', '').strip().replace(
+                                        '\u202f', '')
+                                    bet_amount = bet_data[2].replace('\n', '').strip().replace('₽', '').strip().replace(
+                                        '\u202f', '')
+
+                                product_price = all_td[7].text.replace('\n', '').strip().replace(' ₽', '').strip().replace(
+                                    '₽', '').strip().replace('\u202f', '')
+                                index_view = all_td[8].text.replace('\n', '').strip().replace('\u202f', '')
+
+                                product_buy_pay = all_td[13].text.replace('\n', '').strip().replace('\u202f', '')
+                                product_buy_combo_model = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
+
+                                drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
+
+                                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+                                expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+                                offer_dict = {
+                                    'offer_id': offer_id,
+                                    'sku': sku,
+                                    'camping_type': "Оплата за заказ",
+                                    'bet_percent': bet_percent,
+                                    'bet_amount': bet_amount,
+                                    'product_price': product_price,
+                                    'index_view': index_view,
+                                    'product_buy_pay': product_buy_pay,
+                                    'product_buy_combo_model': product_buy_combo_model,
+                                    'drr': drr,
+                                    'expense': expense,
+                                    'expense_combo': expense_combo,
+                                }
+
+                                if offer_id in analytic_advert_dict.keys():
+                                    analytic_advert_dict[offer_id].append(offer_dict)
+                                else:
+                                    analytic_advert_dict[offer_id] = [offer_dict]
+                            except Exception as e:
+                                logger.warning(f"   ⚠️ Ошибка при обработке строки CPO: {e}")
+                                continue
+                else:
                     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
                     time.sleep(2)
                     tbody = driver.find_element(By.XPATH, "//tbody")
@@ -474,8 +650,10 @@ class InterfaceParser:
 
                             drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
 
-                            expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
-                            expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+                            expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                        '.').strip()
+                            expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                               '.').strip()
                             offer_dict = {
                                 'offer_id': offer_id,
                                 'sku': sku,
@@ -563,6 +741,7 @@ class InterfaceParser:
                             logger.warning(f"   ⚠️ Шаблон {template_idx + 1}: таблица не загрузилась, пропускаем")
                             continue
 
+                        self.random_sleep(2)
                         table = driver.find_element(By.XPATH, "//tbody")
                         all_items = table.find_elements(By.XPATH, ".//tr")
 
@@ -575,25 +754,17 @@ class InterfaceParser:
                         for item in all_items:
                             try:
                                 td_elements = item.find_elements(By.XPATH, ".//td")
-                                if len(td_elements) < 3:
-                                    continue
 
                                 sku_text = td_elements[1].text
-                                if 'SKU' not in sku_text:
-                                    continue
 
                                 item_sku = sku_text.split('SKU')[1].split('\n')[0].strip()
                                 item_position = td_elements[2].find_element(By.XPATH, './/div').text
+                                print(f"{item_sku}: {item_position}")
+                                position_dict[item_sku] = str(item_position)
 
-                                if item_sku and item_position:
-                                    try:
-                                        item_sku = str(int(item_sku))
-                                        # Добавляем или обновляем позицию
-                                        position_dict[item_sku] = str(item_position)
-                                        items_count += 1
-                                    except (ValueError, TypeError):
-                                        continue
+                                items_count += 1
                             except Exception as e:
+                                print(traceback.format_exc())
                                 continue
 
                         logger.info(f"   ✅ Шаблон {template_idx + 1}: получено {items_count} позиций")
@@ -667,6 +838,6 @@ if __name__ == "__main__":
 
     parser.start_browser(headless=False)
     parser.auth()
-    #parser.get_all_advert_analytic()
+    #position_analytic = parser.get_position_product_from_sku()
     time.sleep(2)
     parser.close()
