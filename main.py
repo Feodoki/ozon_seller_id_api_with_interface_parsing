@@ -32,6 +32,9 @@ lock = threading.Lock()
 INTERVAL = 1000
 headless_mode = True
 
+interface_parser = InterfaceParser()
+browser_started = interface_parser.start_browser(headless=headless_mode)
+
 
 def kill_chrome_processes():
     """Принудительно завершает все процессы chrome.exe"""
@@ -111,14 +114,12 @@ def my_script(api_keys):
         logger.info("   ✅ OzonSellerParse инициализирован")
 
         logger.info("📌 Шаг 2: Инициализация InterfaceParser...")
-        interface_parser = InterfaceParser()
+        if interface_parser:
+            logger.info("   ✅InterfaceParser успешно работает")
 
         logger.info("📌 Шаг 3 (без браузера): Получение аналитики из API...")
         all_items_dict = parse.main()
         logger.info(f"   ✅ Получено {len(all_items_dict)} товаров из API")
-
-        # Пытаемся запустить браузер
-        browser_started = interface_parser.start_browser(headless=headless_mode)
 
         if not browser_started:
             logger.error("   ❌ Не удалось запустить браузер после всех попыток")
@@ -141,9 +142,6 @@ def my_script(api_keys):
             else:
                 logger.warning("   ⚠️ Позиции товаров не получены (пустой результат)")
 
-            logger.info("📌 Шаг 6: Закрытие браузера...")
-            interface_parser.close()
-            logger.info("   ✅ Браузер закрыт")
             time.sleep(2)
 
             logger.info("📌 Шаг 6.5: Очистка процессов Chrome...")

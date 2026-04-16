@@ -838,6 +838,5 @@ if __name__ == "__main__":
 
     parser.start_browser(headless=False)
     parser.auth()
-    #position_analytic = parser.get_position_product_from_sku()
     time.sleep(2)
     parser.close()
