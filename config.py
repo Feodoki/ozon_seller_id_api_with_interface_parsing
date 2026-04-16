@@ -6,4 +6,4 @@ OZON_PERFORMANCE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhZHZlc
 
 spread_id = "1yBOhuv4H24GN-FCIaYlKHmwaHWwVS6y4ipRX6vwimms" # google sheet id
 
-profile_name = "selenium_profile"
+profile_name = "profile_my"

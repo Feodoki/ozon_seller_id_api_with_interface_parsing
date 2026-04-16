@@ -181,7 +181,11 @@ class InterfaceParser:
 
     def close(self):
         if self.driver:
-            self.driver.quit()
+            try:
+                self.driver.close()
+            except Exception as e:
+                pass
+            time.sleep(7)
             print("Браузер закрыт")
 
     def random_sleep(self, count: int = 1):
