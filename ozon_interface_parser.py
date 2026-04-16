@@ -457,15 +457,46 @@ class InterfaceParser:
                         except:
                             my_bet = '-'
 
-                        sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
-                        count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
-                        to_cart = all_td[15].text.replace('\n', '').strip()
-                        drr = all_td[10].text.replace('\n', '').strip()
-                        ctp = all_td[16].text.replace('\n', '').strip()
-                        views = all_td[13].text.replace('\n', '').strip()
-                        clicks = all_td[14].text.replace('\n', '').strip()
-                        product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
-                        expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                        print(f"Длинна all td - {len(all_td)}")
+                        if len(all_td) == 19:
+                            sr_click = all_td[4].text.replace('\n', '').strip().replace('₽', '')
+                            count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
+                            to_cart = all_td[13].text.replace('\n', '').strip()
+                            drr = all_td[8].text.replace('\n', '').strip()
+                            ctp = all_td[14].text.replace('\n', '').strip()
+                            views = all_td[11].text.replace('\n', '').strip()
+                            clicks = all_td[12].text.replace('\n', '').strip()
+                            product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
+                            expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                        else:
+                            sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
+                            count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
+                            to_cart = all_td[15].text.replace('\n', '').strip()
+                            drr = all_td[10].text.replace('\n', '').strip()
+                            ctp = all_td[16].text.replace('\n', '').strip()
+                            views = all_td[13].text.replace('\n', '').strip()
+                            clicks = all_td[14].text.replace('\n', '').strip()
+                            product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
+                            expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+
+                        logger.info(
+                            f"""
+                                offer id - {offer_id}\n
+                                sku - {sku}\n
+                                стратегия - {camping_strategy}\n
+                                конкурентная ставка - {concurent_bet}\n
+                                ваша ставка - {my_bet}\n
+                                Средняя стоимость клика - {sr_click}\n
+                                Заказы - {count_offers}\n
+                                В корзину(шт) - {to_cart}\n
+                                ДРР - {drr}\n
+                                Показы - {views}\n
+                                Клики - {clicks}\n
+                                Бюджет - {camping_budget}
+                                Цена товара - {product_price}\n
+                                Расходы - {expense}\n                 
+                                
+                            """)
 
                         offer_dict = {
                             'offer_id': offer_id,
