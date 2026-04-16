@@ -450,19 +450,10 @@ class InterfaceParser:
                         sku = sku_split[0].replace('\n', '').strip()
                         offer_id = str(sku_split[1].replace('\n', '').strip())
 
-                        try:
-                            concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
-                        except:
-                            concurent_bet = '-'
-
-                        try:
-                            my_bet = row.find_element(By.XPATH, f".//input[(@data-testid='InputCount')]").get_attribute(
-                                'value')
-                        except:
-                            my_bet = '-'
-
                         print(f"Длинна all td - {len(all_td)}")
                         if len(all_td) == 19:
+                            my_bet = '-'
+                            concurent_bet = '-'
                             sr_click = all_td[4].text.replace('\n', '').strip().replace('₽', '')
                             count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
                             to_cart = all_td[13].text.replace('\n', '').strip()
@@ -473,6 +464,16 @@ class InterfaceParser:
                             product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
                             expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                         else:
+                            try:
+                                concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
+                            except:
+                                concurent_bet = '-'
+                            try:
+                                my_bet = row.find_element(By.XPATH,
+                                                          f".//input[(@data-testid='InputCount')]").get_attribute(
+                                    'value')
+                            except:
+                                my_bet = '-'
                             sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
                             count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
                             to_cart = all_td[15].text.replace('\n', '').strip()
