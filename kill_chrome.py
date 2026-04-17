@@ -1,25 +1,26 @@
 import os
 import subprocess
 
-
-def kill_chrome_processes():
-    """Принудительно завершает все процессы chrome.exe"""
+def kill_chrome_processes_alternative():
+    """Альтернативный способ завершения процессов через psutil"""
     try:
+        import psutil
+        killed_count = 0
 
-        # Способ 1: через taskkill (Windows)
-        if os.name == 'nt':  # Windows
-            result = subprocess.run(['taskkill', '/F', '/IM', 'chrome.exe'],
-                                    capture_output=True, text=True)
+        for proc in psutil.process_iter(['pid', 'name']):
+            try:
+                if proc.info['name'] and 'chrome' in proc.info['name'].lower():
+                    proc.kill()
+                    killed_count += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
 
-        # Способ 2: через pkill (Linux/Mac)
+        if killed_count > 0:
+            print(f"   ✅ Завершено {killed_count} процессов chrome (psutil)")
         else:
-            result = subprocess.run(['pkill', '-f', 'chrome'],
-                                    capture_output=True, text=True)
+            print(f"   ℹ️ Процессов chrome не найдено")
 
-        # Дополнительная очистка: убиваем все дочерние процессы chrome
-        if os.name == 'nt':
-            subprocess.run(['taskkill', '/F', '/IM', 'chromedriver.exe'],
-                           capture_output=True, text=True)
-
+    except ImportError:
+        print("   ⚠️ psutil не установлен, пропускаем")
     except Exception as e:
-        pass
+        print(f"   ❌ Ошибка при завершении процессов: {e}")

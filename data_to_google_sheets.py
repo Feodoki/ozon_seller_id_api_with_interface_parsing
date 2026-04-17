@@ -323,13 +323,12 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         execute_with_retry(dashboard.update, "A1", [dashboard_headers])
         time.sleep(2)
 
-        for i, row in enumerate(dashboard_data):
-            row_num = i + 2
-            range_label = f"A{row_num}:D{row_num}"
-            execute_with_retry(dashboard.update, range_label, [row])
-            time.sleep(1.5)
-            if (i + 1) % 10 == 0:
-                print(f"    Вставлено {i + 1}/{len(dashboard_data)} строк")
+        # Вставляем данные одной операцией
+        start_row = 2
+        end_row = start_row + len(dashboard_data) - 1
+        range_all = f"A{start_row}:D{end_row}"
+        execute_with_retry(dashboard.update, range_all, dashboard_data)
+        print(f"  ✅ Вставлено {len(dashboard_data)} строк за раз")
 
         last_row_with_data = len(dashboard_data) + 1
 
