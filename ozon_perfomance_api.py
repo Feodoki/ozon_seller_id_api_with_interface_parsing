@@ -1,13 +1,11 @@
 import traceback
-from config import OZON_PERFORMANCE_CLIENT_ID, OZON_PERFORMANCE_CLIENT_SECRET, OZON_PERFORMANCE_TOKEN
+from config import OZON_PERFORMANCE_CLIENT_ID, OZON_PERFORMANCE_CLIENT_SECRET
 import requests
 
 class OzonPerfomanceAPI:
     def __init__(self):
         self.OZON_PERFORMANCE_CLIENT_ID = OZON_PERFORMANCE_CLIENT_ID
         self.OZON_PERFORMANCE_CLIENT_SECRET = OZON_PERFORMANCE_CLIENT_SECRET
-
-        self.OZON_PERFORMANCE_TOKEN = OZON_PERFORMANCE_TOKEN
 
     def _get_access_token(self):
         url = "https://api-performance.ozon.ru/api/client/token"

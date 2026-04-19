@@ -9,7 +9,6 @@ import logging
 import requests
 from datetime import datetime, timedelta, timezone
 from ozon_perfomance_api import OzonPerfomanceAPI
-from config import OZON_PERFORMANCE_TOKEN
 from config import ozon_api_key, ozon_client_id
 
 from data_to_google_sheets import upload_to_google_sheets, write_parser_error_to_sheet
@@ -27,7 +26,7 @@ class OzonSellerParse:
         }
 
         self.headers_perfomance = {
-            "Authorization": f"Bearer {OZON_PERFORMANCE_TOKEN}",
+            "Authorization": f"Bearer ",
             "Content-Type": "application/json"
         }
         self.update_token()
