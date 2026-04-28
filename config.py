@@ -1,10 +1,9 @@
-ozon_client_id = "" # Client id от seller ozon
-ozon_api_key = "" # API KEY от seller ozon
+ozon_client_id = "1151112"
+ozon_api_key = '063d4b48-fa66-4f4f-a1eb-0d8f028b7ba6'
+OZON_PERFORMANCE_CLIENT_ID = '93785685-1775929516804@advertising.performance.ozon.ru'
+OZON_PERFORMANCE_CLIENT_SECRET = 'Znx2VKGk6CzT-ALSPZ9k4hlH_sZVOBMW_y-I28EJmkJkp2JtzM0FsPEtKFuCY1CjHvPPAv4K4Yg4cj478w'
+OZON_PERFORMANCE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhZHZlcnRpc2luZy5wZXJmb3JtYW5jZS5vem9uLnJ1IiwiZXhwIjoxNzc2MDAzMDUyLCJpYXQiOjE3NzYwMDEyNTIsImlzcyI6InBlcmZvcm1hbmNlLWF1dGgub3pvbi5ydSIsInN1YiI6IjkzNzg1Njg1LTE3NzU5Mjk1MTY4MDRAYWR2ZXJ0aXNpbmcucGVyZm9ybWFuY2Uub3pvbi5ydSJ9.ZzLHp3T1djL7VmuekPCUdQMMOkwhHob_hVrKP7_EMp0'
 
-OZON_PERFORMANCE_CLIENT_ID = "" # Client id от рекламного API ozon
-OZON_PERFORMANCE_CLIENT_SECRET = "" # Client Secret от рекламного API ozon
+spread_id = "1JXytt2MudbIVfYdjXVj8iA9wMT39BgO-xyub1XiwZbc" # google sheet id
 
-
-spread_id = "" # ID таблицы google sheets (нужно выдать доступ аккаунту)
-
-profile_name = "profile_my"
+profile_name = "profile_name"
