@@ -224,9 +224,13 @@ class InterfaceParser:
             });
         """, element)
 
+
+    def auth_online(self):
+        input(f"Авторизуйтесь")
+        return False
+
     def check_auth_in_ozon(self):
         driver = self.driver
-        driver.get("https://seller.ozon.ru/app/advertisement/product/cpc")
         self.random_sleep()
         try:
             h1 = driver.find_element(By.XPATH, "//h1[starts-with(@class,'sxRegistration_l4 heading-500')]").text
@@ -237,7 +241,10 @@ class InterfaceParser:
                 write_error_to_sheet(h1)
                 print(f"Неизвестная ошибка в h1")
 
-            return False
+            if self.auth_online():
+                return True
+            else:
+                return False
         except:
             return True
 
@@ -419,26 +426,26 @@ class InterfaceParser:
                     my_bet = '-'
                 sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
-                to_cart = all_td[15].text.replace('\n', '').strip()
+                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[10].text.replace('\n', '').strip()
-                ctp = all_td[16].text.replace('\n', '').strip()
                 views = all_td[13].text.replace('\n', '').strip()
                 clicks = all_td[14].text.replace('\n', '').strip()
+                to_cart = all_td[15].text.replace('\n', '').strip()
+                ctp = all_td[16].text.replace('\n', '').strip()
                 product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
-                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
         else:
             if len(all_td) == 19:
                 my_bet = '-'
                 concurent_bet = '-'
                 sr_click = all_td[4].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
-                to_cart = all_td[13].text.replace('\n', '').strip()
+                expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[8].text.replace('\n', '').strip()
-                ctp = all_td[14].text.replace('\n', '').strip()
                 views = all_td[11].text.replace('\n', '').strip()
                 clicks = all_td[12].text.replace('\n', '').strip()
+                to_cart = all_td[13].text.replace('\n', '').strip()
+                ctp = all_td[14].text.replace('\n', '').strip()
                 product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
-                expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
             else:
                 try:
                     concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
@@ -452,16 +459,16 @@ class InterfaceParser:
                     my_bet = '-'
                 sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
-                to_cart = all_td[15].text.replace('\n', '').strip()
+                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[10].text.replace('\n', '').strip()
-                ctp = all_td[16].text.replace('\n', '').strip()
                 views = all_td[13].text.replace('\n', '').strip()
                 clicks = all_td[14].text.replace('\n', '').strip()
+                to_cart = all_td[15].text.replace('\n', '').strip()
+                ctp = all_td[16].text.replace('\n', '').strip()
                 product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
-                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
 
 
-        print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, sep='\n', end='\n\n')
+        print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
         return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense
 
 
@@ -890,6 +897,102 @@ class InterfaceParser:
 
         return {}
 
+    def get_actual_prices_offer_id(self):
+        driver = self.driver
+        prices_dict = {}
+        for attempt in range(3):
+            try:
+                logger.info(f"Попытка №{attempt} получить цены товаров")
+
+                driver.get('https://seller.ozon.ru/app/prices/control')
+                WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
+
+                self.random_sleep()
+                self.random_sleep()
+
+                if not self.check_auth_in_ozon():
+                    error_msg = "Авторизация не пройдена, невозможно получить позиции товаров"
+                    logger.error(f"   ❌ {error_msg}")
+                    write_parser_error_to_sheet(error_msg)
+                    return {}
+
+
+                try:
+                    all_pages_with_active_status = driver.find_elements(By.XPATH,"//ul")[-1]
+                    self.scroll_to_element_center(all_pages_with_active_status)
+                    self.random_sleep()
+                    all_pages_with_active_status = all_pages_with_active_status.find_elements(By.XPATH, ".//li")
+                except:
+                    all_pages_with_active_status = []
+
+                logger.info(f"Всего страниц с ценой - {len(all_pages_with_active_status)}")
+                if all_pages_with_active_status:
+                    for page in all_pages_with_active_status:
+                        print(f"Текст кнопки - {page.text}")
+                        self.scroll_to_element_center(page)
+                        self.random_sleep()
+                        page.click()
+                        self.random_sleep()
+                        self.random_sleep()
+
+                        pages_widget = driver.find_element(By.XPATH, "//article")
+                        self.scroll_to_element_center(pages_widget)
+                        time.sleep(3)
+                        input_element = driver.find_element(By.XPATH, "//input[starts-with(@id, 'baseInput')]")
+                        self.scroll_to_element_center(input_element)
+                        time.sleep(3)
+
+                        actual_table = driver.find_element(By.XPATH, "//tbody")
+                        all_tr = actual_table.find_elements(By.XPATH, ".//tr")
+                        for row in all_tr:
+                            for _ in range(3):
+                                try:
+                                    all_td = row.find_elements(By.XPATH, ".//td")
+                                    self.scroll_to_element_center(all_td[1])
+                                    time.sleep(1)
+                                    item_name = all_td[2].text
+                                    if 'Название и артикул' in item_name:
+                                        continue
+
+                                    print(item_name.split('\n'))
+                                    item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                    print(all_td[5].text.split('\n'))
+                                    item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                    print(item_offer_id, item_price)
+                                    if item_offer_id not in prices_dict.keys():
+                                        prices_dict[item_offer_id] = {'price': item_price}
+                                    break
+                                except:
+                                    time.sleep(1)
+                else:
+                    actual_table = driver.find_element(By.XPATH, "//tbody")
+                    all_tr = actual_table.find_elements(By.XPATH, ".//tr")
+                    for row in all_tr:
+                        for _ in range(3):
+                            try:
+                                all_td = row.find_elements(By.XPATH, ".//td")
+                                self.scroll_to_element_center(all_td[1])
+                                time.sleep(1)
+                                item_name = all_td[2].text
+                                if 'Название и артикул' in item_name:
+                                    continue
+
+                                print(item_name.split('\n'))
+                                item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                print(all_td[5].text.split('\n'))
+                                item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                print(item_offer_id, item_price)
+                                if item_offer_id not in prices_dict.keys():
+                                    prices_dict[item_offer_id] = {'price': item_price}
+                                break
+                            except:
+                                time.sleep(1)
+                return prices_dict
+            except:
+                print(traceback.format_exc())
+                continue
+
+
     def get_all_advert_analytic(self, max_retries: int = 3):
         """Получение всей рекламной аналитики с обработкой ошибок"""
         if not self.check_auth_in_ozon():
@@ -904,6 +1007,17 @@ class InterfaceParser:
             if res_dict:
                 res_dict = self.get_advert_analytics_pay_to_buy(res_dict, max_retries)
                 logger.info(f"   ✅ Рекламная аналитика успешно собрана для {len(res_dict)} товаров")
+                try:
+                    price_dict = self.get_actual_prices_offer_id()
+                    for offer_id in price_dict:
+                        actual_price = price_dict[offer_id]['price']
+                        res_dict[offer_id]['product_price'] = actual_price
+
+                    return res_dict
+                except Exception as e:
+                    logger.info(f'Ошибка сопоставления актуальных цен - {str(e)}')
+                    pass
+
                 return res_dict
             else:
                 logger.warning("   ⚠️ Не удалось получить аналитику CPC")

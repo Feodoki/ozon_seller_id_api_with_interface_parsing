@@ -136,7 +136,8 @@ def my_script(api_keys):
                 logger.warning("   ⚠️ Рекламная аналитика не получена (пустой результат)")
 
             logger.info("📌 Шаг 5: Получение позиций товаров...")
-            position_analytic = interface_parser.get_position_product_from_sku()
+            #position_analytic = interface_parser.get_position_product_from_sku()
+            position_analytic = {} # Нет результат, озон изменил вкладку с этим значением
             if position_analytic:
                 logger.info(f"   ✅ Получены позиции для {len(position_analytic)} SKU")
             else:
@@ -144,10 +145,6 @@ def my_script(api_keys):
 
             time.sleep(2)
 
-            logger.info("📌 Шаг 6.5: Очистка процессов Chrome...")
-            #kill_chrome_processes()
-            #kill_chrome_processes_alternative()
-            time.sleep(1)
 
         #print(all_items_dict, advert_analytic, position_analytic, sep='\n')
         logger.info("📌 Шаг 7: Загрузка данных в Google Sheets...")
