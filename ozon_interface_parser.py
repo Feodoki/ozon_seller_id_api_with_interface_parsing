@@ -992,7 +992,6 @@ class InterfaceParser:
                 print(traceback.format_exc())
                 continue
 
-
     def get_all_advert_analytic(self, max_retries: int = 3):
         """Получение всей рекламной аналитики с обработкой ошибок"""
         if not self.check_auth_in_ozon():
@@ -1007,18 +1006,30 @@ class InterfaceParser:
             if res_dict:
                 res_dict = self.get_advert_analytics_pay_to_buy(res_dict, max_retries)
                 logger.info(f"   ✅ Рекламная аналитика успешно собрана для {len(res_dict)} товаров")
+
                 try:
                     price_dict = self.get_actual_prices_offer_id()
+
+                    # Исправление: обрабатываем список товаров для каждого offer_id
                     for offer_id in price_dict:
                         actual_price = price_dict[offer_id]['price']
-                        res_dict[offer_id]['product_price'] = actual_price
 
+                        if offer_id in res_dict:
+                            # res_dict[offer_id] - это список словарей
+                            for item_dict in res_dict[offer_id]:
+                                item_dict['product_price'] = actual_price
+                        else:
+                            logger.warning(f"   ⚠️ offer_id {offer_id} не найден в рекламной аналитике")
+
+                    logger.info(f"   ✅ Актуальные цены добавлены для {len(price_dict)} товаров")
                     return res_dict
-                except Exception as e:
-                    logger.info(f'Ошибка сопоставления актуальных цен - {str(e)}')
-                    pass
 
-                return res_dict
+                except Exception as e:
+                    logger.error(f'   ❌ Ошибка сопоставления актуальных цен - {str(e)}')
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    # Возвращаем данные даже без цен, чтобы не терять информацию
+                    return res_dict
             else:
                 logger.warning("   ⚠️ Не удалось получить аналитику CPC")
                 return {}
