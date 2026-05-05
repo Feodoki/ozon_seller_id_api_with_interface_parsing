@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 import threading
 import time
+import json
 
 from ozon_api_parser import OzonSellerParse
 from ozon_interface_parser import InterfaceParser
@@ -148,6 +149,25 @@ def my_script(api_keys):
 
         #print(all_items_dict, advert_analytic, position_analytic, sep='\n')
         logger.info("📌 Шаг 7: Загрузка данных в Google Sheets...")
+        try:
+            with open('all_items_dict.json', 'w', encoding='utf-8') as f:
+                json.dump(all_items_dict, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(traceback.format_exc())
+            pass
+
+        try:
+            with open('advert_analytic.json', 'w', encoding='utf-8') as f:
+                json.dump(advert_analytic, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(traceback.format_exc())
+            pass
+        try:
+            with open('position_analytic.json', 'w', encoding='utf-8') as f:
+                json.dump(position_analytic, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(traceback.format_exc())
+            pass
         upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic)
         logger.info("   ✅ Данные загружены в Google Sheets")
 

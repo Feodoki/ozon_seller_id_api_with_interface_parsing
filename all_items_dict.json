@@ -1,0 +1,128 @@
+{
+    "shorts-XL": {
+        "offer_id": "shorts-XL",
+        "product_name": "Шорты для плавания мужские",
+        "skus": [
+            "1970782025"
+        ],
+        "total_revenue": 33712,
+        "total_ordered_units": 16,
+        "total_hits_view": 2256,
+        "total_hits_view_search": 393,
+        "total_hits_view_pdp": 113,
+        "total_session_view_pdp": 74,
+        "total_session_view_search": 1238,
+        "total_hits_tocart": 27,
+        "avg_position_category": 41.0,
+        "conversion_search_to_pdp": 28.75,
+        "avg_conversion_search_to_pdp": 28.75,
+        "conversion_view_to_order": 0.71,
+        "avg_conv_tocart_search": 0.0,
+        "avg_conv_tocart": 1.2
+    },
+    "shorts-M": {
+        "offer_id": "shorts-M",
+        "product_name": "Шорты для плавания мужские",
+        "skus": [
+            "1946765272"
+        ],
+        "total_revenue": 29498,
+        "total_ordered_units": 14,
+        "total_hits_view": 2089,
+        "total_hits_view_search": 412,
+        "total_hits_view_pdp": 70,
+        "total_session_view_pdp": 55,
+        "total_session_view_search": 747,
+        "total_hits_tocart": 20,
+        "avg_position_category": 32.0,
+        "conversion_search_to_pdp": 16.99,
+        "avg_conversion_search_to_pdp": 16.99,
+        "conversion_view_to_order": 0.67,
+        "avg_conv_tocart_search": 0.53,
+        "avg_conv_tocart": 0.96
+    },
+    "shorts-L": {
+        "offer_id": "shorts-L",
+        "product_name": "Шорты для плавания мужские",
+        "skus": [
+            "1970781012"
+        ],
+        "total_revenue": 23177,
+        "total_ordered_units": 11,
+        "total_hits_view": 11176,
+        "total_hits_view_search": 5782,
+        "total_hits_view_pdp": 311,
+        "total_session_view_pdp": 229,
+        "total_session_view_search": 5579,
+        "total_hits_tocart": 20,
+        "avg_position_category": 9.0,
+        "conversion_search_to_pdp": 5.38,
+        "avg_conversion_search_to_pdp": 5.38,
+        "conversion_view_to_order": 0.1,
+        "avg_conv_tocart_search": 0.01,
+        "avg_conv_tocart": 0.18
+    },
+    "shorts-2XL": {
+        "offer_id": "shorts-2XL",
+        "product_name": "Шорты для плавания мужские",
+        "skus": [
+            "1970785269"
+        ],
+        "total_revenue": 16856,
+        "total_ordered_units": 8,
+        "total_hits_view": 2134,
+        "total_hits_view_search": 240,
+        "total_hits_view_pdp": 60,
+        "total_session_view_pdp": 44,
+        "total_session_view_search": 313,
+        "total_hits_tocart": 20,
+        "avg_position_category": 51.0,
+        "conversion_search_to_pdp": 25.0,
+        "avg_conversion_search_to_pdp": 25.0,
+        "conversion_view_to_order": 0.37,
+        "avg_conv_tocart_search": 0.0,
+        "avg_conv_tocart": 0.94
+    },
+    "shorts-3XL": {
+        "offer_id": "shorts-3XL",
+        "product_name": "Шорты для плавания мужские",
+        "skus": [
+            "1970787005"
+        ],
+        "total_revenue": 4214,
+        "total_ordered_units": 2,
+        "total_hits_view": 1839,
+        "total_hits_view_search": 381,
+        "total_hits_view_pdp": 55,
+        "total_session_view_pdp": 40,
+        "total_session_view_search": 647,
+        "total_hits_tocart": 4,
+        "avg_position_category": 47.0,
+        "conversion_search_to_pdp": 14.44,
+        "avg_conversion_search_to_pdp": 14.44,
+        "conversion_view_to_order": 0.11,
+        "avg_conv_tocart_search": 0.15,
+        "avg_conv_tocart": 0.22
+    },
+    "k61-black-54": {
+        "offer_id": "k61-black-54",
+        "product_name": "Штаны спортивные мужские черные",
+        "skus": [
+            "2819423182"
+        ],
+        "total_revenue": 0,
+        "total_ordered_units": 0,
+        "total_hits_view": 43,
+        "total_hits_view_search": 7,
+        "total_hits_view_pdp": 6,
+        "total_session_view_pdp": 5,
+        "total_session_view_search": 14,
+        "total_hits_tocart": 0,
+        "avg_position_category": 67.0,
+        "conversion_search_to_pdp": 85.71,
+        "avg_conversion_search_to_pdp": 85.71,
+        "conversion_view_to_order": 0.0,
+        "avg_conv_tocart_search": 0.0,
+        "avg_conv_tocart": 0.0
+    }
+}
