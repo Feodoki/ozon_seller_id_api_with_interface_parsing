@@ -406,6 +406,7 @@ class InterfaceParser:
                 target_drr = all_td[4].text.replace('\n', '').strip().replace('₽', '')
                 sr_click = all_td[5].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[6].text.replace('\n', '').strip().replace('\n', '').strip()
+                selled = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 expense = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[9].text.replace('\n', '').strip()
                 views = all_td[12].text.replace('\n', '').strip()
@@ -426,6 +427,7 @@ class InterfaceParser:
                     my_bet = '-'
                 sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
+                selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[10].text.replace('\n', '').strip()
                 views = all_td[13].text.replace('\n', '').strip()
@@ -439,6 +441,7 @@ class InterfaceParser:
                 concurent_bet = '-'
                 sr_click = all_td[4].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
+                selled = all_td[6].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[8].text.replace('\n', '').strip()
                 views = all_td[11].text.replace('\n', '').strip()
@@ -459,6 +462,7 @@ class InterfaceParser:
                     my_bet = '-'
                 sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
                 count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
+                selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                 drr = all_td[10].text.replace('\n', '').strip()
                 views = all_td[13].text.replace('\n', '').strip()
@@ -469,7 +473,7 @@ class InterfaceParser:
 
 
         print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
-        return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense
+        return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
 
 
     def parser_advert_dict(self, advert_dict, max_retries: int = 3):
@@ -535,7 +539,7 @@ class InterfaceParser:
                         offer_id = str(sku_split[1].replace('\n', '').strip())
 
                         print(f"Длинна all td - {len(all_td)}")
-                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense = self.pars_table_advert(row, all_td, camping_type)
+                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(row, all_td, camping_type)
 
                         logger.info(
                             f"""
@@ -552,7 +556,8 @@ class InterfaceParser:
                                 Клики - {clicks}\n
                                 Бюджет - {camping_budget}
                                 Цена товара - {product_price}\n
-                                Расходы - {expense}\n                 
+                                Расходы - {expense}\n
+                                Продажи - {selled}\n                 
                                 
                             """)
 
@@ -573,6 +578,7 @@ class InterfaceParser:
                             'clicks': clicks,
                             'product_price': product_price,
                             'expense': expense,
+                            'selled': selled,
                         }
                         if offer_id in result_advert_dict.keys():
                             result_advert_dict[offer_id].append(offer_dict)
@@ -678,6 +684,8 @@ class InterfaceParser:
                                 product_buy_pay = all_td[13].text.replace('\n', '').strip().replace('\u202f', '')
                                 product_buy_combo_model = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
 
+                                combo_sell = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+
                                 drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
 
                                 expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
@@ -695,6 +703,7 @@ class InterfaceParser:
                                     'drr': drr,
                                     'expense': expense,
                                     'expense_combo': expense_combo,
+                                    'selled': combo_sell,
                                 }
 
                                 if offer_id in analytic_advert_dict.keys():
@@ -743,6 +752,9 @@ class InterfaceParser:
                                                                                                         '.').strip()
                             expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                                '.').strip()
+
+                            selled = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                            '.').strip()
                             offer_dict = {
                                 'offer_id': offer_id,
                                 'sku': sku,
@@ -756,6 +768,7 @@ class InterfaceParser:
                                 'drr': drr,
                                 'expense': expense,
                                 'expense_combo': expense_combo,
+                                'selled': selled,
                             }
 
                             if offer_id in analytic_advert_dict.keys():
