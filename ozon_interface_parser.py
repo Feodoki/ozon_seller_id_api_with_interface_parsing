@@ -1074,18 +1074,22 @@ class InterfaceParser:
                 open_menu_product()
 
                 time.sleep(0.5)
-                wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
-                li_elements = wrapper.find_elements(By.XPATH, ".//li")
-                count_pages = len(li_elements)
-
-                for page in range(1, count_pages+1):
-                    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                try:
                     wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
                     li_elements = wrapper.find_elements(By.XPATH, ".//li")
-                    self.scroll_to_element_center(li_elements[page - 1])
-                    time.sleep(1)
-                    li_elements[page - 1].click()
-                    time.sleep(2)
+                    count_pages = len(li_elements)
+                except:
+                    count_pages = 1
+
+                for page in range(1, count_pages+1):
+                    if count_pages != 1:
+                        WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                        wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                        li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                        self.scroll_to_element_center(li_elements[page - 1])
+                        time.sleep(1)
+                        li_elements[page - 1].click()
+                        time.sleep(2)
 
                     table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
                     table = table_div.find_element(By.XPATH, ".//tbody")
@@ -1094,13 +1098,14 @@ class InterfaceParser:
                     for num_product in range(len(all_tr)):
                         try:
                             time.sleep(0.5)
-                            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
-                            wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
-                            li_elements = wrapper.find_elements(By.XPATH, ".//li")
-                            self.scroll_to_element_center(li_elements[page - 1])
-                            time.sleep(1)
-                            li_elements[page - 1].click()
-                            time.sleep(2)
+                            if count_pages != 1:
+                                WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                                wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                                li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                                self.scroll_to_element_center(li_elements[page - 1])
+                                time.sleep(1)
+                                li_elements[page - 1].click()
+                                time.sleep(2)
 
                             table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
                             table = table_div.find_element(By.XPATH, ".//tbody")

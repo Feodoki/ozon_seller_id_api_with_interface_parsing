@@ -208,8 +208,11 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         execute_with_exponential_backoff(set_frozen, dashboard, rows=1)
         time.sleep(1)
 
-        for col, width in [('A', 250), ('B', 250), ('C', 220), ('D', 220), ('E', 220), ('F', 220)]:
-            execute_with_exponential_backoff(set_column_width, dashboard, col, width)
+        for col in ['A', 'B', 'C', 'D', 'E', 'F']:
+            if col == 'A':
+                execute_with_exponential_backoff(set_column_width, dashboard, col, 200)
+            else:
+                execute_with_exponential_backoff(set_column_width, dashboard, col, 100)
         time.sleep(1)
 
         current_total_rows = 1  # Теперь только заголовок
