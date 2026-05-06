@@ -171,16 +171,13 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
     print("📊 Работа с листом DASHBOARD...")
     dashboard = execute_with_exponential_backoff(get_or_create_sheet, spreadsheet, "DASHBOARD")
 
-    MAX_DASHBOARD_ROWS = 500  # Максимальное количество строк данных
-    HEADER_ROWS = 1  # Количество строк заголовков
+    HEADER_ROWS = 1
 
     # Получаем текущие данные
     current_data = execute_with_retry(dashboard.get_all_values)
-    current_total_rows = len(current_data)  # Общее количество строк в листе (включая пустые)
-    current_data_rows = current_total_rows  # Строк с данными (включая заголовки)
+    current_total_rows = len(current_data)
 
     print(f"  📊 Текущее количество строк в листе DASHBOARD: {current_total_rows}")
-    print(f"  📊 Строк с данными: {current_data_rows}")
 
     # Подготавливаем данные для вставки
     dashboard_headers = [
@@ -215,14 +212,11 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
                 execute_with_exponential_backoff(set_column_width, dashboard, col, 100)
         time.sleep(1)
 
-        current_total_rows = 1  # Теперь только заголовок
-        current_data_rows = 1
+        current_total_rows = 1
     else:
-        # Очищаем старые данные, но НЕ удаляем строки (только содержимое)
-        if current_data_rows > 1:
+        if current_total_rows > 1:
             print("  🗑️ Очищаем старые данные...")
             try:
-                # Очищаем только содержимое, без удаления строк
                 execute_with_retry(dashboard.batch_clear, [f"A2:F{current_total_rows}"])
                 print(f"  ✅ Очищено содержимое строк 2-{current_total_rows}")
                 time.sleep(2)
@@ -231,27 +225,28 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
 
     # Собираем данные для DASHBOARD
     dashboard_rows = []
-    total_revenue = 0
     total_orders = 0
 
     # Общие суммы для итогов
-    total_expenses_search = 0  # расходы по поиску и поиск+рекомендации
-    total_selled_search = 0  # продажи по поиску и поиск+рекомендации
-    total_expenses_cpo = 0  # расходы по оплате за заказ
-    total_selled_cpo = 0  # продажи по оплате за заказ
+    total_expenses_search = 0           # расходы по поиску + поиск и рекомендации
+    total_selled_search = 0             # продажи по поиску + поиск и рекомендации
+    total_expenses_cpo_from_campaigns = 0  # расходы по CPO из кампаний (expense + expense_model)
+    total_selled_cpo = 0                # продажи по CPO
+    total_expenses_from_campaigns_all = 0  # ВСЕ расходы из кампаний (поиск + рекомендации + CPO)
+    total_revenue_all = 0               # ВСЕ продажи из аналитики (Сумма продаж за день)
 
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
-        total_revenue_item = item.get("total_revenue", 0)  # Заказано на сумму
+        total_revenue_item = item.get("total_revenue", 0)      # Сумма продаж за день (из аналитики)
         total_ordered_units = item.get("total_ordered_units", 0)
 
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
 
         # Инициализируем переменные для разных типов кампаний
-        total_expenses_item_search = 0  # расходы по поиску и поиск+рекомендации
-        total_selled_item_search = 0  # продажи по поиску и поиск+рекомендации
-        total_expenses_item_cpo = 0  # расходы по оплате за заказ
-        total_selled_item_cpo = 0  # продажи по оплате за заказ
+        total_expenses_item_search = 0   # расходы по поиску + поиск и рекомендации
+        total_selled_item_search = 0     # продажи по поиску + поиск и рекомендации
+        total_expenses_item_cpo = 0      # расходы по CPO из кампаний (expense + expense_model)
+        total_selled_item_cpo = 0        # продажи по CPO
 
         for camp in offer_campaigns:
             camping_type = camp.get('camping_type', '')
@@ -289,52 +284,61 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
             if camping_type in ['Поиск', 'Поиск и рекомендации']:
                 total_expenses_item_search += expense_clean
                 total_selled_item_search += selled_clean
-                print(f"    📊 Поисковая кампания {offer_id}: расходы={expense_clean}, продажи={selled_clean}")
 
             elif camping_type == 'Оплата за заказ':
                 total_expenses_item_cpo += expense_clean + expense_model_clean
                 total_selled_item_cpo += selled_clean
-                print(
-                    f"    📊 CPO кампания {offer_id}: расходы={expense_clean + expense_model_clean}, продажи={selled_clean}")
 
-        # ========= РАСЧЕТ ДРР (поиск/поиск и рекомендации) =========
+        # ==================== МЕСТО 1 ====================
+        # ДРР (поиск/поиск и рекомендации) %
         # Формула: расходы на поисковые кампании / продажи по поисковым кампаниям * 100
         if total_selled_item_search > 0:
             drr_search = round((total_expenses_item_search / total_selled_item_search) * 100, 2)
         else:
             drr_search = 0
 
-        # ========= РАСЧЕТ ДРР (оплата за заказ) =========
-        # Формула: расходы на CPO / продажи по CPO * 100
-        if total_selled_item_cpo > 0:
-            drr_cpo = round((total_expenses_item_cpo / total_selled_item_cpo) * 100, 2)
-        else:
-            drr_cpo = 0
-
-        # ========= ПОЛУЧЕНИЕ ОБЩЕГО ДРР ИЗ drr_all_dict =========
-        drr_total = 0
+        # ==================== МЕСТО 2 ====================
+        # ДРР (оплата за заказ) %
+        # Формула: общие расходы из drr_all_dict / Сумма продаж за день на текущий момент * 100
+        total_expenses_from_dict = 0
         if drr_all_dict and offer_id in drr_all_dict:
             drr_value = drr_all_dict[offer_id]
             if drr_value and drr_value != '—' and drr_value != '':
                 try:
-                    # Удаляем знак процента и преобразуем в число
-                    drr_clean = str(drr_value).replace('%', '').replace(',', '.').strip()
-                    drr_total = round(float(drr_clean), 2)
-                    print(f"    📊 Общий ДРР для {offer_id} из словаря: {drr_total}%")
+                    # Очищаем значение от пробелов и заменяем запятую на точку
+                    cleaned = str(drr_value).replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
+                    total_expenses_from_dict = float(cleaned)
                 except (ValueError, TypeError):
-                    print(f"    ⚠️ Не удалось преобразовать общий ДРР для {offer_id}: {drr_value}")
-                    drr_total = 0
+                    print(f"    ⚠️ Не удалось преобразовать расходы для {offer_id}: {drr_value}")
+                    total_expenses_from_dict = 0
             else:
-                print(f"    📊 Общий ДРР для {offer_id}: нет данных (—)")
+                print(f"    📊 Расходы для {offer_id}: нет данных (—)")
         else:
-            print(f"    📊 Общий ДРР для {offer_id}: нет данных в словаре")
+            print(f"    📊 Расходы для {offer_id}: нет данных в словаре")
+
+        if total_revenue_item > 0:
+            drr_cpo = round((total_expenses_from_dict / total_revenue_item) * 100, 2)
+        else:
+            drr_cpo = 0
+
+        # ==================== МЕСТО 3 ====================
+        # ДРР (общий) %
+        # Формула: (расходы поиск + расходы рекомендации + расходы CPO) / Сумма продаж за день * 100
+        total_expenses_all_item = total_expenses_item_search + total_expenses_item_cpo
+        if total_revenue_item > 0:
+            drr_total = round((total_expenses_all_item / total_revenue_item) * 100, 2)
+        else:
+            drr_total = 0
 
         print(f"\n  📊 {offer_id}:")
-        print(f"     Продажи по поиску: {total_selled_item_search} руб., расходы: {total_expenses_item_search} руб.")
-        print(f"     Продажи по CPO: {total_selled_item_cpo} руб., расходы: {total_expenses_item_cpo} руб.")
+        print(f"     Сумма продаж за день (аналитика): {total_revenue_item:,.2f} руб.")
+        print(f"     Продажи по поиску+рекомендациям: {total_selled_item_search:,.2f} руб., расходы: {total_expenses_item_search:,.2f} руб.")
+        print(f"     Продажи по CPO: {total_selled_item_cpo:,.2f} руб., расходы из кампаний: {total_expenses_item_cpo:,.2f} руб.")
+        print(f"     Общие расходы из drr_all_dict: {total_expenses_from_dict:,.2f} руб.")
+        print(f"     Все расходы из кампаний (для общего ДРР): {total_expenses_all_item:,.2f} руб.")
         print(f"     ДРР поиск: {drr_search}%")
-        print(f"     ДРР CPO: {drr_cpo}%")
-        print(f"     ДРР общий (из словаря): {drr_total}%")
+        print(f"     ДРР оплата за заказ (из drr_all_dict / продажи): {drr_cpo}%")
+        print(f"     ДРР общий (все расходы из кампаний / продажи): {drr_total}%")
 
         dashboard_rows.append({
             'offer_id': offer_id,
@@ -343,18 +347,15 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
             'drr_search': drr_search,
             'drr_cpo': drr_cpo,
             'drr_total': drr_total,
-            'expenses_search': total_expenses_item_search,
-            'selled_search': total_selled_item_search,
-            'expenses_cpo': total_expenses_item_cpo,
-            'selled_cpo': total_selled_item_cpo,
         })
 
-        total_revenue += total_revenue_item
         total_orders += total_ordered_units
         total_expenses_search += total_expenses_item_search
         total_selled_search += total_selled_item_search
-        total_expenses_cpo += total_expenses_item_cpo
+        total_expenses_cpo_from_campaigns += total_expenses_item_cpo
         total_selled_cpo += total_selled_item_cpo
+        total_expenses_from_campaigns_all += total_expenses_all_item
+        total_revenue_all += total_revenue_item
 
     # Сортируем по количеству продаж
     dashboard_rows.sort(key=lambda x: x['orders'], reverse=True)
@@ -370,41 +371,43 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
             row['drr_total']
         ])
 
-    dashboard_data.append(["", "", "", "", "", ""])  # Пустая строка-разделитель
+    dashboard_data.append(["", "", "", "", "", ""])
 
     # Итоговые строки
     if dashboard_rows:
-        # ИТОГОВЫЙ ДРР (поиск/поиск и рекомендации)
+        # ==================== МЕСТО 1 (ИТОГ) ====================
         if total_selled_search > 0:
             total_drr_search = round((total_expenses_search / total_selled_search) * 100, 2)
         else:
             total_drr_search = 0
 
-        # ИТОГОВЫЙ ДРР (оплата за заказ)
-        if total_selled_cpo > 0:
-            total_drr_cpo = round((total_expenses_cpo / total_selled_cpo) * 100, 2)
-        else:
-            total_drr_cpo = 0
+        # ==================== МЕСТО 2 (ИТОГ) ====================
+        # Внимание: для итогового ДРР (оплата за заказ) нужно сложить все расходы из drr_all_dict
+        # и разделить на общую сумму продаж. Так как у нас нет доступа к суммарному drr_all_dict,
+        # мы его не показываем в итоговой строке, оставляем 0
+        total_drr_cpo = 0  # Итоговый ДРР по CPO не вычисляем (требуется суммарный drr_all_dict)
 
-        # ИТОГОВЫЙ ОБЩИЙ ДРР - НЕ ВЫЧИСЛЯЕМ, оставляем 0 или прочерк
-        total_drr_total = 0  # Общий ДРР не вычисляем, так как берем из словаря
+        # ==================== МЕСТО 3 (ИТОГ) ====================
+        if total_revenue_all > 0:
+            total_drr_total = round((total_expenses_from_campaigns_all / total_revenue_all) * 100, 2)
+        else:
+            total_drr_total = 0
 
         print(f"\n  {'=' * 50}")
         print(f"  📊 ИТОГО по всем товарам:")
-        print(f"     Общая выручка (из статистики): {total_revenue:,.2f} руб.")
+        print(f"     Общая выручка (из аналитики): {total_revenue_all:,.2f} руб.")
+        print(f"     Общие расходы из кампаний (поиск+рекомендации+CPO): {total_expenses_from_campaigns_all:,.2f} руб.")
         print(f"     Общие заказы: {total_orders}")
-        print(f"     Продажи по поиску: {total_selled_search:,.2f} руб., расходы: {total_expenses_search:,.2f} руб.")
-        print(f"     Продажи по CPO: {total_selled_cpo:,.2f} руб., расходы: {total_expenses_cpo:,.2f} руб.")
+        print(f"     Продажи по поиску+рекомендациям: {total_selled_search:,.2f} руб., расходы: {total_expenses_search:,.2f} руб.")
         print(f"     Итоговый ДРР (поиск): {total_drr_search}%")
-        print(f"     Итоговый ДРР (CPO): {total_drr_cpo}%")
-        print(f"     Итоговый ДРР (общий): берется из словаря для каждого товара отдельно")
+        print(f"     Итоговый ДРР (общий): {total_drr_total}%")
         print(f"  {'=' * 50}\n")
     else:
         total_drr_search = 0
         total_drr_cpo = 0
         total_drr_total = 0
 
-    dashboard_data.append(["ИТОГО", total_revenue, total_orders, total_drr_search, total_drr_cpo, total_drr_total])
+    dashboard_data.append(["ИТОГО", total_revenue_all, total_orders, total_drr_search, total_drr_cpo, total_drr_total])
 
     # Проверяем и добавляем строки при необходимости
     rows_needed = len(dashboard_data) + HEADER_ROWS
@@ -412,43 +415,21 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
 
     print(f"  📊 Текущее количество строк в листе: {current_total_rows}")
     print(f"  📊 Необходимо строк для вставки: {rows_needed}")
-    print(f"  📊 Нужно добавить строк: {max(0, rows_needed + BUFFER_ROWS - current_total_rows)}")
 
-    # Если строк не хватает, добавляем новые
     if current_total_rows < rows_needed + BUFFER_ROWS:
         rows_to_add = (rows_needed + BUFFER_ROWS) - current_total_rows
         print(f"  ➕ Добавляем {rows_to_add} новых строк в лист...")
         try:
             dashboard.add_rows(rows_to_add)
-            print(f"  ✅ Добавлено {rows_to_add} строк. Теперь строк: {current_total_rows + rows_to_add}")
+            print(f"  ✅ Добавлено {rows_to_add} строк")
             time.sleep(2)
         except Exception as e:
             print(f"  ⚠️ Ошибка при добавлении строк: {e}")
-            try:
-                body = {
-                    "requests": [{
-                        "insertRange": {
-                            "range": {
-                                "sheetId": dashboard.id,
-                                "startRowIndex": current_total_rows,
-                                "endRowIndex": current_total_rows + rows_to_add
-                            },
-                            "shiftDimension": "ROWS"
-                        }
-                    }]
-                }
-                spreadsheet.batch_update(body)
-                print(f"  ✅ Добавлено {rows_to_add} строк через batch_update")
-                time.sleep(2)
-            except Exception as e2:
-                print(f"  ❌ Не удалось добавить строки: {e2}")
 
-    # Обновляем заголовки и вставляем данные
     print(f"  📝 Вставка {len(dashboard_data)} строк данных...")
     execute_with_retry(dashboard.update, "A1", [dashboard_headers])
     time.sleep(2)
 
-    # Вставляем данные одной операцией
     start_row = 2
     end_row = start_row + len(dashboard_data) - 1
     range_all = f"A{start_row}:F{end_row}"
@@ -457,35 +438,6 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
     time.sleep(2)
 
     last_row_with_data = len(dashboard_data) + 1
-
-    # Добавляем фильтры
-    try:
-        dashboard_id = dashboard.id
-        data_end_row = last_row_with_data - 2
-
-        if data_end_row > 1:
-            body = {
-                "requests": [
-                    {
-                        "setBasicFilter": {
-                            "filter": {
-                                "range": {
-                                    "sheetId": dashboard_id,
-                                    "startRowIndex": 0,
-                                    "endRowIndex": data_end_row,
-                                    "startColumnIndex": 0,
-                                    "endColumnIndex": 6
-                                }
-                            }
-                        }
-                    }
-                ]
-            }
-            spreadsheet.batch_update(body)
-            print(f"  ✅ Фильтры добавлены на строки 1-{data_end_row}")
-        time.sleep(1)
-    except Exception as e:
-        print(f"  ⚠️ Не удалось добавить фильтры: {e}")
 
     # Форматирование
     execute_with_retry(format_cell_range, dashboard, f"A{last_row_with_data}:F{last_row_with_data}",
@@ -496,17 +448,6 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         execute_with_retry(format_cell_range, dashboard, f"A2:A{last_row_with_data}",
                            CellFormat(textFormat=TextFormat(bold=True)))
         time.sleep(2)
-
-    # Добавляем границы
-    border_range = f"A1:F{last_row_with_data}"
-    borders = Borders(
-        top=Border('SOLID', Color(0, 0, 0)),
-        bottom=Border('SOLID', Color(0, 0, 0)),
-        left=Border('SOLID', Color(0, 0, 0)),
-        right=Border('SOLID', Color(0, 0, 0))
-    )
-    execute_with_retry(format_cell_range, dashboard, border_range, CellFormat(borders=borders))
-    time.sleep(2)
 
     print("  ✅ DASHBOARD обновлен")
     time.sleep(2)
@@ -904,9 +845,9 @@ def test():
     with open('position_analytic.json', 'r', encoding='utf-8') as f:
         l_dict = json.load(f)
 
-    drr_all_dict = {'Наручники_МЕХ': '—', 'Наручники_Gold': '—', 'кляп-дырка-white-4.5см': '—', 'губы_красные': '19,8%', 'губы_black': '25,3%', 'Падл_31см': '16,1%', 'Простынь_бдсм': '—', 'Бандаж-BDSM_2_наруч': '11,9%', 'Бандаж_4х': '12,6%', 'ошейник_карабины': '—', 'Чокер_ремень_наручники': '—', 'ross-pink': '—', 'Оковы-XL': '—', 'Чокер_наручники_bdsm': '—', 'Бандаж-BDSM': '—', 'кляп-дырка-4.5см': '16,6%', 'Наручники-XL': '30,0%', 'Наручник-STEEL': '—', 'Упряга-XL': '—', 'ross-gradient': '—', 'ross-black': '—', 'ross-fiolet': '—', 'dildo_1': '—', 'чокер XL': '33,1%', 'pletka_2': '—', 'pletka_3': '—', 'pletka_1': '—', 'stek-60': '45,5%', 'кляп-страпон-х2': '—', 'кляп-5см': '—', 'кляп-10см': '—', 'чекер-bdsm': '—', 'vibgr-ross': '27,6%', 'кляп-фиолетовый': '—', 'кляп-rose': '22,2%', 'pletka_4_eco': '—', 'кляп-красный': '—', 'кляп-black': '5,2%'}
+    money_spent_dict = {'Наручники_МЕХ': '561.49', 'Наручники_Gold': '650.17', 'кляп-дырка-white-4.5см': '1 185.1', 'губы_красные': '1 005.34', 'губы_black': '484.14', 'Падл_31см': '877.16', 'Простынь_бдсм': '369.49', 'Бандаж-BDSM_2_наруч': '1 184.35', 'Бандаж_4х': '1 160.76', 'ошейник_карабины': '146.78', 'Чокер_ремень_наручники': '384.79', 'ross-pink': '620.26', 'Оковы-XL': '300.98', 'Чокер_наручники_bdsm': '1 774.53', 'Бандаж-BDSM': '572.21', 'кляп-дырка-4.5см': '1 500.18', 'Наручники-XL': '3 331.44', 'Наручник-STEEL': '657.5', 'Упряга-XL': '102.49', 'ross-gradient': '4 022.25', 'ross-black': '2 025.46', 'ross-fiolet': '198.19', 'dildo_1': '2 031.8', 'чокер XL': '1 131.26', 'pletka_2': '512.1', 'pletka_3': '0', 'pletka_1': '483.75', 'stek-60': '1 060.4', 'кляп-страпон-х2': '180.66', 'кляп-5см': '73.99', 'кляп-10см': '318.75', 'чекер-bdsm': '406.64', 'vibgr-ross': '7 374.19', 'кляп-фиолетовый': '183.67', 'кляп-rose': '591.97', 'pletka_4_eco': '806.62', 'кляп-красный': '160.55', 'кляп-black': '496.71'}
 
-    upload_to_google_sheets(all_dict, s_dict, l_dict, drr_all_dict)
+    upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict)
 
 
 if __name__ == "__main__":

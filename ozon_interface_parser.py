@@ -1006,7 +1006,7 @@ class InterfaceParser:
                 print(traceback.format_exc())
                 continue
 
-    def get_analytic_drr(self):
+    def get_analytic_money_spent(self):
         driver = self.driver
         time.sleep(2)
 
@@ -1036,7 +1036,7 @@ class InterfaceParser:
                 print(traceback.format_exc())
 
         for attempt in range(3):
-            drr_dict = {}
+            money_spent_dict = {}
             try:
                 driver.get('https://seller.ozon.ru/app/advertisement/product/overview')
                 self.check_auth_in_ozon()
@@ -1126,31 +1126,31 @@ class InterfaceParser:
                             btn_submit.click()
                             time.sleep(2)
 
-                            drr_index = 6
+                            money_spent_index = 3
 
                             headers = driver.find_element(By.XPATH, ".//thead")
                             self.scroll_to_element_center(headers)
                             time.sleep(1)
                             all_th = headers.find_elements(By.XPATH, ".//th")
                             for th in all_th:
-                                if 'ДРР' == th.text:
-                                    drr_index = all_th.index(th)
-                                    logger.info(f"Найден INDEX ДРР - {drr_index}")
+                                if 'Расход' == th.text:
+                                    money_spent_index = all_th.index(th)
+                                    logger.info(f"Найден INDEX ДРР - {money_spent_index}")
                                     break
                             time.sleep(1)
                             data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
                             all_td = data.find_elements(By.XPATH, ".//td")
-                            DRR = all_td[drr_index].text.replace('%', '')
-                            logger.info(f"Get data - {item_offer_id} DRR = {DRR}")
+                            money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
+                            logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
 
-                            drr_dict[item_offer_id] = DRR
+                            money_spent_dict[item_offer_id] = money_spent
 
                             clear_old_data()
                         except Exception as e:
                             print(traceback.format_exc())
 
-                print(drr_dict)
-                return drr_dict
+                print(money_spent_dict)
+                return money_spent_dict
             except:
                 logger.error(f"Ошибка при сборе DRR: {traceback.format_exc()}")
 
@@ -1208,6 +1208,10 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
+
+    res = parser.get_analytic_money_spent()
+    print(res)
+    input('test')
     parser.auth()
     time.sleep(2)
     parser.close()
