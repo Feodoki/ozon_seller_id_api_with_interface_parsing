@@ -515,23 +515,20 @@ class OzonSellerParse:
 
         date_from_date_only = now_moscow.strftime("%Y-%m-%d")
 
-        url = f"https://api-performance.ozon.ru:443/api/client/statistics/daily?dateFrom={date_from_date_only}"
+        url = f"https://api-performance.ozon.ru:443/api/client/statistics/campaign/product/json?dateFrom={date_from_date_only}"
         headers = self.headers_perfomance
         response = requests.get(url, headers=headers)
-        print(response.status_code)
         print(response.text)
-        all_items = response.text.split('\n')
-        for item in all_items[1:]:
+        all_items = response.json()['rows']
+        for item in all_items:
             try:
-                item_split = item.split(';')
-                item_id = item_split[0]
-                item_name = item_split[1]
-                item_date = item_split[2]
-                if item_date == '2026-05-05':
-                    item_expent = float(item_split[5].replace(',', '.'))
-                    item_orders_sum = float(item_split[7].replace(',', '.'))
-                    item_drr = (item_expent/item_orders_sum)*100
-                    print(item_id, item_name, item_drr, sep='\n', end='\n\n')
+                item_id = item.get('id')
+                item_title = item.get('title')
+                item_date = item.get('date')
+                item_money_spent = item.get('moneySpent')
+                item_orders_money = item.get('ordersMoney')
+                if item_date == '2026-05-06':
+                    print(item_id, item_title, f"Траты - {item_money_spent}", f"Товаров на сумму - {item_orders_money}", sep='\n', end='\n\n')
             except Exception as e:
                 pass
 

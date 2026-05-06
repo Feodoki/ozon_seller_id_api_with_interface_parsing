@@ -133,7 +133,7 @@ def write_error_to_sheet(error_message):
 
 
 # ================= ОСНОВНАЯ ФУНКЦИЯ =================
-def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=None):
+def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=None, drr_all_dict=None):
     from google.oauth2.service_account import Credentials
     import gspread
     from datetime import datetime
@@ -236,8 +236,6 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
     total_selled_search = 0  # продажи по поиску и поиск+рекомендации
     total_expenses_cpo = 0  # расходы по оплате за заказ
     total_selled_cpo = 0  # продажи по оплате за заказ
-    total_expenses_all = 0  # все расходы
-    total_selled_all = 0  # все продажи
 
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
@@ -310,21 +308,30 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         else:
             drr_cpo = 0
 
-        # ========= РАСЧЕТ ДРР (общий) =========
-        total_expenses_item_all = total_expenses_item_search + total_expenses_item_cpo
-        total_selled_item_all = total_selled_item_search + total_selled_item_cpo
-
-        if total_selled_item_all > 0:
-            drr_total = round((total_expenses_item_all / total_selled_item_all) * 100, 2)
+        # ========= ПОЛУЧЕНИЕ ОБЩЕГО ДРР ИЗ drr_all_dict =========
+        drr_total = 0
+        if drr_all_dict and offer_id in drr_all_dict:
+            drr_value = drr_all_dict[offer_id]
+            if drr_value and drr_value != '—' and drr_value != '':
+                try:
+                    # Удаляем знак процента и преобразуем в число
+                    drr_clean = str(drr_value).replace('%', '').replace(',', '.').strip()
+                    drr_total = round(float(drr_clean), 2)
+                    print(f"    📊 Общий ДРР для {offer_id} из словаря: {drr_total}%")
+                except (ValueError, TypeError):
+                    print(f"    ⚠️ Не удалось преобразовать общий ДРР для {offer_id}: {drr_value}")
+                    drr_total = 0
+            else:
+                print(f"    📊 Общий ДРР для {offer_id}: нет данных (—)")
         else:
-            drr_total = 0
+            print(f"    📊 Общий ДРР для {offer_id}: нет данных в словаре")
 
         print(f"\n  📊 {offer_id}:")
         print(f"     Продажи по поиску: {total_selled_item_search} руб., расходы: {total_expenses_item_search} руб.")
         print(f"     Продажи по CPO: {total_selled_item_cpo} руб., расходы: {total_expenses_item_cpo} руб.")
         print(f"     ДРР поиск: {drr_search}%")
         print(f"     ДРР CPO: {drr_cpo}%")
-        print(f"     ДРР общий: {drr_total}%")
+        print(f"     ДРР общий (из словаря): {drr_total}%")
 
         dashboard_rows.append({
             'offer_id': offer_id,
@@ -345,8 +352,6 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         total_selled_search += total_selled_item_search
         total_expenses_cpo += total_expenses_item_cpo
         total_selled_cpo += total_selled_item_cpo
-        total_expenses_all += total_expenses_item_all
-        total_selled_all += total_selled_item_all
 
     # Сортируем по количеству продаж
     dashboard_rows.sort(key=lambda x: x['orders'], reverse=True)
@@ -378,11 +383,8 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         else:
             total_drr_cpo = 0
 
-        # ИТОГОВЫЙ ДРР (общий)
-        if total_selled_all > 0:
-            total_drr_total = round((total_expenses_all / total_selled_all) * 100, 2)
-        else:
-            total_drr_total = 0
+        # ИТОГОВЫЙ ОБЩИЙ ДРР - НЕ ВЫЧИСЛЯЕМ, оставляем 0 или прочерк
+        total_drr_total = 0  # Общий ДРР не вычисляем, так как берем из словаря
 
         print(f"\n  {'=' * 50}")
         print(f"  📊 ИТОГО по всем товарам:")
@@ -390,11 +392,9 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         print(f"     Общие заказы: {total_orders}")
         print(f"     Продажи по поиску: {total_selled_search:,.2f} руб., расходы: {total_expenses_search:,.2f} руб.")
         print(f"     Продажи по CPO: {total_selled_cpo:,.2f} руб., расходы: {total_expenses_cpo:,.2f} руб.")
-        print(
-            f"     Всего продаж (по рекламе): {total_selled_all:,.2f} руб., всего расходов: {total_expenses_all:,.2f} руб.")
         print(f"     Итоговый ДРР (поиск): {total_drr_search}%")
         print(f"     Итоговый ДРР (CPO): {total_drr_cpo}%")
-        print(f"     Итоговый ДРР (общий): {total_drr_total}%")
+        print(f"     Итоговый ДРР (общий): берется из словаря для каждого товара отдельно")
         print(f"  {'=' * 50}\n")
     else:
         total_drr_search = 0
@@ -506,7 +506,7 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
     time.sleep(2)
 
     print("  ✅ DASHBOARD обновлен")
-    time.sleep(5)
+    time.sleep(2)
 
     # =========================================================
     # 📄 PRODUCT SHEETS (оставляем без изменений)
@@ -900,7 +900,10 @@ def test():
         s_dict = json.load(f)
     with open('position_analytic.json', 'r', encoding='utf-8') as f:
         l_dict = json.load(f)
-    upload_to_google_sheets(all_dict, s_dict, l_dict)
+
+    drr_all_dict = {'Наручники_МЕХ': '—', 'Наручники_Gold': '—', 'кляп-дырка-white-4.5см': '—', 'губы_красные': '19,8%', 'губы_black': '25,3%', 'Падл_31см': '16,1%', 'Простынь_бдсм': '—', 'Бандаж-BDSM_2_наруч': '11,9%', 'Бандаж_4х': '12,6%', 'ошейник_карабины': '—', 'Чокер_ремень_наручники': '—', 'ross-pink': '—', 'Оковы-XL': '—', 'Чокер_наручники_bdsm': '—', 'Бандаж-BDSM': '—', 'кляп-дырка-4.5см': '16,6%', 'Наручники-XL': '30,0%', 'Наручник-STEEL': '—', 'Упряга-XL': '—', 'ross-gradient': '—', 'ross-black': '—', 'ross-fiolet': '—', 'dildo_1': '—', 'чокер XL': '33,1%', 'pletka_2': '—', 'pletka_3': '—', 'pletka_1': '—', 'stek-60': '45,5%', 'кляп-страпон-х2': '—', 'кляп-5см': '—', 'кляп-10см': '—', 'чекер-bdsm': '—', 'vibgr-ross': '27,6%', 'кляп-фиолетовый': '—', 'кляп-rose': '22,2%', 'pletka_4_eco': '—', 'кляп-красный': '—', 'кляп-black': '5,2%'}
+
+    upload_to_google_sheets(all_dict, s_dict, l_dict, drr_all_dict)
 
 
 if __name__ == "__main__":

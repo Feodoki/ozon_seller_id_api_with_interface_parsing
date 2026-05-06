@@ -148,6 +148,7 @@ class InterfaceParser:
                     driver_executable_path="chromedriver.exe",
                 )
 
+                self.driver.maximize_window()
                 logger.info("   ✅ Браузер успешно запущен")
                 time.sleep(2)
                 return True
@@ -1004,6 +1005,151 @@ class InterfaceParser:
             except:
                 print(traceback.format_exc())
                 continue
+
+    def get_analytic_drr(self):
+        driver = self.driver
+        time.sleep(2)
+
+        def open_menu_product():
+            menu_with_items_btn = driver.find_element(By.XPATH, "//span[text()='По категории, товару или кампании' or text()='По товарам: 1']")
+            self.scroll_to_element_center(menu_with_items_btn)
+            time.sleep(0.5)
+            menu_with_items_btn.click()
+
+            time.sleep(1)
+
+            WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.XPATH, "//div[text()='Товары']")))
+
+            menu_next_step_btn = driver.find_element(By.XPATH, "//div[text()='Товары']")
+            menu_next_step_btn.click()
+
+            time.sleep(2)
+
+        def clear_old_data():
+            try:
+                open_menu_product()
+                WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Сбросить']")))
+                btn_reset = driver.find_element(By.XPATH, "//button[text()='Сбросить']")
+                btn_reset.click()
+            except:
+                print(traceback.format_exc())
+
+        for attempt in range(3):
+            drr_dict = {}
+            try:
+                driver.get('https://seller.ozon.ru/app/advertisement/product/overview')
+                self.check_auth_in_ozon()
+
+                WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//button[(@type='button')]")))
+                time.sleep(3)
+
+                all_btns = driver.find_elements(By.XPATH, "//button[(@type='button')]")
+                btn_calendar = all_btns[2]
+                btn_calendar.click()
+                logger.info("   ✅ Успешно нажали на кнопку календаря")
+
+                WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+                time.sleep(0.5)
+                button = driver.find_element(By.XPATH, "//button[@type='button' and text()='Сегодня']")
+                button.click()
+                logger.info(f"   ✅ Успешно нажали на дату Сегодня")
+                time.sleep(1)
+
+                WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[@title='Товар']")))
+
+                btn_product = driver.find_element(By.XPATH, "//button[@title='Товар']")
+                btn_product.click()
+                logger.info("   ✅ Успешно нажали на кнопку Товар")
+                time.sleep(1)
+
+                btn_only_choiced = driver.find_element(By.XPATH, "//span[text()='Только выбранные']")
+                self.scroll_to_element_center(btn_only_choiced)
+                time.sleep(0.5)
+                btn_only_choiced.click()
+                logger.info("   ✅ Успешно нажали на кнопку Только выбранные")
+                time.sleep(1)
+
+                open_menu_product()
+
+                time.sleep(0.5)
+                wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                count_pages = len(li_elements)
+
+                for page in range(1, count_pages+1):
+                    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                    wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                    li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                    self.scroll_to_element_center(li_elements[page - 1])
+                    time.sleep(1)
+                    li_elements[page - 1].click()
+                    time.sleep(2)
+
+                    table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
+                    table = table_div.find_element(By.XPATH, ".//tbody")
+                    all_tr = table.find_elements(By.XPATH, ".//tr")
+                    print(f"Всего товаров - {len(all_tr)}, страница - {page}")
+                    for num_product in range(len(all_tr)):
+                        try:
+                            time.sleep(0.5)
+                            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                            wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                            li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                            self.scroll_to_element_center(li_elements[page - 1])
+                            time.sleep(1)
+                            li_elements[page - 1].click()
+                            time.sleep(2)
+
+                            table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
+                            table = table_div.find_element(By.XPATH, ".//tbody")
+                            all_tr = table.find_elements(By.XPATH, ".//tr")
+
+                            product_tr = all_tr[num_product]
+
+                            item_offer_id = product_tr.find_elements(By.XPATH, ".//td")[1].text.split("\n")[1].strip()
+
+                            product_input = product_tr.find_element(By.XPATH, ".//input[@type='checkbox']")
+                            self.scroll_to_element_center(product_input)
+                            time.sleep(0.5)
+                            product_input.click()
+
+                            time.sleep(1)
+
+                            btn_submit = driver.find_element(By.XPATH, "//span[text()='Выбрать']")
+                            btn_submit.click()
+                            time.sleep(2)
+
+                            drr_index = 6
+
+                            headers = driver.find_element(By.XPATH, ".//thead")
+                            self.scroll_to_element_center(headers)
+                            time.sleep(1)
+                            all_th = headers.find_elements(By.XPATH, ".//th")
+                            for th in all_th:
+                                if 'ДРР' == th.text:
+                                    drr_index = all_th.index(th)
+                                    logger.info(f"Найден INDEX ДРР - {drr_index}")
+                                    break
+                            time.sleep(1)
+                            data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
+                            all_td = data.find_elements(By.XPATH, ".//td")
+                            DRR = all_td[drr_index].text.replace('%', '')
+                            logger.info(f"Get data - {item_offer_id} DRR = {DRR}")
+
+                            drr_dict[item_offer_id] = DRR
+
+                            clear_old_data()
+                        except Exception as e:
+                            print(traceback.format_exc())
+
+                print(drr_dict)
+                return drr_dict
+            except:
+                logger.error(f"Ошибка при сборе DRR: {traceback.format_exc()}")
+
+        return {}
 
     def get_all_advert_analytic(self, max_retries: int = 3):
         """Получение всей рекламной аналитики с обработкой ошибок"""

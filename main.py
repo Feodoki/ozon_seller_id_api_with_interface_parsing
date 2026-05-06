@@ -108,6 +108,7 @@ def my_script(api_keys):
     # Инициализируем переменные для данных из интерфейса
     advert_analytic = {}
     position_analytic = {}
+    drr_all_dict = {}
 
     try:
         logger.info("📌 Шаг 1: Инициализация OzonSellerParse...")
@@ -139,6 +140,9 @@ def my_script(api_keys):
             logger.info("📌 Шаг 5: Получение позиций товаров...")
             #position_analytic = interface_parser.get_position_product_from_sku()
             position_analytic = {} # Нет результат, озон изменил вкладку с этим значением
+
+            drr_all_dict = interface_parser.get_analytic_drr()
+
             if position_analytic:
                 logger.info(f"   ✅ Получены позиции для {len(position_analytic)} SKU")
             else:
@@ -168,7 +172,7 @@ def my_script(api_keys):
         except Exception as e:
             print(traceback.format_exc())
             pass
-        upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic)
+        upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic, drr_all_dict)
         logger.info("   ✅ Данные загружены в Google Sheets")
 
         end_time = datetime.now()
