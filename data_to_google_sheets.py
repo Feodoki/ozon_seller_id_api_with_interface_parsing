@@ -228,25 +228,26 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
     total_orders = 0
 
     # Общие суммы для итогов
-    total_expenses_search = 0           # расходы по поиску + поиск и рекомендации
-    total_selled_search = 0             # продажи по поиску + поиск и рекомендации
+    total_expenses_search = 0  # расходы по поиску + поиск и рекомендации
+    total_selled_search = 0  # продажи по поиску + поиск и рекомендации
     total_expenses_cpo_from_campaigns = 0  # расходы по CPO из кампаний (expense + expense_model)
-    total_selled_cpo = 0                # продажи по CPO
+    total_selled_cpo = 0  # продажи по CPO
     total_expenses_from_campaigns_all = 0  # ВСЕ расходы из кампаний (поиск + рекомендации + CPO)
-    total_revenue_all = 0               # ВСЕ продажи из аналитики (Сумма продаж за день)
+    total_revenue_all = 0  # ВСЕ продажи из аналитики (Сумма продаж за день)
+    total_money_spent_from_dict = 0  # Общие расходы из drr_all_dict (для итогов)
 
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
-        total_revenue_item = item.get("total_revenue", 0)      # Сумма продаж за день (из аналитики)
+        total_revenue_item = item.get("total_revenue", 0)  # Сумма продаж за день (из аналитики)
         total_ordered_units = item.get("total_ordered_units", 0)
 
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
 
         # Инициализируем переменные для разных типов кампаний
-        total_expenses_item_search = 0   # расходы по поиску + поиск и рекомендации
-        total_selled_item_search = 0     # продажи по поиску + поиск и рекомендации
-        total_expenses_item_cpo = 0      # расходы по CPO из кампаний (expense + expense_model)
-        total_selled_item_cpo = 0        # продажи по CPO
+        total_expenses_item_search = 0  # расходы по поиску + поиск и рекомендации
+        total_selled_item_search = 0  # продажи по поиску + поиск и рекомендации
+        total_expenses_item_cpo = 0  # расходы по CPO из кампаний (expense + expense_model)
+        total_selled_item_cpo = 0  # продажи по CPO
 
         for camp in offer_campaigns:
             camping_type = camp.get('camping_type', '')
@@ -289,56 +290,73 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
                 total_expenses_item_cpo += expense_clean + expense_model_clean
                 total_selled_item_cpo += selled_clean
 
-        # ==================== МЕСТО 1 ====================
-        # ДРР (поиск/поиск и рекомендации) %
+        # ==================== ДРР (поиск/поиск и рекомендации) % ====================
         # Формула: расходы на поисковые кампании / продажи по поисковым кампаниям * 100
         if total_selled_item_search > 0:
             drr_search = round((total_expenses_item_search / total_selled_item_search) * 100, 2)
         else:
             drr_search = 0
 
-        # ==================== МЕСТО 2 ====================
-        # ДРР (оплата за заказ) %
-        # Формула: общие расходы из drr_all_dict / Сумма продаж за день на текущий момент * 100
-        total_expenses_from_dict = 0
+        # ==================== ПОЛУЧАЕМ ДАННЫЕ ИЗ drr_all_dict ====================
+        drr_from_dict = 0  # ДРР (оплата за заказ) из словаря
+        money_spent_from_dict = 0  # Расходы из словаря
+
         if drr_all_dict and offer_id in drr_all_dict:
-            drr_value = drr_all_dict[offer_id]
+            drr_data = drr_all_dict[offer_id]
+
+            # Получаем drr (если это словарь с ключом 'drr')
+            if isinstance(drr_data, dict):
+                drr_value = drr_data.get('drr', 0)
+                money_spent_value = drr_data.get('money_spent', 0)
+            else:
+                # Если раньше было просто число для обратной совместимости
+                drr_value = drr_data
+                money_spent_value = 0
+
+            # Очищаем ДРР значение
             if drr_value and drr_value != '—' and drr_value != '':
                 try:
-                    # Очищаем значение от пробелов и заменяем запятую на точку
                     cleaned = str(drr_value).replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
-                    total_expenses_from_dict = float(cleaned)
+                    cleaned = cleaned.replace('%', '')
+                    drr_from_dict = float(cleaned)
                 except (ValueError, TypeError):
-                    print(f"    ⚠️ Не удалось преобразовать расходы для {offer_id}: {drr_value}")
-                    total_expenses_from_dict = 0
-            else:
-                print(f"    📊 Расходы для {offer_id}: нет данных (—)")
-        else:
-            print(f"    📊 Расходы для {offer_id}: нет данных в словаре")
+                    print(f"    ⚠️ Не удалось преобразовать ДРР для {offer_id}: {drr_value}")
+                    drr_from_dict = 0
 
-        if total_revenue_item > 0:
-            drr_cpo = round((total_expenses_from_dict / total_revenue_item) * 100, 2)
+            # Очищаем расходы
+            if money_spent_value and money_spent_value != '—' and money_spent_value != '':
+                try:
+                    cleaned = str(money_spent_value).replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
+                    money_spent_from_dict = float(cleaned)
+                except (ValueError, TypeError):
+                    print(f"    ⚠️ Не удалось преобразовать расходы для {offer_id}: {money_spent_value}")
+                    money_spent_from_dict = 0
         else:
-            drr_cpo = 0
+            print(f"    📊 Данные для {offer_id}: нет в drr_all_dict")
 
-        # ==================== МЕСТО 3 ====================
-        # ДРР (общий) %
-        # Формула: (расходы поиск + расходы рекомендации + расходы CPO) / Сумма продаж за день * 100
-        total_expenses_all_item = total_expenses_item_search + total_expenses_item_cpo
+        # ==================== ДРР (оплата за заказ) % ====================
+        # ТЕПЕРЬ это значение из drr_all_dict['drr']
+        drr_cpo = drr_from_dict
+
+        # ==================== ДРР (общий) % ====================
+        # Формула: расходы из drr_all_dict / Сумма продаж за день * 100
+        # (раньше это был ДРР оплата за заказ)
         if total_revenue_item > 0:
-            drr_total = round((total_expenses_all_item / total_revenue_item) * 100, 2)
+            drr_total = round((money_spent_from_dict / total_revenue_item) * 100, 2)
         else:
             drr_total = 0
 
         print(f"\n  📊 {offer_id}:")
         print(f"     Сумма продаж за день (аналитика): {total_revenue_item:,.2f} руб.")
-        print(f"     Продажи по поиску+рекомендациям: {total_selled_item_search:,.2f} руб., расходы: {total_expenses_item_search:,.2f} руб.")
-        print(f"     Продажи по CPO: {total_selled_item_cpo:,.2f} руб., расходы из кампаний: {total_expenses_item_cpo:,.2f} руб.")
-        print(f"     Общие расходы из drr_all_dict: {total_expenses_from_dict:,.2f} руб.")
-        print(f"     Все расходы из кампаний (для общего ДРР): {total_expenses_all_item:,.2f} руб.")
+        print(
+            f"     Продажи по поиску+рекомендациям: {total_selled_item_search:,.2f} руб., расходы: {total_expenses_item_search:,.2f} руб.")
+        print(
+            f"     Продажи по CPO: {total_selled_item_cpo:,.2f} руб., расходы из кампаний: {total_expenses_item_cpo:,.2f} руб.")
+        print(f"     ДРР из словаря (drr_all_dict['drr']): {drr_from_dict}%")
+        print(f"     Расходы из словаря (money_spent): {money_spent_from_dict:,.2f} руб.")
         print(f"     ДРР поиск: {drr_search}%")
-        print(f"     ДРР оплата за заказ (из drr_all_dict / продажи): {drr_cpo}%")
-        print(f"     ДРР общий (все расходы из кампаний / продажи): {drr_total}%")
+        print(f"     ДРР оплата за заказ (из drr_all_dict['drr']): {drr_cpo}%")
+        print(f"     ДРР общий (расходы из dict / продажи): {drr_total}%")
 
         dashboard_rows.append({
             'offer_id': offer_id,
@@ -354,8 +372,9 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
         total_selled_search += total_selled_item_search
         total_expenses_cpo_from_campaigns += total_expenses_item_cpo
         total_selled_cpo += total_selled_item_cpo
-        total_expenses_from_campaigns_all += total_expenses_all_item
+        total_expenses_from_campaigns_all += total_expenses_item_cpo + total_expenses_item_search
         total_revenue_all += total_revenue_item
+        total_money_spent_from_dict += money_spent_from_dict
 
     # Сортируем по количеству продаж
     dashboard_rows.sort(key=lambda x: x['orders'], reverse=True)
@@ -375,30 +394,30 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
 
     # Итоговые строки
     if dashboard_rows:
-        # ==================== МЕСТО 1 (ИТОГ) ====================
+        # ==================== ИТОГ ДРР (поиск/поиск и рекомендации) ====================
         if total_selled_search > 0:
             total_drr_search = round((total_expenses_search / total_selled_search) * 100, 2)
         else:
             total_drr_search = 0
 
-        # ==================== МЕСТО 2 (ИТОГ) ====================
-        # Внимание: для итогового ДРР (оплата за заказ) нужно сложить все расходы из drr_all_dict
-        # и разделить на общую сумму продаж. Так как у нас нет доступа к суммарному drr_all_dict,
-        # мы его не показываем в итоговой строке, оставляем 0
-        total_drr_cpo = 0  # Итоговый ДРР по CPO не вычисляем (требуется суммарный drr_all_dict)
+        # ==================== ИТОГ ДРР (оплата за заказ) ====================
+        # Средний ДРР из словаря (не вычисляем, оставляем 0 или можно вывести среднее)
+        total_drr_cpo = 0
 
-        # ==================== МЕСТО 3 (ИТОГ) ====================
+        # ==================== ИТОГ ДРР (общий) ====================
+        # Общие расходы из словаря / общая выручка * 100
         if total_revenue_all > 0:
-            total_drr_total = round((total_expenses_from_campaigns_all / total_revenue_all) * 100, 2)
+            total_drr_total = round((total_money_spent_from_dict / total_revenue_all) * 100, 2)
         else:
             total_drr_total = 0
 
         print(f"\n  {'=' * 50}")
         print(f"  📊 ИТОГО по всем товарам:")
         print(f"     Общая выручка (из аналитики): {total_revenue_all:,.2f} руб.")
-        print(f"     Общие расходы из кампаний (поиск+рекомендации+CPO): {total_expenses_from_campaigns_all:,.2f} руб.")
+        print(f"     Общие расходы из drr_all_dict: {total_money_spent_from_dict:,.2f} руб.")
         print(f"     Общие заказы: {total_orders}")
-        print(f"     Продажи по поиску+рекомендациям: {total_selled_search:,.2f} руб., расходы: {total_expenses_search:,.2f} руб.")
+        print(
+            f"     Продажи по поиску+рекомендациям: {total_selled_search:,.2f} руб., расходы: {total_expenses_search:,.2f} руб.")
         print(f"     Итоговый ДРР (поиск): {total_drr_search}%")
         print(f"     Итоговый ДРР (общий): {total_drr_total}%")
         print(f"  {'=' * 50}\n")

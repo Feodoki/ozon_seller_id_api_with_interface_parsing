@@ -1127,6 +1127,7 @@ class InterfaceParser:
                             time.sleep(2)
 
                             money_spent_index = 3
+                            drr_index = 6
 
                             headers = driver.find_element(By.XPATH, ".//thead")
                             self.scroll_to_element_center(headers)
@@ -1135,15 +1136,19 @@ class InterfaceParser:
                             for th in all_th:
                                 if 'Расход' == th.text:
                                     money_spent_index = all_th.index(th)
-                                    logger.info(f"Найден INDEX ДРР - {money_spent_index}")
-                                    break
+                                    logger.info(f"Найден INDEX Расхода - {money_spent_index}")
+                                elif 'ДРР' == th.text:
+                                    drr_index = all_th.index(th)
+                                    logger.info(f"Найден INDEX ДРР - {drr_index}")
+
                             time.sleep(1)
                             data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
                             all_td = data.find_elements(By.XPATH, ".//td")
                             money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
+                            drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
                             logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
 
-                            money_spent_dict[item_offer_id] = money_spent
+                            money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
 
                             clear_old_data()
                         except Exception as e:
