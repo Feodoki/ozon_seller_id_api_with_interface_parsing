@@ -14,15 +14,139 @@ from google.oauth2.service_account import Credentials
 from config import spread_id
 import json
 import time
-import random
 from datetime import datetime
+import pytz
+from typing import Dict, List, Any, Optional, Tuple
+
+# ================= КОНФИГУРАЦИЯ СТРУКТУРЫ ЛИСТОВ =================
+
+# Конфигурация листа DASHBOARD
+DASHBOARD_CONFIG = {
+    "headers": [
+        {"name": "Артикул товара", "width": 200, "format": {"bold": True}},
+        {"name": "Сумма продаж за день на текущий момент", "width": 100, "format": {}},
+        {"name": "Количество продаж за день", "width": 100, "format": {}},
+        {"name": "ДРР (поиск/поиск и рекомендации) %", "width": 100, "format": {}},
+        {"name": "ДРР (оплата за заказ) %", "width": 100, "format": {}},
+        {"name": "ДРР (общий) %", "width": 100, "format": {}}
+    ],
+    "frozen_rows": 1,
+    "header_color": Color(0.9, 1, 0.9)
+}
+
+# Конфигурация листа аналитики товара
+ANALYTICS_CONFIG = {
+    "headers": [
+        {"name": "Дата", "width": 75},
+        {"name": "Заказано на сумму", "width": 75},
+        {"name": "Заказано товаров", "width": 75},
+        {"name": "Позиция в каталоге и поиске", "width": 75},
+        {"name": "Показы всего", "width": 75},
+        {"name": "Посещения карточки товара", "width": 75},
+        {"name": "Конверсия из поиска и каталога в карточку", "width": 75},
+        {"name": "Конверсия из поиска и каталога в корзину", "width": 75},
+        {"name": "Конверсия в корзину общая", "width": 75}
+    ],
+    "start_column": "A",
+    "block_title": "АНАЛИТИКА",
+    "block_color": Color(0.9, 1, 0.9)
+}
+
+# Конфигурация рекламных блоков
+CAMPAIGN_CONFIGS = {
+    "search": {
+        "title": "РЕКЛАМА — ПОИСК",
+        "start_column": "K",
+        "headers": [
+            {"name": "Стратегия", "width": 75},
+            {"name": "Конкурентная ставка", "width": 75},
+            {"name": "Ваша ставка", "width": 75},
+            {"name": "Средняя стоимость клика (₽)", "width": 75},
+            {"name": "Заказы", "width": 75},
+            {"name": "В корзину (шт)", "width": 75},
+            {"name": "ДРР (%)", "width": 75},
+            {"name": "CTR (%)", "width": 75},
+            {"name": "Показы", "width": 75},
+            {"name": "Клики", "width": 75},
+            {"name": "Бюджет (₽)", "width": 75},
+            {"name": "Цена товара (₽)", "width": 75},
+            {"name": "Расходы (₽)", "width": 75}
+        ],
+        "color": Color(0.85, 0.92, 1)
+    },
+    "recommendations": {
+        "title": "РЕКЛАМА — ПОИСК И РЕКОМЕНДАЦИИ",
+        "start_column": "Y",
+        "headers": [
+            {"name": "Стратегия", "width": 75},
+            {"name": "Конкурентная ставка", "width": 75},
+            {"name": "Ваша ставка", "width": 75},
+            {"name": "Средняя стоимость клика (₽)", "width": 75},
+            {"name": "Заказы", "width": 75},
+            {"name": "В корзину (шт)", "width": 75},
+            {"name": "ДРР (%)", "width": 75},
+            {"name": "CTR (%)", "width": 75},
+            {"name": "Показы", "width": 75},
+            {"name": "Клики", "width": 75},
+            {"name": "Бюджет (₽)", "width": 75},
+            {"name": "Цена товара (₽)", "width": 75},
+            {"name": "Расходы (₽)", "width": 75}
+        ],
+        "color": Color(0.95, 0.9, 1)
+    },
+    "cpo": {
+        "title": "РЕКЛАМА — ОПЛАТА ЗА ЗАКАЗ",
+        "start_column": "AM",
+        "headers": [
+            {"name": "Ставка (₽) [%]", "width": 75},
+            {"name": "Цена товара (₽)", "width": 75},
+            {"name": "Индекс видимости", "width": 75},
+            {"name": "Заказы (Оплата за заказ)", "width": 75},
+            {"name": "Заказы (Комбо-модель)", "width": 75},
+            {"name": "ДРР (%)", "width": 75},
+            {"name": "Расходы (Оплата за заказ) (₽)", "width": 75},
+            {"name": "Расходы (Комбо-модель) (₽)", "width": 75}
+        ],
+        "color": Color(1, 0.95, 0.8)
+    }
+}
 
 
-# ================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
+# ================= БАЗОВЫЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
+
+def clean_numeric_value(value: Any) -> float:
+    """Очищает числовое значение от форматирования и преобразует в float"""
+    if value is None or value == '' or value == '—':
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value) if not isinstance(value, bool) else 0.0
+    if isinstance(value, str):
+        # Удаляем пробелы, заменяем запятую на точку, убираем символы
+        cleaned = value.replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
+        cleaned = cleaned.replace('%', '').replace('₽', '')
+        if cleaned == '' or cleaned == '—':
+            return 0.0
+        try:
+            return float(cleaned)
+        except (ValueError, TypeError):
+            return 0.0
+    return 0.0
+
+
+def clean_int_value(value: Any) -> int:
+    """Преобразует значение в целое число"""
+    return int(clean_numeric_value(value))
+
+
+def get_current_date_moscow() -> str:
+    """Возвращает текущую дату в московском часовом поясе"""
+    moscow_tz = pytz.timezone('Europe/Moscow')
+    now_moscow = datetime.now(moscow_tz)
+    return now_moscow.strftime("%d.%m.%Y")
+
+
 def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
-    """
-    Выполняет функцию с экспоненциальной задержкой при ошибках 429
-    """
+    """Выполняет функцию с экспоненциальной задержкой при ошибках 429"""
     for attempt in range(max_retries):
         try:
             return func(*args, **kwargs)
@@ -30,119 +154,22 @@ def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
             if '429' in str(e) or 'Quota exceeded' in str(e):
                 wait_time = min(30 * (2 ** attempt), 600)
                 print(
-                    f"  ⏳ Превышен лимит Google Sheets. Пауза {wait_time} секунд... (попытка {attempt + 1}/{max_retries})")
+                    f"  ⏳ Превышен лимит. Пауза {wait_time} сек... "
+                    f"(попытка {attempt + 1}/{max_retries})"
+                )
                 time.sleep(wait_time)
             else:
                 raise e
-
     raise Exception(f"Не удалось выполнить операцию после {max_retries} попыток")
 
 
 def execute_with_retry(func, *args, **kwargs):
     """Выполняет функцию с повторными попытками при ошибках 429"""
-    max_retries = 10
-    for attempt in range(max_retries):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            if '429' in str(e) or 'Quota exceeded' in str(e):
-                wait_time = min(30 * (2 ** attempt), 600)
-                print(f"  ⏳ Превышен лимит. Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
-                time.sleep(wait_time)
-            else:
-                raise e
-    raise Exception(f"Не удалось выполнить операцию после {max_retries} попыток")
+    return execute_with_exponential_backoff(func, *args, **kwargs)
 
 
-def batch_insert_with_retry(sheet, rows, start_row=2, batch_size=5):
-    """Вставляет строки пакетами с обработкой лимитов"""
-    total_rows = len(rows)
-    print(f"  📝 Вставка {total_rows} строк пакетами по {batch_size}...")
-
-    for i in range(0, total_rows, batch_size):
-        batch = rows[i:i + batch_size]
-        for row_idx, row in enumerate(batch):
-            try:
-                execute_with_exponential_backoff(sheet.insert_row, row, index=start_row + i + row_idx)
-                time.sleep(1)
-            except Exception as e:
-                print(f"  ❌ Ошибка при вставке строки {i + row_idx + 1}: {e}")
-                raise
-
-        print(f"  ✅ Вставлено {min(i + batch_size, total_rows)}/{total_rows} строк")
-        if i + batch_size < total_rows:
-            time.sleep(3)
-
-
-def write_parser_error_to_sheet(error_message):
-    """Записывает ошибки парсера в лист ERROR_PARS"""
-    try:
-        creds = Credentials.from_service_account_file(
-            "google_sheets.json",
-            scopes=[
-                "https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"
-            ]
-        )
-
-        client = gspread.authorize(creds)
-        spreadsheet = client.open_by_key(spread_id)
-
-        try:
-            sheet = spreadsheet.worksheet("ERROR_PARS")
-            sheet.clear()
-        except gspread.exceptions.WorksheetNotFound:
-            sheet = spreadsheet.add_worksheet(title="ERROR_PARS", rows=100, cols=5)
-
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        full_error = f"[{timestamp}] {error_message}"
-        sheet.update("A1", full_error)
-
-        print(f"✅ Ошибка записана в лист ERROR_PARS: {error_message[:100]}...")
-
-    except Exception as e:
-        print(f"❌ Не удалось записать ошибку в ERROR_PARS: {e}")
-
-
-def write_error_to_sheet(error_message):
-    """Записывает ошибки авторизации в лист ERROR"""
-    try:
-        creds = Credentials.from_service_account_file(
-            "google_sheets.json",
-            scopes=[
-                "https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"
-            ]
-        )
-
-        client = gspread.authorize(creds)
-        spreadsheet = client.open_by_key(spread_id)
-
-        try:
-            sheet = spreadsheet.worksheet("ERROR")
-            sheet.clear()
-        except:
-            sheet = spreadsheet.add_worksheet(title="ERROR", rows=100, cols=5)
-
-        sheet.update("A1", "ОШИБКА АВТОРИЗАЦИИ")
-        sheet.update("A2", error_message)
-
-        print("✅ Ошибка записана в лист ERROR")
-    except Exception as e:
-        print(f"❌ Не удалось создать лист ERROR: {e}")
-
-
-# ================= ОСНОВНАЯ ФУНКЦИЯ =================
-def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=None, drr_all_dict=None):
-    from google.oauth2.service_account import Credentials
-    import gspread
-    from datetime import datetime
-    import time
-    import pytz
-
-    # =========================
-    # 🔌 CONNECT
-    # =========================
+def get_google_sheets_client():
+    """Создает и возвращает авторизованного клиента Google Sheets"""
     creds = Credentials.from_service_account_file(
         "google_sheets.json",
         scopes=[
@@ -150,213 +177,244 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
             "https://www.googleapis.com/auth/drive"
         ]
     )
+    return gspread.authorize(creds)
 
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(spread_id)
 
-    # Устанавливаем часовой пояс Москвы и формат даты
-    moscow_tz = pytz.timezone('Europe/Moscow')
-    now_moscow = datetime.now(moscow_tz)
-    current_date_str = now_moscow.strftime("%d.%m.%Y")
+def get_or_create_sheet(spreadsheet, title: str, rows=1000, cols=30):
+    """Получает существующий лист или создает новый"""
+    try:
+        return execute_with_exponential_backoff(spreadsheet.worksheet, title)
+    except gspread.exceptions.WorksheetNotFound:
+        return execute_with_exponential_backoff(
+            spreadsheet.add_worksheet, title=title, rows=rows, cols=cols
+        )
 
-    # =========================================================
-    # 📊 DASHBOARD
-    # =========================================================
-    def get_or_create_sheet(spreadsheet, title, rows=1000, cols=30):
+
+# ================= ФУНКЦИИ ДЛЯ ФОРМАТИРОВАНИЯ ЛИСТОВ =================
+
+def get_column_letter(col_num: int) -> str:
+    """Преобразует номер колонки в букву (1->A, 27->AA)"""
+    result = ""
+    while col_num > 0:
+        col_num -= 1
+        result = chr(ord('A') + col_num % 26) + result
+        col_num //= 26
+    return result
+
+
+def get_column_index(col_letter: str) -> int:
+    """Преобразует букву колонки в номер (A->1, AA->27)"""
+    result = 0
+    for char in col_letter:
+        result = result * 26 + (ord(char.upper()) - ord('A') + 1)
+    return result
+
+
+def setup_sheet_headers(sheet, config: Dict, start_row: int = 1):
+    """
+    Универсальная функция для настройки заголовков листа
+    config должен содержать:
+        - headers: список словарей с ключами 'name' и опционально 'width'
+        - header_color: Color объект для фона
+        - frozen_rows: количество замороженных строк
+    """
+    headers_list = [h['name'] for h in config['headers']]
+
+    # Записываем заголовки
+    end_col = get_column_letter(len(headers_list))
+    range_name = f"A{start_row}:{end_col}{start_row}"
+    execute_with_exponential_backoff(sheet.update, range_name, [headers_list])
+    time.sleep(1)
+
+    # Форматируем заголовки
+    header_range = f"A{start_row}:{end_col}{start_row}"
+    execute_with_exponential_backoff(
+        format_cell_range, sheet, header_range,
+        CellFormat(
+            textFormat=TextFormat(bold=True, fontSize=11),
+            backgroundColor=config.get('header_color', Color(0.9, 0.9, 0.9))
+        )
+    )
+
+    # Замораживаем строки
+    if config.get('frozen_rows'):
+        execute_with_exponential_backoff(set_frozen, sheet, rows=config['frozen_rows'])
+    time.sleep(1)
+
+    # Устанавливаем ширину колонок
+    for idx, header in enumerate(config['headers'], start=1):
+        col_letter = get_column_letter(idx)
+        if 'width' in header:
+            execute_with_exponential_backoff(
+                set_column_width, sheet, col_letter, header['width']
+            )
+    time.sleep(1)
+
+
+def clear_old_dashboard_data(dashboard, current_total_rows: int):
+    """Очищает старые данные в DASHBOARD (кроме заголовков)"""
+    if current_total_rows > 1:
+        print("  🗑️ Очищаем старые данные...")
         try:
-            return execute_with_exponential_backoff(spreadsheet.worksheet, title)
-        except gspread.exceptions.WorksheetNotFound:
-            return execute_with_exponential_backoff(spreadsheet.add_worksheet, title=title, rows=rows, cols=cols)
+            execute_with_retry(dashboard.batch_clear, [f"A2:F{current_total_rows}"])
+            print(f"  ✅ Очищено содержимое строк 2-{current_total_rows}")
+            time.sleep(2)
+        except Exception as e:
+            print(f"  ⚠️ Ошибка при очистке: {e}")
 
-    print("📊 Работа с листом DASHBOARD...")
-    dashboard = execute_with_exponential_backoff(get_or_create_sheet, spreadsheet, "DASHBOARD")
 
-    HEADER_ROWS = 1
+def format_totals_row(sheet, last_row: int, num_columns: int):
+    """Форматирует итоговую строку"""
+    end_col = get_column_letter(num_columns)
+    execute_with_retry(
+        format_cell_range, sheet, f"A{last_row}:{end_col}{last_row}",
+        CellFormat(
+            textFormat=TextFormat(bold=True),
+            backgroundColor=Color(0.95, 0.95, 0.95)
+        )
+    )
 
-    # Получаем текущие данные
-    current_data = execute_with_retry(dashboard.get_all_values)
-    current_total_rows = len(current_data)
 
-    print(f"  📊 Текущее количество строк в листе DASHBOARD: {current_total_rows}")
+def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10):
+    """Убеждается, что в листе достаточно строк"""
+    current_rows = len(execute_with_retry(sheet.get_all_values))
 
-    # Подготавливаем данные для вставки
-    dashboard_headers = [
-        "Артикул товара",
-        "Сумма продаж за день на текущий момент",
-        "Количество продаж за день",
-        "ДРР (поиск/поиск и рекомендации) %",
-        "ДРР (оплата за заказ) %",
-        "ДРР (общий) %"
-    ]
+    if current_rows < required_rows + buffer_rows:
+        rows_to_add = (required_rows + buffer_rows) - current_rows
+        print(f"  ➕ Добавляем {rows_to_add} новых строк...")
+        try:
+            sheet.add_rows(rows_to_add)
+            print(f"  ✅ Добавлено {rows_to_add} строк")
+            time.sleep(2)
+        except Exception as e:
+            print(f"  ⚠️ Ошибка при добавлении строк: {e}")
 
-    # Проверяем и настраиваем заголовки
-    if len(current_data) == 0 or (len(current_data) > 0 and current_data[0] != dashboard_headers):
-        print("  📝 Настройка заголовков...")
-        execute_with_exponential_backoff(dashboard.clear)
-        time.sleep(1)
-        execute_with_exponential_backoff(dashboard.append_row, dashboard_headers)
-        time.sleep(1)
 
-        execute_with_exponential_backoff(format_cell_range, dashboard, "A1:F1",
-                                         CellFormat(
-                                             textFormat=TextFormat(bold=True, fontSize=11),
-                                             backgroundColor=Color(0.9, 1, 0.9)
-                                         ))
-        execute_with_exponential_backoff(set_frozen, dashboard, rows=1)
-        time.sleep(1)
+# ================= ФУНКЦИИ ДЛЯ РАБОТЫ С DASHBOARD =================
 
-        for col in ['A', 'B', 'C', 'D', 'E', 'F']:
-            if col == 'A':
-                execute_with_exponential_backoff(set_column_width, dashboard, col, 200)
-            else:
-                execute_with_exponential_backoff(set_column_width, dashboard, col, 100)
-        time.sleep(1)
+def extract_campaign_expenses(offer_campaigns: List) -> Tuple[float, float, float, float]:
+    """
+    Извлекает расходы и продажи из кампаний товара
+    Возвращает: (expenses_search, selled_search, expenses_cpo, selled_cpo)
+    """
+    expenses_search = 0.0
+    selled_search = 0.0
+    expenses_cpo = 0.0
+    selled_cpo = 0.0
 
-        current_total_rows = 1
-    else:
-        if current_total_rows > 1:
-            print("  🗑️ Очищаем старые данные...")
-            try:
-                execute_with_retry(dashboard.batch_clear, [f"A2:F{current_total_rows}"])
-                print(f"  ✅ Очищено содержимое строк 2-{current_total_rows}")
-                time.sleep(2)
-            except Exception as e:
-                print(f"  ⚠️ Ошибка при очистке: {e}")
+    for camp in offer_campaigns:
+        camping_type = camp.get('camping_type', '')
+        selled_clean = clean_numeric_value(camp.get('selled', 0))
+        expense_clean = clean_numeric_value(camp.get('expense', 0))
 
-    # Собираем данные для DASHBOARD
+        if camping_type in ['Поиск', 'Поиск и рекомендации']:
+            expenses_search += expense_clean
+            selled_search += selled_clean
+        elif camping_type == 'Оплата за заказ':
+            expense_model_clean = clean_numeric_value(camp.get('expense_model', 0))
+            expenses_cpo += expense_clean + expense_model_clean
+            selled_cpo += selled_clean
+
+    return expenses_search, selled_search, expenses_cpo, selled_cpo
+
+
+def extract_drr_data(drr_all_dict: Optional[Dict], offer_id: str) -> Tuple[float, float]:
+    """
+    Извлекает ДРР и расходы из drr_all_dict
+    Возвращает: (drr_value, money_spent)
+    """
+    drr_value = 0.0
+    money_spent = 0.0
+
+    if drr_all_dict and offer_id in drr_all_dict:
+        drr_data = drr_all_dict[offer_id]
+
+        if isinstance(drr_data, dict):
+            drr_value = clean_numeric_value(drr_data.get('drr', 0))
+            money_spent = clean_numeric_value(drr_data.get('money_spent', 0))
+        else:
+            drr_value = clean_numeric_value(drr_data)
+
+    return drr_value, money_spent
+
+
+def calculate_drr(expenses: float, revenue: float) -> float:
+    """Рассчитывает ДРР в процентах"""
+    if revenue > 0:
+        return round((expenses / revenue) * 100, 2)
+    return 0.0
+
+
+def log_dashboard_item(offer_id: str, revenue: float, expenses_search: float,
+                       selled_search: float, drr_from_dict: float,
+                       money_spent: float, drr_search: float,
+                       drr_cpo: float, drr_total: float):
+    """Логирует данные по товару для DASHBOARD"""
+    print(f"\n  📊 {offer_id}:")
+    print(f"     Сумма продаж за день: {revenue:,.2f} руб.")
+    print(f"     Продажи по поиску+рекомендациям: {selled_search:,.2f} руб., "
+          f"расходы: {expenses_search:,.2f} руб.")
+    print(f"     ДРР из словаря: {drr_from_dict}%")
+    print(f"     Расходы из словаря: {money_spent:,.2f} руб.")
+    print(f"     ДРР поиск: {drr_search}%")
+    print(f"     ДРР оплата за заказ: {drr_cpo}%")
+    print(f"     ДРР общий: {drr_total}%")
+
+
+def log_dashboard_totals(totals: Dict, total_drr_search: float, total_drr_total: float):
+    """Логирует итоговые данные DASHBOARD"""
+    print(f"\n  {'=' * 50}")
+    print(f"  📊 ИТОГО по всем товарам:")
+    print(f"     Общая выручка: {totals['total_revenue_all']:,.2f} руб.")
+    print(f"     Общие расходы из drr_all_dict: "
+          f"{totals['total_money_spent_from_dict']:,.2f} руб.")
+    print(f"     Общие заказы: {totals['total_orders']}")
+    print(f"     Продажи по поиску+рекомендациям: "
+          f"{totals['total_selled_search']:,.2f} руб., "
+          f"расходы: {totals['total_expenses_search']:,.2f} руб.")
+    print(f"     Итоговый ДРР (поиск): {total_drr_search}%")
+    print(f"     Итоговый ДРР (общий): {total_drr_total}%")
+    print(f"  {'=' * 50}\n")
+
+
+def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
+                           drr_all_dict: Dict) -> Tuple[List[List], Dict]:
+    """
+    Подготавливает данные для листа DASHBOARD
+    Возвращает: (dashboard_data, totals_dict)
+    """
     dashboard_rows = []
-    total_orders = 0
-
-    # Общие суммы для итогов
-    total_expenses_search = 0  # расходы по поиску + поиск и рекомендации
-    total_selled_search = 0  # продажи по поиску + поиск и рекомендации
-    total_expenses_cpo_from_campaigns = 0  # расходы по CPO из кампаний (expense + expense_model)
-    total_selled_cpo = 0  # продажи по CPO
-    total_expenses_from_campaigns_all = 0  # ВСЕ расходы из кампаний (поиск + рекомендации + CPO)
-    total_revenue_all = 0  # ВСЕ продажи из аналитики (Сумма продаж за день)
-    total_money_spent_from_dict = 0  # Общие расходы из drr_all_dict (для итогов)
+    totals = {
+        'total_orders': 0,
+        'total_expenses_search': 0,
+        'total_selled_search': 0,
+        'total_revenue_all': 0,
+        'total_money_spent_from_dict': 0
+    }
 
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
-        total_revenue_item = item.get("total_revenue", 0)  # Сумма продаж за день (из аналитики)
-        total_ordered_units = item.get("total_ordered_units", 0)
+        total_revenue_item = clean_numeric_value(item.get("total_revenue", 0))
+        total_ordered_units = clean_int_value(item.get("total_ordered_units", 0))
 
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
 
-        # Инициализируем переменные для разных типов кампаний
-        total_expenses_item_search = 0  # расходы по поиску + поиск и рекомендации
-        total_selled_item_search = 0  # продажи по поиску + поиск и рекомендации
-        total_expenses_item_cpo = 0  # расходы по CPO из кампаний (expense + expense_model)
-        total_selled_item_cpo = 0  # продажи по CPO
+        # Извлекаем расходы по кампаниям
+        expenses_search, selled_search, _, _ = extract_campaign_expenses(offer_campaigns)
 
-        for camp in offer_campaigns:
-            camping_type = camp.get('camping_type', '')
+        # Получаем данные из drr_all_dict
+        drr_from_dict, money_spent_from_dict = extract_drr_data(drr_all_dict, offer_id)
 
-            # Получаем продажи (selled)
-            selled = camp.get('selled', 0)
-            selled_clean = 0
-            if selled and selled != '—' and selled != '':
-                try:
-                    selled_clean = float(str(selled).replace('\u202f', '').replace(' ', '').replace(',', '.').strip())
-                except (ValueError, TypeError):
-                    pass
-
-            # Расходы по кампании
-            expense = camp.get('expense', 0)
-            expense_clean = 0
-            if expense and expense != '—' and expense != '':
-                try:
-                    expense_clean = float(str(expense).replace('\u202f', '').replace(' ', '').replace(',', '.').strip())
-                except (ValueError, TypeError):
-                    pass
-
-            # Для типа "Оплата за заказ" добавляем также expense_model
-            expense_model_clean = 0
-            if camping_type == 'Оплата за заказ':
-                expense_model = camp.get('expense_model', 0)
-                if expense_model and expense_model != '—' and expense_model != '':
-                    try:
-                        expense_model_clean = float(
-                            str(expense_model).replace('\u202f', '').replace(' ', '').replace(',', '.').strip())
-                    except (ValueError, TypeError):
-                        pass
-
-            # Распределяем по типам кампаний
-            if camping_type in ['Поиск', 'Поиск и рекомендации']:
-                total_expenses_item_search += expense_clean
-                total_selled_item_search += selled_clean
-
-            elif camping_type == 'Оплата за заказ':
-                total_expenses_item_cpo += expense_clean + expense_model_clean
-                total_selled_item_cpo += selled_clean
-
-        # ==================== ДРР (поиск/поиск и рекомендации) % ====================
-        # Формула: расходы на поисковые кампании / продажи по поисковым кампаниям * 100
-        if total_selled_item_search > 0:
-            drr_search = round((total_expenses_item_search / total_selled_item_search) * 100, 2)
-        else:
-            drr_search = 0
-
-        # ==================== ПОЛУЧАЕМ ДАННЫЕ ИЗ drr_all_dict ====================
-        drr_from_dict = 0  # ДРР (оплата за заказ) из словаря
-        money_spent_from_dict = 0  # Расходы из словаря
-
-        if drr_all_dict and offer_id in drr_all_dict:
-            drr_data = drr_all_dict[offer_id]
-
-            # Получаем drr (если это словарь с ключом 'drr')
-            if isinstance(drr_data, dict):
-                drr_value = drr_data.get('drr', 0)
-                money_spent_value = drr_data.get('money_spent', 0)
-            else:
-                # Если раньше было просто число для обратной совместимости
-                drr_value = drr_data
-                money_spent_value = 0
-
-            # Очищаем ДРР значение
-            if drr_value and drr_value != '—' and drr_value != '':
-                try:
-                    cleaned = str(drr_value).replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
-                    cleaned = cleaned.replace('%', '')
-                    drr_from_dict = float(cleaned)
-                except (ValueError, TypeError):
-                    print(f"    ⚠️ Не удалось преобразовать ДРР для {offer_id}: {drr_value}")
-                    drr_from_dict = 0
-
-            # Очищаем расходы
-            if money_spent_value and money_spent_value != '—' and money_spent_value != '':
-                try:
-                    cleaned = str(money_spent_value).replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
-                    money_spent_from_dict = float(cleaned)
-                except (ValueError, TypeError):
-                    print(f"    ⚠️ Не удалось преобразовать расходы для {offer_id}: {money_spent_value}")
-                    money_spent_from_dict = 0
-        else:
-            print(f"    📊 Данные для {offer_id}: нет в drr_all_dict")
-
-        # ==================== ДРР (оплата за заказ) % ====================
-        # ТЕПЕРЬ это значение из drr_all_dict['drr']
+        # Рассчитываем метрики
+        drr_search = calculate_drr(expenses_search, selled_search)
         drr_cpo = drr_from_dict
+        drr_total = calculate_drr(money_spent_from_dict, total_revenue_item)
 
-        # ==================== ДРР (общий) % ====================
-        # Формула: расходы из drr_all_dict / Сумма продаж за день * 100
-        # (раньше это был ДРР оплата за заказ)
-        if total_revenue_item > 0:
-            drr_total = round((money_spent_from_dict / total_revenue_item) * 100, 2)
-        else:
-            drr_total = 0
-
-        print(f"\n  📊 {offer_id}:")
-        print(f"     Сумма продаж за день (аналитика): {total_revenue_item:,.2f} руб.")
-        print(
-            f"     Продажи по поиску+рекомендациям: {total_selled_item_search:,.2f} руб., расходы: {total_expenses_item_search:,.2f} руб.")
-        print(
-            f"     Продажи по CPO: {total_selled_item_cpo:,.2f} руб., расходы из кампаний: {total_expenses_item_cpo:,.2f} руб.")
-        print(f"     ДРР из словаря (drr_all_dict['drr']): {drr_from_dict}%")
-        print(f"     Расходы из словаря (money_spent): {money_spent_from_dict:,.2f} руб.")
-        print(f"     ДРР поиск: {drr_search}%")
-        print(f"     ДРР оплата за заказ (из drr_all_dict['drr']): {drr_cpo}%")
-        print(f"     ДРР общий (расходы из dict / продажи): {drr_total}%")
+        # Логирование
+        log_dashboard_item(
+            offer_id, total_revenue_item, expenses_search, selled_search,
+            drr_from_dict, money_spent_from_dict, drr_search, drr_cpo, drr_total
+        )
 
         dashboard_rows.append({
             'offer_id': offer_id,
@@ -367,18 +425,17 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
             'drr_total': drr_total,
         })
 
-        total_orders += total_ordered_units
-        total_expenses_search += total_expenses_item_search
-        total_selled_search += total_selled_item_search
-        total_expenses_cpo_from_campaigns += total_expenses_item_cpo
-        total_selled_cpo += total_selled_item_cpo
-        total_expenses_from_campaigns_all += total_expenses_item_cpo + total_expenses_item_search
-        total_revenue_all += total_revenue_item
-        total_money_spent_from_dict += money_spent_from_dict
+        # Обновляем итоги
+        totals['total_orders'] += total_ordered_units
+        totals['total_expenses_search'] += expenses_search
+        totals['total_selled_search'] += selled_search
+        totals['total_revenue_all'] += total_revenue_item
+        totals['total_money_spent_from_dict'] += money_spent_from_dict
 
     # Сортируем по количеству продаж
     dashboard_rows.sort(key=lambda x: x['orders'], reverse=True)
 
+    # Формируем данные для таблицы
     dashboard_data = []
     for row in dashboard_rows:
         dashboard_data.append([
@@ -390,473 +447,512 @@ def upload_to_google_sheets(all_items_dict, campaigns_data=None, positions_data=
             row['drr_total']
         ])
 
-    dashboard_data.append(["", "", "", "", "", ""])
+    return dashboard_data, totals
 
-    # Итоговые строки
-    if dashboard_rows:
-        # ==================== ИТОГ ДРР (поиск/поиск и рекомендации) ====================
-        if total_selled_search > 0:
-            total_drr_search = round((total_expenses_search / total_selled_search) * 100, 2)
-        else:
-            total_drr_search = 0
 
-        # ==================== ИТОГ ДРР (оплата за заказ) ====================
-        # Средний ДРР из словаря (не вычисляем, оставляем 0 или можно вывести среднее)
-        total_drr_cpo = 0
+def calculate_total_drr(dashboard_data: List[List], totals: Dict) -> List:
+    """Добавляет итоговые строки в данные DASHBOARD"""
+    # Пустая строка-разделитель
+    dashboard_data.append([""] * len(DASHBOARD_CONFIG['headers']))
 
-        # ==================== ИТОГ ДРР (общий) ====================
-        # Общие расходы из словаря / общая выручка * 100
-        if total_revenue_all > 0:
-            total_drr_total = round((total_money_spent_from_dict / total_revenue_all) * 100, 2)
-        else:
-            total_drr_total = 0
+    # Рассчитываем итоговые метрики
+    total_drr_search = calculate_drr(
+        totals['total_expenses_search'],
+        totals['total_selled_search']
+    )
+    total_drr_total = calculate_drr(
+        totals['total_money_spent_from_dict'],
+        totals['total_revenue_all']
+    )
 
-        print(f"\n  {'=' * 50}")
-        print(f"  📊 ИТОГО по всем товарам:")
-        print(f"     Общая выручка (из аналитики): {total_revenue_all:,.2f} руб.")
-        print(f"     Общие расходы из drr_all_dict: {total_money_spent_from_dict:,.2f} руб.")
-        print(f"     Общие заказы: {total_orders}")
-        print(
-            f"     Продажи по поиску+рекомендациям: {total_selled_search:,.2f} руб., расходы: {total_expenses_search:,.2f} руб.")
-        print(f"     Итоговый ДРР (поиск): {total_drr_search}%")
-        print(f"     Итоговый ДРР (общий): {total_drr_total}%")
-        print(f"  {'=' * 50}\n")
-    else:
-        total_drr_search = 0
-        total_drr_cpo = 0
-        total_drr_total = 0
+    # Логирование итогов
+    log_dashboard_totals(totals, total_drr_search, total_drr_total)
 
-    dashboard_data.append(["ИТОГО", total_revenue_all, total_orders, total_drr_search, total_drr_cpo, total_drr_total])
+    # Добавляем итоговую строку
+    dashboard_data.append([
+        "ИТОГО",
+        totals['total_revenue_all'],
+        totals['total_orders'],
+        total_drr_search,
+        0,  # total_drr_cpo (не вычисляем)
+        total_drr_total
+    ])
+
+    return dashboard_data
+
+
+def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
+    """Обновляет данные в листе DASHBOARD"""
+    # Очищаем старые данные
+    current_data = execute_with_retry(dashboard.get_all_values)
+    current_total_rows = len(current_data)
+
+    if current_total_rows > 1:
+        clear_old_dashboard_data(dashboard, current_total_rows)
 
     # Проверяем и добавляем строки при необходимости
-    rows_needed = len(dashboard_data) + HEADER_ROWS
-    BUFFER_ROWS = 10
+    rows_needed = len(dashboard_data) + 1  # +1 для заголовков
+    ensure_sheet_rows(dashboard, rows_needed)
 
-    print(f"  📊 Текущее количество строк в листе: {current_total_rows}")
-    print(f"  📊 Необходимо строк для вставки: {rows_needed}")
-
-    if current_total_rows < rows_needed + BUFFER_ROWS:
-        rows_to_add = (rows_needed + BUFFER_ROWS) - current_total_rows
-        print(f"  ➕ Добавляем {rows_to_add} новых строк в лист...")
-        try:
-            dashboard.add_rows(rows_to_add)
-            print(f"  ✅ Добавлено {rows_to_add} строк")
-            time.sleep(2)
-        except Exception as e:
-            print(f"  ⚠️ Ошибка при добавлении строк: {e}")
-
+    # Обновляем данные
     print(f"  📝 Вставка {len(dashboard_data)} строк данных...")
-    execute_with_retry(dashboard.update, "A1", [dashboard_headers])
-    time.sleep(2)
-
-    start_row = 2
-    end_row = start_row + len(dashboard_data) - 1
-    range_all = f"A{start_row}:F{end_row}"
-    execute_with_retry(dashboard.update, range_all, dashboard_data)
+    execute_with_retry(dashboard.update, "A2", dashboard_data)
     print(f"  ✅ Вставлено {len(dashboard_data)} строк данных")
     time.sleep(2)
 
-    last_row_with_data = len(dashboard_data) + 1
-
-    # Форматирование
-    execute_with_retry(format_cell_range, dashboard, f"A{last_row_with_data}:F{last_row_with_data}",
-                       CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.95, 0.95, 0.95)))
+    # Форматируем итоговую строку
+    last_row = len(dashboard_data) + 1
+    format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
     time.sleep(2)
 
+    # Форматируем колонку с артикулами
     if len(dashboard_data) > 0:
-        execute_with_retry(format_cell_range, dashboard, f"A2:A{last_row_with_data}",
-                           CellFormat(textFormat=TextFormat(bold=True)))
+        execute_with_retry(
+            format_cell_range, dashboard, f"A2:A{last_row}",
+            CellFormat(textFormat=TextFormat(bold=True))
+        )
         time.sleep(2)
 
-    print("  ✅ DASHBOARD обновлен")
-    time.sleep(2)
 
-    # =========================================================
-    # 📄 PRODUCT SHEETS (оставляем без изменений)
-    # =========================================================
-    for idx, item in enumerate(all_items_dict.values()):
+# ================= ФУНКЦИИ ДЛЯ РАБОТЫ С ЛИСТАМИ ТОВАРОВ =================
 
-        offer_id = item.get("offer_id")
+def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
+    """
+    Настраивает структуру листа товара: заголовки блоков и колонок
+    """
+    print(f"  🆕 Создание нового листа {offer_id}...")
 
-        total_metrics = {
-            'revenue': item.get("total_revenue", 0),
-            'ordered_units': item.get("total_ordered_units", 0),
-            'position_category': item.get("avg_position_category", 0),
-            'hits_view': item.get("total_hits_view", 0),
-            'hits_view_pdp': item.get("total_hits_view_pdp", 0),
-            'session_view_pdp': item.get("total_session_view_pdp", 0),
-            'session_view_search': item.get("total_session_view_search", 0),
-            'conv_tocart_search': item.get("avg_conv_tocart_search", 0),
-            'conv_tocart': item.get("avg_conv_tocart", 0),
-            'conversion_search_to_pdp': item.get("avg_conversion_search_to_pdp", 0)
-        }
+    # Базовая информация о товаре
+    execute_with_exponential_backoff(sheet.update, "A1", [["Артикул", offer_id]])
+    time.sleep(1)
+    execute_with_exponential_backoff(sheet.update, "A2", [["SKU", ", ".join(skus_list)]])
+    time.sleep(1)
+    execute_with_exponential_backoff(sheet.update, "A4", [[""]])
+    time.sleep(1)
 
-        skus_list = item.get("skus", [])
-        print(f"Обработка товара {idx + 1}/{len(all_items_dict.values())}: {offer_id} (SKU: {', '.join(skus_list)})")
+    # Настраиваем блок аналитики
+    col_letter = ANALYTICS_CONFIG['start_column']
+    execute_with_exponential_backoff(
+        sheet.update, f"{col_letter}5", [[ANALYTICS_CONFIG['block_title']]]
+    )
+    time.sleep(1)
 
-        offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
+    # Форматируем заголовок блока аналитики
+    execute_with_exponential_backoff(
+        format_cell_range, sheet, f"{col_letter}5",
+        CellFormat(
+            textFormat=TextFormat(bold=True, fontSize=12),
+            backgroundColor=ANALYTICS_CONFIG['block_color']
+        )
+    )
+    time.sleep(1)
 
-        position_value = None
-        if positions_data:
-            for sku in skus_list:
-                sku_str = str(sku)
-                raw_position = positions_data.get(sku_str) or positions_data.get(sku)
-                if raw_position is not None and str(raw_position) != '-' and str(raw_position) != '':
-                    try:
-                        cleaned = str(raw_position).replace(',', '.').strip()
-                        position_value = float(cleaned)
-                        print(f"  ✅ Обновлена позиция для {offer_id} (SKU {sku}): {position_value}")
-                        break
-                    except (ValueError, TypeError) as e:
-                        print(f"  ⚠️ Не удалось преобразовать позицию: '{raw_position}' - {e}")
-                        continue
+    # Заголовки колонок аналитики
+    headers_list = [h['name'] for h in ANALYTICS_CONFIG['headers']]
+    end_col = get_column_letter(
+        get_column_index(ANALYTICS_CONFIG['start_column']) + len(headers_list) - 1
+    )
+    headers_range = f"{ANALYTICS_CONFIG['start_column']}6:{end_col}6"
 
-        position_category = position_value if position_value is not None else total_metrics.get("position_category", 0)
+    execute_with_exponential_backoff(sheet.update, headers_range, [headers_list])
+    time.sleep(1)
 
-        search_campaigns = [camp for camp in offer_campaigns if camp.get('camping_type') == 'Поиск']
-        rec_campaigns = [camp for camp in offer_campaigns if camp.get('camping_type') == 'Поиск и рекомендации']
-        cpo_campaigns = [camp for camp in offer_campaigns if camp.get('camping_type') == 'Оплата за заказ']
+    # Форматирование заголовков аналитики
+    execute_with_exponential_backoff(
+        format_cell_range, sheet, headers_range,
+        CellFormat(
+            textFormat=TextFormat(bold=True),
+            backgroundColor=ANALYTICS_CONFIG['block_color']
+        )
+    )
+    time.sleep(1)
 
-        try:
-            sheet = execute_with_exponential_backoff(spreadsheet.worksheet, offer_id)
-            need_setup = False
-        except:
-            sheet = execute_with_exponential_backoff(spreadsheet.add_worksheet, title=offer_id, rows=2000, cols=60)
-            need_setup = True
-            time.sleep(3)
+    # Настраиваем рекламные блоки
+    for block_key, block_config in CAMPAIGN_CONFIGS.items():
+        col_letter = block_config['start_column']
 
-        if need_setup:
-            print(f"  🆕 Создание нового листа {offer_id}...")
+        # Заголовок блока
+        execute_with_exponential_backoff(
+            sheet.update, f"{col_letter}5", [[block_config['title']]]
+        )
+        time.sleep(1)
 
-            execute_with_exponential_backoff(sheet.update, range_name="A1", values=[["Артикул", offer_id]])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="A2", values=[["SKU", ", ".join(skus_list)]])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="A4", values=[[""]])
-            time.sleep(1)
+        # Форматирование заголовка блока
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, f"{col_letter}5",
+            CellFormat(
+                textFormat=TextFormat(bold=True, fontSize=12),
+                backgroundColor=block_config['color']
+            )
+        )
+        time.sleep(1)
 
-            # Заголовки блоков (строка 5)
-            execute_with_exponential_backoff(sheet.update, range_name="A5",
-                                             values=[["АНАЛИТИКА"]])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="K5", values=[["РЕКЛАМА — ПОИСК"]])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="Y5", values=[["РЕКЛАМА — ПОИСК И РЕКОМЕНДАЦИИ"]])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="AM5", values=[["РЕКЛАМА — ОПЛАТА ЗА ЗАКАЗ"]])
-            time.sleep(1)
+        # Заголовки колонок
+        headers_list = [h['name'] for h in block_config['headers']]
+        end_col = get_column_letter(
+            get_column_index(block_config['start_column']) + len(headers_list) - 1
+        )
+        headers_range = f"{block_config['start_column']}6:{end_col}6"
 
-            # Заголовки колонок (строка 6)
-            analytics_headers = [
-                "Дата",
-                "Заказано на сумму",
-                "Заказано товаров",
-                "Позиция в каталоге и поиске",
-                "Показы всего",
-                "Посещения карточки товара",
-                "Конверсия из поиска и каталога в карточку",
-                "Конверсия из поиска и каталога в корзину",
-                "Конверсия в корзину общая"
-            ]
+        execute_with_exponential_backoff(sheet.update, headers_range, [headers_list])
+        time.sleep(1)
 
-            campaign_headers = [
-                "Стратегия", "Конкурентная ставка", "Ваша ставка", "Средняя стоимость клика (₽)",
-                "Заказы", "В корзину (шт)", "ДРР (%)", "CTR (%)", "Показы", "Клики",
-                "Бюджет (₽)", "Цена товара (₽)", "Расходы (₽)"
-            ]
+        # Форматирование заголовков колонок
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, headers_range,
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=block_config['color']
+            )
+        )
+        time.sleep(1)
 
-            cpo_headers = [
-                "Ставка (₽) [%]", "Цена товара (₽)", "Индекс видимости",
-                "Заказы (Оплата за заказ)", "Заказы (Комбо-модель)", "ДРР (%)",
-                "Расходы (Оплата за заказ) (₽)", "Расходы (Комбо-модель) (₽)"
-            ]
+    # Замораживаем строки
+    execute_with_exponential_backoff(set_frozen, sheet, rows=6)
+    time.sleep(1)
 
-            execute_with_exponential_backoff(sheet.update, range_name="A6", values=[analytics_headers])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="K6", values=[campaign_headers])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="Y6", values=[campaign_headers])
-            time.sleep(1)
-            execute_with_exponential_backoff(sheet.update, range_name="AM6", values=[cpo_headers])
-            time.sleep(2)
+    # Устанавливаем ширину колонок для всех блоков
+    # Аналитика
+    for idx, header in enumerate(ANALYTICS_CONFIG['headers']):
+        col = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + idx)
+        if 'width' in header:
+            execute_with_exponential_backoff(set_column_width, sheet, col, header['width'])
+    time.sleep(0.5)
 
-            # Форматирование заголовков блоков
-            execute_with_exponential_backoff(format_cell_range, sheet, "A5",
-                                             CellFormat(textFormat=TextFormat(bold=True, fontSize=12),
-                                                        backgroundColor=Color(0.9, 1, 0.9)))
-            time.sleep(1)
-            execute_with_exponential_backoff(format_cell_range, sheet, "K5",
-                                             CellFormat(textFormat=TextFormat(bold=True, fontSize=12),
-                                                        backgroundColor=Color(0.85, 0.92, 1)))
-            time.sleep(1)
-            execute_with_exponential_backoff(format_cell_range, sheet, "Y5",
-                                             CellFormat(textFormat=TextFormat(bold=True, fontSize=12),
-                                                        backgroundColor=Color(0.95, 0.9, 1)))
-            time.sleep(1)
-            execute_with_exponential_backoff(format_cell_range, sheet, "AM5",
-                                             CellFormat(textFormat=TextFormat(bold=True, fontSize=12),
-                                                        backgroundColor=Color(1, 0.95, 0.8)))
-            time.sleep(1)
-
-            # Форматирование заголовков колонок
-            execute_with_exponential_backoff(format_cell_range, sheet, "A6:I6",
-                                             CellFormat(textFormat=TextFormat(bold=True),
-                                                        backgroundColor=Color(0.9, 1, 0.9)))
-            time.sleep(1)
-            execute_with_exponential_backoff(format_cell_range, sheet, "K6:W6",
-                                             CellFormat(textFormat=TextFormat(bold=True),
-                                                        backgroundColor=Color(0.85, 0.92, 1)))
-            time.sleep(1)
-            execute_with_exponential_backoff(format_cell_range, sheet, "Y6:AK6",
-                                             CellFormat(textFormat=TextFormat(bold=True),
-                                                        backgroundColor=Color(0.95, 0.9, 1)))
-            time.sleep(1)
-            execute_with_exponential_backoff(format_cell_range, sheet, "AM6:AU6",
-                                             CellFormat(textFormat=TextFormat(bold=True),
-                                                        backgroundColor=Color(1, 0.95, 0.8)))
-            time.sleep(1)
-
-            execute_with_exponential_backoff(set_frozen, sheet, rows=6)
-            time.sleep(1)
-
-            # Устанавливаем ширину колонок
-            for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
-                time.sleep(0.5)
-
-            for col in ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
-                time.sleep(0.5)
-
-            for col in ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
-                time.sleep(0.5)
-
-            for col in ['AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU']:
-                execute_with_exponential_backoff(set_column_width, sheet, col, 75)
-                time.sleep(0.5)
-
-            time.sleep(3)
-
-        # Формируем строку данных
-        analytics_row = [
-            current_date_str,
-            total_metrics.get("revenue", 0),
-            total_metrics.get("ordered_units", 0),
-            round(position_category, 0),
-            total_metrics.get("hits_view", 0),
-            total_metrics.get("hits_view_pdp", 0),
-            total_metrics.get("conversion_search_to_pdp", 0),
-            total_metrics.get("conv_tocart_search", 0),
-            total_metrics.get("conv_tocart", 0)
-        ]
-
-        search_data = format_search_campaigns(search_campaigns)
-        rec_data = format_search_campaigns(rec_campaigns)
-        cpo_data = format_cpo_campaigns(cpo_campaigns)
-
-        full_row = analytics_row + [""] + search_data + [""] + rec_data + [""] + cpo_data
-
-        # Ищем существующую строку
-        existing_row_index = None
-        all_data = execute_with_retry(sheet.get_all_values)
-
-        for i, row in enumerate(all_data[6:], start=7):
-            if len(row) > 0 and row[0] == current_date_str:
-                existing_row_index = i
-                break
-
-        if existing_row_index:
-            range_label = f"A{existing_row_index}"
-            print(f"  🔄 Обновление строки {existing_row_index}, начиная с {range_label}")
-            execute_with_retry(sheet.update, range_label, [full_row], value_input_option='USER_ENTERED')
-            print(f"  ✅ Обновлена строка за {current_date_str}")
-        else:
-            print(f"  📝 Добавление новой строки за {current_date_str}")
-            execute_with_exponential_backoff(sheet.insert_row, full_row, index=7)
-            print(f"  📝 Добавлена новая строка за {current_date_str}")
-
-        time.sleep(2)
-
-        # Контроль размера листа товара
-        MAX_PRODUCT_ROWS = 500
-        current_rows = len(execute_with_exponential_backoff(sheet.get_all_values))
-
-        if current_rows > MAX_PRODUCT_ROWS:
-            rows_to_delete = current_rows - MAX_PRODUCT_ROWS
-            try:
-                execute_with_exponential_backoff(sheet.delete_rows, 7, rows_to_delete)
-                print(
-                    f"  ✅ Удалены старые строки в листе {offer_id}, удалено {rows_to_delete} строк, осталось {MAX_PRODUCT_ROWS}")
-                time.sleep(2)
-            except Exception as e:
-                print(f"  ⚠️ Не удалось удалить строки в листе {offer_id}: {e}")
-        else:
-            print(f"  ℹ️ В листе {offer_id} {current_rows} строк, лимит не превышен")
-
-        time.sleep(5)
-
-        if (idx + 1) % 3 == 0:
-            print(f"Обработано {idx + 1} товаров, пауза 10 секунд для соблюдения лимитов...")
-            time.sleep(10)
+    # Рекламные блоки
+    for block_config in CAMPAIGN_CONFIGS.values():
+        for idx, header in enumerate(block_config['headers']):
+            col = get_column_letter(get_column_index(block_config['start_column']) + idx)
+            if 'width' in header:
+                execute_with_exponential_backoff(set_column_width, sheet, col, header['width'])
+        time.sleep(0.5)
 
 
-# ================= ФУНКЦИИ ФОРМАТИРОВАНИЯ =================
-def format_search_campaigns(campaigns):
-    """Форматирует данные для поиска и поиска+рекомендаций"""
-    if not campaigns:
-        return [""] * 13
-
-    if len(campaigns) == 1:
-        return format_single_search_campaign(campaigns[0])
-
-    result = []
-    for field_idx in range(13):
-        values = []
-        for camp in campaigns:
-            formatted = format_single_search_campaign(camp)
-            val = formatted[field_idx]
-            if val is not None and str(val) != "" and str(val) != "0":
-                values.append(str(val))
-        result.append(", ".join(values) if values else "")
-
-    return result
-
-
-def format_single_search_campaign(campaign):
+def format_single_search_campaign(campaign: Dict) -> List:
     """Форматирует одну кампанию поиска или рекомендаций"""
-
-    def clean_number(value):
-        if value is None or value == '' or value == '—':
-            return 0
-        if isinstance(value, (int, float)):
-            return float(value) if not isinstance(value, bool) else 0
-        if isinstance(value, str):
-            value = value.replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
-            value = value.replace('%', '')
-            value = value.replace('₽', '')
-            if value == '' or value == '—':
-                return 0
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return 0
-
-    def clean_int(value):
-        return int(clean_number(value))
-
-    strategy = campaign.get('strategy', '')
-    concurent_bet = campaign.get('concurent_bet', '')
-    my_bet = campaign.get('my_bet', '')
-    sr_click = campaign.get('sr_click', '')
-    orders = campaign.get('orders', campaign.get('offers', 0))
-    to_cart = campaign.get('to_cart', 0)
-    drr = campaign.get('drr', '0')
-    ctp = campaign.get('ctp', '0')
-    views = campaign.get('views', 0)
-    clicks = campaign.get('clicks', 0)
-    budget = campaign.get('camping_budget', 0)
-    product_price = campaign.get('product_price', '')
-    expense = campaign.get('expense', 0)
-
-    drr_value = clean_number(drr)
-    ctr_value = clean_number(ctp)
-    sr_click_value = clean_number(sr_click)
-    budget_value = clean_number(budget)
-    product_price_value = clean_number(product_price)
-    expense_value = clean_number(expense)
-
     return [
-        strategy if strategy else '',
-        str(concurent_bet) if concurent_bet else '',
-        str(my_bet) if my_bet else '',
-        round(sr_click_value, 2) if sr_click_value else 0,
-        clean_int(orders),
-        clean_int(to_cart),
-        round(drr_value, 2),
-        round(ctr_value, 2),
-        clean_int(views),
-        clean_int(clicks),
-        round(budget_value, 2),
-        round(product_price_value, 2),
-        round(expense_value, 2)
+        campaign.get('strategy', ''),
+        str(campaign.get('concurent_bet', '')),
+        str(campaign.get('my_bet', '')),
+        round(clean_numeric_value(campaign.get('sr_click', 0)), 2),
+        clean_int_value(campaign.get('orders', campaign.get('offers', 0))),
+        clean_int_value(campaign.get('to_cart', 0)),
+        round(clean_numeric_value(campaign.get('drr', 0)), 2),
+        round(clean_numeric_value(campaign.get('ctp', 0)), 2),
+        clean_int_value(campaign.get('views', 0)),
+        clean_int_value(campaign.get('clicks', 0)),
+        round(clean_numeric_value(campaign.get('camping_budget', 0)), 2),
+        round(clean_numeric_value(campaign.get('product_price', 0)), 2),
+        round(clean_numeric_value(campaign.get('expense', 0)), 2)
     ]
 
 
-def format_cpo_campaigns(campaigns):
-    """Форматирует данные для кампаний с оплатой за заказ"""
-    if not campaigns:
-        return [""] * 8
-
-    if len(campaigns) == 1:
-        return format_single_cpo_campaign(campaigns[0])
-
-    result = []
-    for field_idx in range(8):
-        values = []
-        for camp in campaigns:
-            formatted = format_single_cpo_campaign(camp)
-            val = formatted[field_idx]
-            if val is not None and str(val) != "" and str(val) != "0" and str(val) != "—":
-                values.append(str(val))
-        result.append(", ".join(values) if values else "")
-
-    return result
-
-
-def format_single_cpo_campaign(campaign):
+def format_single_cpo_campaign(campaign: Dict) -> List:
     """Форматирует одну кампанию с оплатой за заказ"""
-
-    def clean_number(value):
-        if value is None or value == '' or value == '—':
-            return 0
-        if isinstance(value, (int, float)):
-            return float(value) if not isinstance(value, bool) else 0
-        if isinstance(value, str):
-            value = value.replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
-            value = value.replace('%', '')
-            value = value.replace('₽', '')
-            if value == '' or value == '—':
-                return 0
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return 0
-
-    def clean_int(value):
-        return int(clean_number(value))
-
-    bet_amount = campaign.get('bet_amount', '')
+    bet_amount = clean_numeric_value(campaign.get('bet_amount', 0))
     bet_percent = campaign.get('bet_percent', '')
-    product_price = campaign.get('product_price', '')
-    index_view = campaign.get('index_view', '')
-    product_buy_pay = campaign.get('product_buy_pay', 0)
-    product_buy_combo = campaign.get('product_buy_combo_model', 0)
-    drr = campaign.get('drr', '—')
-    expense = campaign.get('expense', 0)
-    expense_model = campaign.get('expense_model', 0)
+    bet_display = ""
+    if bet_percent and bet_amount:
+        bet_display = f"{round(bet_amount, 2)} [{bet_percent}%]"
 
-    bet_amount_value = clean_number(bet_amount)
-    product_price_value = clean_number(product_price)
-    drr_value = clean_number(drr)
-    expense_value = clean_number(expense)
-    expense_model_value = clean_number(expense_model)
-
-    bet_display = f"{round(bet_amount_value, 2)} [{bet_percent}%]" if bet_percent and bet_amount_value else ""
+    drr_value = campaign.get('drr', '—')
+    expense_value = campaign.get('expense', '—')
+    expense_model_value = campaign.get('expense_model', '—')
 
     return [
         bet_display,
-        round(product_price_value, 2),
-        str(index_view) if index_view else '',
-        clean_int(product_buy_pay),
-        clean_int(product_buy_combo),
-        round(drr_value, 2) if drr_value else '—',
-        round(expense_value, 2) if expense_value else '—',
-        round(expense_model_value, 2) if expense_model_value else '—'
+        round(clean_numeric_value(campaign.get('product_price', 0)), 2),
+        str(campaign.get('index_view', '')),
+        clean_int_value(campaign.get('product_buy_pay', 0)),
+        clean_int_value(campaign.get('product_buy_combo_model', 0)),
+        round(clean_numeric_value(drr_value), 2) if drr_value != '—' else '—',
+        round(clean_numeric_value(expense_value), 2) if expense_value != '—' else '—',
+        round(clean_numeric_value(expense_model_value), 2) if expense_model_value != '—' else '—'
     ]
 
 
+def format_campaign_data(campaigns: List, campaign_type: str) -> List:
+    """Форматирует данные рекламных кампаний"""
+    if not campaigns:
+        num_fields = len(CAMPAIGN_CONFIGS[campaign_type]['headers'])
+        return [""] * num_fields
+
+    if len(campaigns) == 1:
+        if campaign_type == 'cpo':
+            return format_single_cpo_campaign(campaigns[0])
+        else:
+            return format_single_search_campaign(campaigns[0])
+
+    # Для нескольких кампаний объединяем данные по полям
+    result = []
+    num_fields = len(CAMPAIGN_CONFIGS[campaign_type]['headers'])
+
+    for field_idx in range(num_fields):
+        values = []
+        for camp in campaigns:
+            if campaign_type == 'cpo':
+                formatted = format_single_cpo_campaign(camp)
+            else:
+                formatted = format_single_search_campaign(camp)
+
+            val = formatted[field_idx] if field_idx < len(formatted) else ""
+            if val is not None and str(val) != "" and str(val) != "0":
+                values.append(str(val))
+
+        result.append(", ".join(values) if values else "")
+
+    return result
+
+
+def update_position_data(item: Dict, positions_data: Optional[Dict]) -> float:
+    """Обновляет позицию товара из данных positions_data"""
+    skus_list = item.get("skus", [])
+    position_value = None
+
+    if positions_data:
+        for sku in skus_list:
+            sku_str = str(sku)
+            raw_position = positions_data.get(sku_str) or positions_data.get(sku)
+            if raw_position is not None and str(raw_position) != '-' and str(raw_position) != '':
+                try:
+                    cleaned = str(raw_position).replace(',', '.').strip()
+                    position_value = float(cleaned)
+                    print(f"  ✅ Обновлена позиция для {item.get('offer_id')} "
+                          f"(SKU {sku}): {position_value}")
+                    break
+                except (ValueError, TypeError) as e:
+                    print(f"  ⚠️ Не удалось преобразовать позицию: '{raw_position}' - {e}")
+                    continue
+
+    return position_value if position_value is not None else clean_numeric_value(
+        item.get("avg_position_category", 0)
+    )
+
+
+def prepare_product_row(item: Dict, campaigns_data: Dict, current_date_str: str) -> List:
+    """Подготавливает строку данных для листа товара"""
+    offer_id = item.get("offer_id")
+
+    # Данные аналитики
+    analytics_row = [
+        current_date_str,
+        clean_numeric_value(item.get("total_revenue", 0)),
+        clean_int_value(item.get("total_ordered_units", 0)),
+        round(clean_numeric_value(item.get("avg_position_category", 0)), 0),
+        clean_int_value(item.get("total_hits_view", 0)),
+        clean_int_value(item.get("total_hits_view_pdp", 0)),
+        clean_numeric_value(item.get("avg_conversion_search_to_pdp", 0)),
+        clean_numeric_value(item.get("avg_conv_tocart_search", 0)),
+        clean_numeric_value(item.get("avg_conv_tocart", 0))
+    ]
+
+    # Данные рекламных кампаний
+    offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
+
+    search_campaigns = [
+        camp for camp in offer_campaigns
+        if camp.get('camping_type') == 'Поиск'
+    ]
+    rec_campaigns = [
+        camp for camp in offer_campaigns
+        if camp.get('camping_type') == 'Поиск и рекомендации'
+    ]
+    cpo_campaigns = [
+        camp for camp in offer_campaigns
+        if camp.get('camping_type') == 'Оплата за заказ'
+    ]
+
+    search_data = format_campaign_data(search_campaigns, 'search')
+    rec_data = format_campaign_data(rec_campaigns, 'recommendations')
+    cpo_data = format_campaign_data(cpo_campaigns, 'cpo')
+
+    # Собираем полную строку с разделителями
+    full_row = analytics_row + [""] + search_data + [""] + rec_data + [""] + cpo_data
+
+    return full_row
+
+
+def update_product_sheet(sheet, offer_id: str, full_row: List, current_date_str: str):
+    """Обновляет данные в листе товара (добавляет или обновляет строку)"""
+    # Ищем существующую строку с текущей датой
+    all_data = execute_with_retry(sheet.get_all_values)
+    existing_row_index = None
+
+    for i, row in enumerate(all_data[6:], start=7):
+        if len(row) > 0 and row[0] == current_date_str:
+            existing_row_index = i
+            break
+
+    if existing_row_index:
+        range_label = f"A{existing_row_index}"
+        print(f"  🔄 Обновление строки {existing_row_index}")
+        execute_with_retry(
+            sheet.update, range_label, [full_row],
+            value_input_option='USER_ENTERED'
+        )
+        print(f"  ✅ Обновлена строка за {current_date_str}")
+    else:
+        print(f"  📝 Добавление новой строки за {current_date_str}")
+        execute_with_exponential_backoff(sheet.insert_row, full_row, index=7)
+        print(f"  ✅ Добавлена строка за {current_date_str}")
+
+    time.sleep(2)
+
+    # Контроль размера листа (оставляем только последние 500 строк)
+    enforce_sheet_size_limit(sheet, max_rows=500)
+
+
+def enforce_sheet_size_limit(sheet, max_rows: int = 500):
+    """Ограничивает количество строк в листе"""
+    current_rows = len(execute_with_exponential_backoff(sheet.get_all_values))
+
+    if current_rows > max_rows:
+        rows_to_delete = current_rows - max_rows
+        try:
+            execute_with_exponential_backoff(sheet.delete_rows, 7, rows_to_delete)
+            print(f"  ✅ Удалены старые строки, удалено {rows_to_delete} строк, "
+                  f"осталось {max_rows}")
+            time.sleep(2)
+        except Exception as e:
+            print(f"  ⚠️ Не удалось удалить строки: {e}")
+    else:
+        print(f"  ℹ️ В листе {current_rows} строк, лимит не превышен")
+
+
+# ================= ФУНКЦИИ ДЛЯ ОБРАБОТКИ ОШИБОК =================
+
+def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
+    """Записывает ошибку в лист"""
+    try:
+        client = get_google_sheets_client()
+        spreadsheet = client.open_by_key(spread_id)
+
+        try:
+            sheet = spreadsheet.worksheet(sheet_name)
+            sheet.clear()
+        except gspread.exceptions.WorksheetNotFound:
+            sheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=5)
+
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        full_error = f"[{timestamp}] {error_message}"
+        sheet.update("A1", full_error)
+
+        print(f"✅ Ошибка записана в лист {sheet_name}")
+    except Exception as e:
+        print(f"❌ Не удалось записать ошибку: {e}")
+
+
+def write_parser_error_to_sheet(error_message: str):
+    """Записывает ошибки парсера в лист ERROR_PARS"""
+    write_error_to_sheet(error_message, "ERROR_PARS")
+
+
+# ================= ОСНОВНАЯ ФУНКЦИЯ =================
+
+def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict] = None,
+                            positions_data: Optional[Dict] = None,
+                            drr_all_dict: Optional[Dict] = None):
+    """
+    Основная функция загрузки данных в Google Sheets
+
+    Args:
+        all_items_dict: Словарь с данными аналитики по товарам
+        campaigns_data: Словарь с данными рекламных кампаний
+        positions_data: Словарь с данными позиций товаров
+        drr_all_dict: Словарь с ДРР и расходами по товарам
+    """
+    print("\n" + "=" * 60)
+    print("🚀 НАЧАЛО ЗАГРУЗКИ ДАННЫХ В GOOGLE SHEETS")
+    print("=" * 60)
+
+    try:
+        # Подключение к Google Sheets
+        print("\n🔌 Подключение к Google Sheets...")
+        client = get_google_sheets_client()
+        spreadsheet = client.open_by_key(spread_id)
+        current_date_str = get_current_date_moscow()
+        print(f"📅 Текущая дата: {current_date_str}")
+
+        # ================= ОБРАБОТКА DASHBOARD =================
+        print("\n" + "=" * 60)
+        print("📊 ОБРАБОТКА ЛИСТА DASHBOARD")
+        print("=" * 60)
+
+        dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
+
+        # Настройка структуры DASHBOARD
+        current_data = execute_with_retry(dashboard.get_all_values)
+        expected_headers = [h['name'] for h in DASHBOARD_CONFIG['headers']]
+
+        if len(current_data) == 0 or (len(current_data) > 0 and current_data[0] != expected_headers):
+            setup_sheet_headers(dashboard, DASHBOARD_CONFIG, start_row=1)
+        else:
+            clear_old_dashboard_data(dashboard, len(current_data))
+
+        # Подготовка данных DASHBOARD
+        dashboard_data, totals = prepare_dashboard_data(
+            all_items_dict, campaigns_data, drr_all_dict
+        )
+        dashboard_data_with_totals = calculate_total_drr(dashboard_data, totals)
+
+        # Обновление DASHBOARD
+        update_dashboard_sheet(dashboard, dashboard_data_with_totals)
+        print("✅ DASHBOARD успешно обновлен")
+
+        # ================= ОБРАБОТКА ЛИСТОВ ТОВАРОВ =================
+        print("\n" + "=" * 60)
+        print("📄 ОБРАБОТКА ЛИСТОВ ТОВАРОВ")
+        print("=" * 60)
+
+        for idx, item in enumerate(all_items_dict.values()):
+            offer_id = item.get("offer_id")
+            skus_list = item.get("skus", [])
+
+            print(f"\n🔄 Обработка товара {idx + 1}/{len(all_items_dict)}: {offer_id}")
+            print(f"   SKU: {', '.join(skus_list)}")
+
+            # Обновляем позицию товара
+            position_category = update_position_data(item, positions_data)
+            item['avg_position_category'] = position_category
+
+            # Получаем или создаем лист товара
+            try:
+                sheet = execute_with_exponential_backoff(spreadsheet.worksheet, offer_id)
+                need_setup = False
+            except gspread.exceptions.WorksheetNotFound:
+                sheet = execute_with_exponential_backoff(
+                    spreadsheet.add_worksheet, title=offer_id, rows=2000, cols=60
+                )
+                need_setup = True
+                time.sleep(3)
+
+            # Настраиваем структуру листа если нужно
+            if need_setup:
+                setup_product_sheet_structure(sheet, offer_id, skus_list)
+
+            # Подготавливаем и обновляем данные
+            full_row = prepare_product_row(item, campaigns_data, current_date_str)
+            update_product_sheet(sheet, offer_id, full_row, current_date_str)
+
+            # Пауза для соблюдения лимитов
+            if (idx + 1) % 3 == 0:
+                print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 10 секунд...")
+                time.sleep(10)
+
+        print("\n" + "=" * 60)
+        print("✅ ВСЕ ДАННЫЕ УСПЕШНО ЗАГРУЖЕНЫ")
+        print("=" * 60)
+
+    except Exception as e:
+        print(f"\n❌ КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        write_error_to_sheet(str(e))
+        raise
+
+
+# ================= ТЕСТОВАЯ ФУНКЦИЯ =================
+
 def test():
+    """Тестовая функция для проверки загрузки"""
     with open('all_items_dict.json', 'r', encoding='utf-8') as f:
         all_dict = json.load(f)
     with open('advert_analytic.json', 'r', encoding='utf-8') as f:
@@ -864,9 +960,13 @@ def test():
     with open('position_analytic.json', 'r', encoding='utf-8') as f:
         l_dict = json.load(f)
 
-    money_spent_dict = {'Наручники_МЕХ': '561.49', 'Наручники_Gold': '650.17', 'кляп-дырка-white-4.5см': '1 185.1', 'губы_красные': '1 005.34', 'губы_black': '484.14', 'Падл_31см': '877.16', 'Простынь_бдсм': '369.49', 'Бандаж-BDSM_2_наруч': '1 184.35', 'Бандаж_4х': '1 160.76', 'ошейник_карабины': '146.78', 'Чокер_ремень_наручники': '384.79', 'ross-pink': '620.26', 'Оковы-XL': '300.98', 'Чокер_наручники_bdsm': '1 774.53', 'Бандаж-BDSM': '572.21', 'кляп-дырка-4.5см': '1 500.18', 'Наручники-XL': '3 331.44', 'Наручник-STEEL': '657.5', 'Упряга-XL': '102.49', 'ross-gradient': '4 022.25', 'ross-black': '2 025.46', 'ross-fiolet': '198.19', 'dildo_1': '2 031.8', 'чокер XL': '1 131.26', 'pletka_2': '512.1', 'pletka_3': '0', 'pletka_1': '483.75', 'stek-60': '1 060.4', 'кляп-страпон-х2': '180.66', 'кляп-5см': '73.99', 'кляп-10см': '318.75', 'чекер-bdsm': '406.64', 'vibgr-ross': '7 374.19', 'кляп-фиолетовый': '183.67', 'кляп-rose': '591.97', 'pletka_4_eco': '806.62', 'кляп-красный': '160.55', 'кляп-black': '496.71'}
+    # Пример нового формата drr_all_dict
+    drr_all_dict = {
+        'Наручники_МЕХ': {'drr': 15.5, 'money_spent': 561.49},
+        'Наручники_Gold': {'drr': 12.3, 'money_spent': 650.17},
+    }
 
-    upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict)
+    upload_to_google_sheets(all_dict, s_dict, l_dict, drr_all_dict)
 
 
 if __name__ == "__main__":
