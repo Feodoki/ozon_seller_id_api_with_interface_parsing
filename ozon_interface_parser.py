@@ -1184,11 +1184,12 @@ class InterfaceParser:
                     # Исправление: обрабатываем список товаров для каждого offer_id
                     for offer_id in price_dict:
                         actual_price = price_dict[offer_id]['price']
+                        price_before = price_dict[offer_id]['price_before']
 
                         if offer_id in res_dict:
-                            # res_dict[offer_id] - это список словарей
                             for item_dict in res_dict[offer_id]:
                                 item_dict['product_price'] = actual_price
+                                item_dict['product_price_before'] = price_before
                         else:
                             logger.warning(f"   ⚠️ offer_id {offer_id} не найден в рекламной аналитике")
 

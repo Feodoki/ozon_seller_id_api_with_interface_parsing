@@ -121,7 +121,6 @@ def clean_numeric_value(value: Any) -> float:
     if isinstance(value, (int, float)):
         return float(value) if not isinstance(value, bool) else 0.0
     if isinstance(value, str):
-        # Удаляем пробелы, заменяем запятую на точку, убираем символы
         cleaned = value.replace('\u202f', '').replace(' ', '').replace(',', '.').strip()
         cleaned = cleaned.replace('%', '').replace('₽', '')
         if cleaned == '' or cleaned == '—':
@@ -153,10 +152,8 @@ def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
         except Exception as e:
             if '429' in str(e) or 'Quota exceeded' in str(e):
                 wait_time = min(30 * (2 ** attempt), 600)
-                print(
-                    f"  ⏳ Превышен лимит. Пауза {wait_time} сек... "
-                    f"(попытка {attempt + 1}/{max_retries})"
-                )
+                print(f"  ⏳ Превышен лимит. Пауза {wait_time} сек... "
+                      f"(попытка {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
             else:
                 raise e
@@ -166,6 +163,32 @@ def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
 def execute_with_retry(func, *args, **kwargs):
     """Выполняет функцию с повторными попытками при ошибках 429"""
     return execute_with_exponential_backoff(func, *args, **kwargs)
+
+
+def batch_update_with_retry(sheet, range_name, values, batch_size=50):
+    """Обновляет данные пакетами для соблюдения лимитов"""
+    if not values:
+        return
+
+    total_rows = len(values)
+
+    for i in range(0, total_rows, batch_size):
+        batch_values = values[i:i + batch_size]
+        batch_range = f"{range_name.split(':')[0]}{int(range_name.split(':')[0][1:]) + i}"
+
+        try:
+            execute_with_retry(
+                sheet.update,
+                batch_range,
+                batch_values,
+                value_input_option='USER_ENTERED'
+            )
+            print(f"    ✅ Обновлен пакет {i // batch_size + 1}/"
+                  f"{(total_rows + batch_size - 1) // batch_size}")
+            time.sleep(1)  # Небольшая пауза между пакетами
+        except Exception as e:
+            print(f"    ❌ Ошибка при обновлении пакета: {e}")
+            raise
 
 
 def get_google_sheets_client():
@@ -213,18 +236,14 @@ def get_column_index(col_letter: str) -> int:
 def setup_sheet_headers(sheet, config: Dict, start_row: int = 1):
     """
     Универсальная функция для настройки заголовков листа
-    config должен содержать:
-        - headers: список словарей с ключами 'name' и опционально 'width'
-        - header_color: Color объект для фона
-        - frozen_rows: количество замороженных строк
     """
     headers_list = [h['name'] for h in config['headers']]
 
-    # Записываем заголовки
+    # Записываем заголовки одной операцией
     end_col = get_column_letter(len(headers_list))
     range_name = f"A{start_row}:{end_col}{start_row}"
     execute_with_exponential_backoff(sheet.update, range_name, [headers_list])
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Форматируем заголовки
     header_range = f"A{start_row}:{end_col}{start_row}"
@@ -239,7 +258,7 @@ def setup_sheet_headers(sheet, config: Dict, start_row: int = 1):
     # Замораживаем строки
     if config.get('frozen_rows'):
         execute_with_exponential_backoff(set_frozen, sheet, rows=config['frozen_rows'])
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Устанавливаем ширину колонок
     for idx, header in enumerate(config['headers'], start=1):
@@ -248,7 +267,7 @@ def setup_sheet_headers(sheet, config: Dict, start_row: int = 1):
             execute_with_exponential_backoff(
                 set_column_width, sheet, col_letter, header['width']
             )
-    time.sleep(1)
+    time.sleep(0.5)
 
 
 def clear_old_dashboard_data(dashboard, current_total_rows: int):
@@ -258,7 +277,7 @@ def clear_old_dashboard_data(dashboard, current_total_rows: int):
         try:
             execute_with_retry(dashboard.batch_clear, [f"A2:F{current_total_rows}"])
             print(f"  ✅ Очищено содержимое строк 2-{current_total_rows}")
-            time.sleep(2)
+            time.sleep(1)
         except Exception as e:
             print(f"  ⚠️ Ошибка при очистке: {e}")
 
@@ -285,7 +304,7 @@ def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10):
         try:
             sheet.add_rows(rows_to_add)
             print(f"  ✅ Добавлено {rows_to_add} строк")
-            time.sleep(2)
+            time.sleep(1)
         except Exception as e:
             print(f"  ⚠️ Ошибка при добавлении строк: {e}")
 
@@ -293,10 +312,7 @@ def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10):
 # ================= ФУНКЦИИ ДЛЯ РАБОТЫ С DASHBOARD =================
 
 def extract_campaign_expenses(offer_campaigns: List) -> Tuple[float, float, float, float]:
-    """
-    Извлекает расходы и продажи из кампаний товара
-    Возвращает: (expenses_search, selled_search, expenses_cpo, selled_cpo)
-    """
+    """Извлекает расходы и продажи из кампаний товара"""
     expenses_search = 0.0
     selled_search = 0.0
     expenses_cpo = 0.0
@@ -319,10 +335,7 @@ def extract_campaign_expenses(offer_campaigns: List) -> Tuple[float, float, floa
 
 
 def extract_drr_data(drr_all_dict: Optional[Dict], offer_id: str) -> Tuple[float, float]:
-    """
-    Извлекает ДРР и расходы из drr_all_dict
-    Возвращает: (drr_value, money_spent)
-    """
+    """Извлекает ДРР и расходы из drr_all_dict"""
     drr_value = 0.0
     money_spent = 0.0
 
@@ -379,10 +392,7 @@ def log_dashboard_totals(totals: Dict, total_drr_search: float, total_drr_total:
 
 def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
                            drr_all_dict: Dict) -> Tuple[List[List], Dict]:
-    """
-    Подготавливает данные для листа DASHBOARD
-    Возвращает: (dashboard_data, totals_dict)
-    """
+    """Подготавливает данные для листа DASHBOARD"""
     dashboard_rows = []
     totals = {
         'total_orders': 0,
@@ -399,33 +409,27 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
 
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
 
-        # Извлекаем расходы по кампаниям
         expenses_search, selled_search, _, _ = extract_campaign_expenses(offer_campaigns)
-
-        # Получаем данные из drr_all_dict
         drr_from_dict, money_spent_from_dict = extract_drr_data(drr_all_dict, offer_id)
 
-        # Рассчитываем метрики
         drr_search = calculate_drr(expenses_search, selled_search)
         drr_cpo = drr_from_dict
         drr_total = calculate_drr(money_spent_from_dict, total_revenue_item)
 
-        # Логирование
         log_dashboard_item(
             offer_id, total_revenue_item, expenses_search, selled_search,
             drr_from_dict, money_spent_from_dict, drr_search, drr_cpo, drr_total
         )
 
-        dashboard_rows.append({
-            'offer_id': offer_id,
-            'revenue': total_revenue_item,
-            'orders': total_ordered_units,
-            'drr_search': drr_search,
-            'drr_cpo': drr_cpo,
-            'drr_total': drr_total,
-        })
+        dashboard_rows.append([
+            offer_id,
+            total_revenue_item,
+            total_ordered_units,
+            drr_search,
+            drr_cpo,
+            drr_total
+        ])
 
-        # Обновляем итоги
         totals['total_orders'] += total_ordered_units
         totals['total_expenses_search'] += expenses_search
         totals['total_selled_search'] += selled_search
@@ -433,56 +437,13 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
         totals['total_money_spent_from_dict'] += money_spent_from_dict
 
     # Сортируем по количеству продаж
-    dashboard_rows.sort(key=lambda x: x['orders'], reverse=True)
+    dashboard_rows.sort(key=lambda x: x[2], reverse=True)
 
-    # Формируем данные для таблицы
-    dashboard_data = []
-    for row in dashboard_rows:
-        dashboard_data.append([
-            row['offer_id'],
-            row['revenue'],
-            row['orders'],
-            row['drr_search'],
-            row['drr_cpo'],
-            row['drr_total']
-        ])
-
-    return dashboard_data, totals
-
-
-def calculate_total_drr(dashboard_data: List[List], totals: Dict) -> List:
-    """Добавляет итоговые строки в данные DASHBOARD"""
-    # Пустая строка-разделитель
-    dashboard_data.append([""] * len(DASHBOARD_CONFIG['headers']))
-
-    # Рассчитываем итоговые метрики
-    total_drr_search = calculate_drr(
-        totals['total_expenses_search'],
-        totals['total_selled_search']
-    )
-    total_drr_total = calculate_drr(
-        totals['total_money_spent_from_dict'],
-        totals['total_revenue_all']
-    )
-
-    # Логирование итогов
-    log_dashboard_totals(totals, total_drr_search, total_drr_total)
-
-    # Добавляем итоговую строку
-    dashboard_data.append([
-        "ИТОГО",
-        totals['total_revenue_all'],
-        totals['total_orders'],
-        total_drr_search,
-        0,  # total_drr_cpo (не вычисляем)
-        total_drr_total
-    ])
-
-    return dashboard_data
+    return dashboard_rows, totals
 
 
 def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
-    """Обновляет данные в листе DASHBOARD"""
+    """Обновляет данные в листе DASHBOARD одной операцией"""
     # Очищаем старые данные
     current_data = execute_with_retry(dashboard.get_all_values)
     current_total_rows = len(current_data)
@@ -490,74 +451,92 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
     if current_total_rows > 1:
         clear_old_dashboard_data(dashboard, current_total_rows)
 
+    # Добавляем итоговые строки
+    if dashboard_data:
+        # Рассчитываем итоги
+        total_revenue = sum(row[1] for row in dashboard_data)
+        total_orders = sum(row[2] for row in dashboard_data)
+
+        # Пустая строка-разделитель
+        dashboard_data.append([""] * len(DASHBOARD_CONFIG['headers']))
+
+        # Итоговая строка
+        dashboard_data.append(["ИТОГО", total_revenue, total_orders, 0, 0, 0])
+
     # Проверяем и добавляем строки при необходимости
-    rows_needed = len(dashboard_data) + 1  # +1 для заголовков
+    rows_needed = len(dashboard_data) + 1
     ensure_sheet_rows(dashboard, rows_needed)
 
-    # Обновляем данные
-    print(f"  📝 Вставка {len(dashboard_data)} строк данных...")
+    # Обновляем все данные одной операцией
+    print(f"  📝 Вставка {len(dashboard_data)} строк данных одной операцией...")
     execute_with_retry(dashboard.update, "A2", dashboard_data)
     print(f"  ✅ Вставлено {len(dashboard_data)} строк данных")
-    time.sleep(2)
+    time.sleep(1)
 
     # Форматируем итоговую строку
-    last_row = len(dashboard_data) + 1
-    format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
-    time.sleep(2)
+    if dashboard_data:
+        last_row = len(dashboard_data) + 1
+        format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
 
-    # Форматируем колонку с артикулами
-    if len(dashboard_data) > 0:
+        # Форматируем колонку с артикулами
         execute_with_retry(
             format_cell_range, dashboard, f"A2:A{last_row}",
             CellFormat(textFormat=TextFormat(bold=True))
         )
-        time.sleep(2)
 
 
 # ================= ФУНКЦИИ ДЛЯ РАБОТЫ С ЛИСТАМИ ТОВАРОВ =================
 
 def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
-    """
-    Настраивает структуру листа товара: заголовки блоков и колонок
-    """
+    """Настраивает структуру листа товара одной операцией"""
     print(f"  🆕 Создание нового листа {offer_id}...")
 
-    # Базовая информация о товаре
-    execute_with_exponential_backoff(sheet.update, "A1", [["Артикул", offer_id]])
-    time.sleep(1)
-    execute_with_exponential_backoff(sheet.update, "A2", [["SKU", ", ".join(skus_list)]])
-    time.sleep(1)
-    execute_with_exponential_backoff(sheet.update, "A4", [[""]])
-    time.sleep(1)
+    # Подготавливаем все данные для обновления
+    updates = []
 
-    # Настраиваем блок аналитики
+    # Базовая информация
+    updates.append(("A1", [["Артикул", offer_id]]))
+    updates.append(("A2", [["SKU", ", ".join(skus_list)]]))
+    updates.append(("A4", [[""]]))
+
+    # Заголовки блоков и колонок
+    # Аналитика
     col_letter = ANALYTICS_CONFIG['start_column']
-    execute_with_exponential_backoff(
-        sheet.update, f"{col_letter}5", [[ANALYTICS_CONFIG['block_title']]]
-    )
-    time.sleep(1)
+    updates.append((f"{col_letter}5", [[ANALYTICS_CONFIG['block_title']]]))
 
-    # Форматируем заголовок блока аналитики
+    headers_list = [h['name'] for h in ANALYTICS_CONFIG['headers']]
+    end_col = get_column_letter(
+        get_column_index(ANALYTICS_CONFIG['start_column']) + len(headers_list) - 1
+    )
+    updates.append((f"{ANALYTICS_CONFIG['start_column']}6:{end_col}6", [headers_list]))
+
+    # Рекламные блоки
+    for block_config in CAMPAIGN_CONFIGS.values():
+        col_letter = block_config['start_column']
+        updates.append((f"{col_letter}5", [[block_config['title']]]))
+
+        headers_list = [h['name'] for h in block_config['headers']]
+        end_col = get_column_letter(
+            get_column_index(block_config['start_column']) + len(headers_list) - 1
+        )
+        updates.append((f"{block_config['start_column']}6:{end_col}6", [headers_list]))
+
+    # Выполняем все обновления
+    for range_name, values in updates:
+        execute_with_exponential_backoff(sheet.update, range_name, values)
+        time.sleep(0.3)
+
+    # Применяем форматирование
+    # Аналитика
     execute_with_exponential_backoff(
-        format_cell_range, sheet, f"{col_letter}5",
+        format_cell_range, sheet, f"{ANALYTICS_CONFIG['start_column']}5",
         CellFormat(
             textFormat=TextFormat(bold=True, fontSize=12),
             backgroundColor=ANALYTICS_CONFIG['block_color']
         )
     )
-    time.sleep(1)
 
-    # Заголовки колонок аналитики
-    headers_list = [h['name'] for h in ANALYTICS_CONFIG['headers']]
-    end_col = get_column_letter(
-        get_column_index(ANALYTICS_CONFIG['start_column']) + len(headers_list) - 1
-    )
     headers_range = f"{ANALYTICS_CONFIG['start_column']}6:{end_col}6"
-
-    execute_with_exponential_backoff(sheet.update, headers_range, [headers_list])
-    time.sleep(1)
-
-    # Форматирование заголовков аналитики
     execute_with_exponential_backoff(
         format_cell_range, sheet, headers_range,
         CellFormat(
@@ -565,19 +544,10 @@ def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
             backgroundColor=ANALYTICS_CONFIG['block_color']
         )
     )
-    time.sleep(1)
 
-    # Настраиваем рекламные блоки
-    for block_key, block_config in CAMPAIGN_CONFIGS.items():
+    # Рекламные блоки
+    for block_config in CAMPAIGN_CONFIGS.values():
         col_letter = block_config['start_column']
-
-        # Заголовок блока
-        execute_with_exponential_backoff(
-            sheet.update, f"{col_letter}5", [[block_config['title']]]
-        )
-        time.sleep(1)
-
-        # Форматирование заголовка блока
         execute_with_exponential_backoff(
             format_cell_range, sheet, f"{col_letter}5",
             CellFormat(
@@ -585,19 +555,12 @@ def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
                 backgroundColor=block_config['color']
             )
         )
-        time.sleep(1)
 
-        # Заголовки колонок
         headers_list = [h['name'] for h in block_config['headers']]
         end_col = get_column_letter(
             get_column_index(block_config['start_column']) + len(headers_list) - 1
         )
         headers_range = f"{block_config['start_column']}6:{end_col}6"
-
-        execute_with_exponential_backoff(sheet.update, headers_range, [headers_list])
-        time.sleep(1)
-
-        # Форматирование заголовков колонок
         execute_with_exponential_backoff(
             format_cell_range, sheet, headers_range,
             CellFormat(
@@ -605,27 +568,10 @@ def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
                 backgroundColor=block_config['color']
             )
         )
-        time.sleep(1)
 
     # Замораживаем строки
     execute_with_exponential_backoff(set_frozen, sheet, rows=6)
     time.sleep(1)
-
-    # Устанавливаем ширину колонок для всех блоков
-    # Аналитика
-    for idx, header in enumerate(ANALYTICS_CONFIG['headers']):
-        col = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + idx)
-        if 'width' in header:
-            execute_with_exponential_backoff(set_column_width, sheet, col, header['width'])
-    time.sleep(0.5)
-
-    # Рекламные блоки
-    for block_config in CAMPAIGN_CONFIGS.values():
-        for idx, header in enumerate(block_config['headers']):
-            col = get_column_letter(get_column_index(block_config['start_column']) + idx)
-            if 'width' in header:
-                execute_with_exponential_backoff(set_column_width, sheet, col, header['width'])
-        time.sleep(0.5)
 
 
 def format_single_search_campaign(campaign: Dict) -> List:
@@ -772,18 +718,21 @@ def prepare_product_row(item: Dict, campaigns_data: Dict, current_date_str: str)
     return full_row
 
 
-def update_product_sheet(sheet, offer_id: str, full_row: List, current_date_str: str):
-    """Обновляет данные в листе товара (добавляет или обновляет строку)"""
-    # Ищем существующую строку с текущей датой
+def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_date_str: str):
+    """Обновляет данные в листе товара одной операцией"""
+    # Получаем все существующие данные
     all_data = execute_with_retry(sheet.get_all_values)
-    existing_row_index = None
 
+    # Находим индекс строки с текущей датой
+    existing_row_index = None
     for i, row in enumerate(all_data[6:], start=7):
         if len(row) > 0 and row[0] == current_date_str:
             existing_row_index = i
             break
 
+    # Подготавливаем данные для обновления
     if existing_row_index:
+        # Обновляем существующую строку
         range_label = f"A{existing_row_index}"
         print(f"  🔄 Обновление строки {existing_row_index}")
         execute_with_retry(
@@ -792,13 +741,14 @@ def update_product_sheet(sheet, offer_id: str, full_row: List, current_date_str:
         )
         print(f"  ✅ Обновлена строка за {current_date_str}")
     else:
+        # Вставляем новую строку
         print(f"  📝 Добавление новой строки за {current_date_str}")
         execute_with_exponential_backoff(sheet.insert_row, full_row, index=7)
         print(f"  ✅ Добавлена строка за {current_date_str}")
 
-    time.sleep(2)
+    time.sleep(1)
 
-    # Контроль размера листа (оставляем только последние 500 строк)
+    # Контроль размера листа
     enforce_sheet_size_limit(sheet, max_rows=500)
 
 
@@ -812,7 +762,7 @@ def enforce_sheet_size_limit(sheet, max_rows: int = 500):
             execute_with_exponential_backoff(sheet.delete_rows, 7, rows_to_delete)
             print(f"  ✅ Удалены старые строки, удалено {rows_to_delete} строк, "
                   f"осталось {max_rows}")
-            time.sleep(2)
+            time.sleep(1)
         except Exception as e:
             print(f"  ⚠️ Не удалось удалить строки: {e}")
     else:
@@ -889,14 +839,9 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         else:
             clear_old_dashboard_data(dashboard, len(current_data))
 
-        # Подготовка данных DASHBOARD
-        dashboard_data, totals = prepare_dashboard_data(
-            all_items_dict, campaigns_data, drr_all_dict
-        )
-        dashboard_data_with_totals = calculate_total_drr(dashboard_data, totals)
-
-        # Обновление DASHBOARD
-        update_dashboard_sheet(dashboard, dashboard_data_with_totals)
+        # Подготовка и обновление данных DASHBOARD одной операцией
+        dashboard_data, _ = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
+        update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
 
         # ================= ОБРАБОТКА ЛИСТОВ ТОВАРОВ =================
@@ -924,7 +869,7 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
                     spreadsheet.add_worksheet, title=offer_id, rows=2000, cols=60
                 )
                 need_setup = True
-                time.sleep(3)
+                time.sleep(2)
 
             # Настраиваем структуру листа если нужно
             if need_setup:
@@ -932,12 +877,12 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
 
             # Подготавливаем и обновляем данные
             full_row = prepare_product_row(item, campaigns_data, current_date_str)
-            update_product_sheet(sheet, offer_id, full_row, current_date_str)
+            update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
 
-            # Пауза для соблюдения лимитов
-            if (idx + 1) % 3 == 0:
-                print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 10 секунд...")
-                time.sleep(10)
+            # Пауза для соблюдения лимитов (уменьшена благодаря оптимизации)
+            if (idx + 1) % 5 == 0:
+                print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
+                time.sleep(5)
 
         print("\n" + "=" * 60)
         print("✅ ВСЕ ДАННЫЕ УСПЕШНО ЗАГРУЖЕНЫ")
