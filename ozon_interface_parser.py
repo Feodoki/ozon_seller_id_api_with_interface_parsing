@@ -972,9 +972,11 @@ class InterfaceParser:
                                     item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
                                     print(all_td[5].text.split('\n'))
                                     item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
-                                    print(item_offer_id, item_price)
+                                    item_price_before = all_td[4].text.split('\n')[0].replace('₽', '').strip().replace('\n', '').strip()
+                                    print(item_offer_id, f"Цена после скидки - {item_price}", f"Цена ДО скидки - {item_price_before}", sep='\n', end='\n\n')
+
                                     if item_offer_id not in prices_dict.keys():
-                                        prices_dict[item_offer_id] = {'price': item_price}
+                                        prices_dict[item_offer_id] = {'price': item_price, 'price_before': item_price_before}
                                     break
                                 except:
                                     time.sleep(1)
@@ -1213,10 +1215,6 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-
-    res = parser.get_analytic_money_spent()
-    print(res)
-    input('test')
     parser.auth()
     time.sleep(2)
     parser.close()
