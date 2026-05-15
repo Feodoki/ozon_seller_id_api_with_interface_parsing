@@ -815,9 +815,6 @@ class InterfaceParser:
                                     'selled': combo_sell,
                                 }
 
-                                print(offer_dict)
-                                input('test')
-
                                 if offer_id in analytic_advert_dict.keys():
                                     analytic_advert_dict[offer_id].append(offer_dict)
                                 else:
@@ -1327,7 +1324,6 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    parser.get_advert_analytics_pay_to_buy({})
 
     parser.auth()
     time.sleep(2)
