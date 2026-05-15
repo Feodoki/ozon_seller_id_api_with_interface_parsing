@@ -1,0 +1,3460 @@
+2026-05-13 21:03:09,572 - INFO -    🗑️ Удалена папка: ShaderCache
+2026-05-13 21:03:09,573 - INFO -    🗑️ Удалена папка: GrShaderCache
+2026-05-13 21:03:09,573 - INFO -    ✅ Профиль очищен от кэша
+2026-05-13 21:03:09,573 - INFO -    🌐 Попытка запуска браузера 1/3
+2026-05-13 21:03:09,581 - WARNING - could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2026-05-13 21:03:10,137 - INFO -    ✅ Браузер успешно запущен
+2026-05-13 21:03:12,137 - INFO - ================================================================================
+2026-05-13 21:03:12,137 - INFO - 🔥 СЕРВЕР ЗАПУЩЕН
+2026-05-13 21:03:12,137 - INFO -    Время запуска: 2026-05-13 21:03:12
+2026-05-13 21:03:12,137 - INFO -    Интервал автозапуска: 1000 секунд
+2026-05-13 21:03:12,137 - INFO - ================================================================================
+2026-05-13 21:03:12,139 - INFO - 🔄 Автоцикл запущен
+2026-05-13 21:03:12,139 - INFO -    Интервал: 1000 секунд (17 минут)
+2026-05-13 21:03:12,139 - INFO - ⏰ Автозапуск по расписанию
+2026-05-13 21:03:12,139 - INFO - ✅ Скрипт поставлен в очередь на выполнение
+2026-05-13 21:03:12,139 - INFO - ================================================================================
+2026-05-13 21:03:12,139 - INFO -    ✅ Автозапуск инициирован
+2026-05-13 21:03:12,139 - INFO - 🚀 СКРИПТ ЗАПУЩЕН [2026-05-13 21:03:12]
+2026-05-13 21:03:12,139 - INFO -    API KEYS: ['AUTO1', 'AUTO2', 'AUTO3', 'AUTO4']
+2026-05-13 21:03:12,139 - INFO - ================================================================================
+2026-05-13 21:03:12,139 - INFO - 📌 Шаг 1: Инициализация OzonSellerParse...
+2026-05-13 21:03:12,139 - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-05-13 21:03:12,143 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.100.6:5000
+2026-05-13 21:03:12,143 - INFO - [33mPress CTRL+C to quit[0m
+2026-05-13 21:03:12,543 - INFO -    ✅ Токен успешно обновлен
+2026-05-13 21:03:13,545 - INFO -    ✅ OzonSellerParse инициализирован
+2026-05-13 21:03:13,545 - INFO - 📌 Шаг 2: Инициализация InterfaceParser...
+2026-05-13 21:03:13,545 - INFO -    ✅InterfaceParser успешно работает
+2026-05-13 21:03:13,545 - INFO - 📌 Шаг 3 (без браузера): Получение аналитики из API...
+2026-05-13 21:03:13,545 - INFO - ============================================================
+2026-05-13 21:03:13,545 - INFO - 🚀 НАЧАЛО РАБОТЫ OZON API PARSER
+2026-05-13 21:03:13,545 - INFO - ============================================================
+2026-05-13 21:03:13,545 - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-05-13 21:03:13,881 - INFO -    ✅ Токен успешно обновлен
+2026-05-13 21:03:14,882 - INFO -    📦 Начинаем получение списка товаров в продаже...
+2026-05-13 21:03:15,290 - INFO -    📄 Получено 40 товаров (last_id: начало)
+2026-05-13 21:03:15,640 - INFO -    📄 Получено 0 товаров (last_id: WzM2NDAxMzM0NTIsMzY0MDEzMzQ1Ml0=)
+2026-05-13 21:03:15,640 - INFO -    ✅ Всего получено 40 товаров в продаже
+2026-05-13 21:03:15,641 - INFO - ✅ Получено 40 offer_id товаров в продаже
+2026-05-13 21:03:16,641 - INFO -    📝 Получение информации для 40 товаров (1 частей по 100)
+2026-05-13 21:03:16,641 - INFO -    🔄 Обработка части 1/1 (40 товаров)
+2026-05-13 21:03:17,139 - INFO -    ✅ Получена информация для 40 товаров
+2026-05-13 21:03:17,639 - INFO -    ✅ Всего получена информация для 40 товаров, найдено 49 SKU
+2026-05-13 21:03:17,662 - INFO -    📊 Запрос аналитики за 2026-05-13
+2026-05-13 21:03:17,997 - WARNING -    ⚠️ Превышен лимит (429). Пауза 2 сек... (попытка 1/3)
+2026-05-13 21:03:20,341 - WARNING -    ⚠️ Превышен лимит (429). Пауза 4 сек... (попытка 2/3)
+2026-05-13 21:03:29,299 - INFO -    ✅ Аналитика успешно получена
+2026-05-13 21:03:29,301 - INFO -    🔗 Сопоставление метрик с SKU товаров...
+2026-05-13 21:03:29,301 - INFO -    🔗 Обработано 40 SKU, сформировано 40 товаров
+2026-05-13 21:03:29,301 - INFO - ============================================================
+2026-05-13 21:03:29,301 - INFO - ✅ API ПАРСЕР УСПЕШНО ЗАВЕРШИЛ РАБОТУ
+2026-05-13 21:03:29,301 - INFO -    Обработано товаров: 40
+2026-05-13 21:03:29,301 - INFO - ============================================================
+2026-05-13 21:03:29,301 - INFO -    ✅ Получено 40 товаров из API
+2026-05-13 21:03:29,301 - INFO -    ✅ InterfaceParser инициализирован
+2026-05-13 21:03:29,301 - INFO - 📌 Шаг 4: Получение рекламной аналитики...
+2026-05-13 21:03:31,214 - INFO -    📊 Начинаем сбор рекламной аналитики...
+2026-05-13 21:03:31,214 - INFO -    📊 Попытка 1/3 получения аналитики CPC
+2026-05-13 21:03:37,278 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:03:42,540 - INFO -    📄 Всего страниц - 3
+2026-05-13 21:03:43,611 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (416, 466). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:44,670 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (416, 466). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:45,728 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (415, 463). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:46,799 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (447, 463). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:47,865 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (446, 460). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:49,107 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (437, 440). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:50,178 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (450, 398). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:51,252 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (450, 398). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:52,321 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: element click intercepted: Element <li>...</li> is not clickable at point (447, 395). Other element would receive the click: <div class="n2d-t6">...</div>
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f818f195]
+	chromedriver!(No symbol) [0x7ff7f818c8aa]
+	chromedriver!(No symbol) [0x7ff7f8189735]
+	chromedriver!(No symbol) [0x7ff7f81885e7]
+	chromedriver!(No symbol) [0x7ff7f817b106]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f817a986]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:03:52,322 - INFO -    📊 Обработка 0 рекламных кампаний
+2026-05-13 21:03:52,322 - ERROR -    ❌ Ошибка в get_advert_analytic_pay_to_click (попытка 1): Результат парсинга пустой
+2026-05-13 21:03:52,322 - INFO -    🔄 Перезагрузка страницы и повторная попытка...
+2026-05-13 21:03:55,494 - INFO -    📊 Попытка 2/3 получения аналитики CPC
+2026-05-13 21:04:01,003 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:04:05,337 - INFO -    📄 Всего страниц - 3
+2026-05-13 21:04:12,754 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f8135751]
+	chromedriver!(No symbol) [0x7ff7f8138c0f]
+	chromedriver!(No symbol) [0x7ff7f81d5c2d]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:04:12,756 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f8135751]
+	chromedriver!(No symbol) [0x7ff7f8138c0f]
+	chromedriver!(No symbol) [0x7ff7f81d5c2d]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:04:12,759 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f8135751]
+	chromedriver!(No symbol) [0x7ff7f8138c0f]
+	chromedriver!(No symbol) [0x7ff7f81d5c2d]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:04:12,759 - INFO -    📊 Обработка 40 рекламных кампаний
+2026-05-13 21:04:12,759 - INFO -    📝 1/40 Обработка кампании 10595711
+2026-05-13 21:04:20,680 - INFO - 
+                                offer id - vibgr-ross
+
+                                sku - 1138910513
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 40
+
+                                ваша ставка - 23
+
+                                Средняя стоимость клика - 20,86 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 9
+
+                                ДРР - 11,7%
+
+                                Показы - 4 281
+
+                                Клики - 130
+
+                                Бюджет - 30605.0
+                                Цена товара - 3 724
+
+                                Расходы - 2 711.76
+
+                                Продажи - 23 256
+                 
+                                
+                            
+2026-05-13 21:04:20,680 - INFO -    📝 2/40 Обработка кампании 11076178
+2026-05-13 21:04:27,790 - INFO - 
+                                offer id - dildo_1
+
+                                sku - 1590350185
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 23,90 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 4
+
+                                ДРР - 26,2%
+
+                                Показы - 3 451
+
+                                Клики - 102
+
+                                Бюджет - 30000.0
+                                Цена товара - 3 275
+
+                                Расходы - 2 438.24
+
+                                Продажи - 9 299
+                 
+                                
+                            
+2026-05-13 21:04:27,790 - INFO -    📝 3/40 Обработка кампании 12483544
+2026-05-13 21:04:35,311 - INFO - 
+                                offer id - vibgr-ross
+
+                                sku - 1138910513
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 34
+
+                                ваша ставка - 26
+
+                                Средняя стоимость клика - 20,61 
+
+                                Заказы - 7
+
+                                В корзину(шт) - 24
+
+                                ДРР - 16,0%
+
+                                Показы - 5 778
+
+                                Клики - 204
+
+                                Бюджет - 45397.0
+                                Цена товара - 3 724
+
+                                Расходы - 4 204.16
+
+                                Продажи - 26 297
+                 
+                                
+                            
+2026-05-13 21:04:35,311 - INFO -    📝 4/40 Обработка кампании 15978319
+2026-05-13 21:04:42,674 - INFO - 
+                                offer id - ross-fiolet
+
+                                sku - 2303276196
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 105
+
+                                ваша ставка - 25
+
+                                Средняя стоимость клика - 21,16 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 1
+
+                                ДРР - 0,0%
+
+                                Показы - 650
+
+                                Клики - 5
+
+                                Бюджет - 14000.0
+                                Цена товара - 3 599
+
+                                Расходы - 105.81
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:04:42,674 - INFO -    📝 5/40 Обработка кампании 16374566
+2026-05-13 21:04:49,893 - INFO - 
+                                offer id - stek-60
+
+                                sku - 1576598131
+
+                                стратегия - Целевой расход
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,93 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 1
+
+                                ДРР - 0,0%
+
+                                Показы - 606
+
+                                Клики - 27
+
+                                Бюджет - 14800.0
+                                Цена товара - 1 157
+
+                                Расходы - 78.99
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:04:49,893 - INFO -    📝 6/40 Обработка кампании 16687166
+2026-05-13 21:04:58,308 - INFO - 
+                                offer id - ross-gradient
+
+                                sku - 2303299653
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 51
+
+                                ваша ставка - 22.9
+
+                                Средняя стоимость клика - 21,87 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 7
+
+                                ДРР - 44,2%
+
+                                Показы - 3 697
+
+                                Клики - 71
+
+                                Бюджет - 32000.0
+                                Цена товара - 3 972
+
+                                Расходы - 1 552.7
+
+                                Продажи - 3 509
+                 
+                                
+                            
+2026-05-13 21:04:58,308 - INFO -    📝 7/40 Обработка кампании 19080761
+2026-05-13 21:05:05,667 - INFO - 
+                                offer id - ross-pink
+
+                                sku - 3083873907
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 42,74 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 711
+
+                                Клики - 16
+
+                                Бюджет - 8000.0
+                                Цена товара - 3 890
+
+                                Расходы - 683.89
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:05:05,668 - INFO -    📝 8/40 Обработка кампании 19253534
+2026-05-13 21:05:13,428 - INFO - 
+                                offer id - Наручник-STEEL
+
+                                sku - 2378759430
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 10,64 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 9
+
+                                ДРР - 4,0%
+
+                                Показы - 1 307
+
+                                Клики - 85
+
+                                Бюджет - 9775.0
+                                Цена товара - 3 799
+
+                                Расходы - 904.11
+
+                                Продажи - 22 794
+                 
+                                
+                            
+2026-05-13 21:05:13,428 - INFO -    📝 9/40 Обработка кампании 20237332
+2026-05-13 21:05:21,053 - INFO - 
+                                offer id - ross-black
+
+                                sku - 2303288208
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 51
+
+                                ваша ставка - 18.7
+
+                                Средняя стоимость клика - 17,91 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 4
+
+                                ДРР - 12,4%
+
+                                Показы - 3 596
+
+                                Клики - 105
+
+                                Бюджет - 21200.0
+                                Цена товара - 3 757
+
+                                Расходы - 1 880.91
+
+                                Продажи - 15 161
+                 
+                                
+                            
+2026-05-13 21:05:21,053 - INFO -    📝 10/40 Обработка кампании 20237336
+2026-05-13 21:05:28,422 - INFO - 
+                                offer id - ross-black
+
+                                sku - 2303288208
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 46
+
+                                ваша ставка - 17.3
+
+                                Средняя стоимость клика - 16,91 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 3
+
+                                ДРР - 23,9%
+
+                                Показы - 1 517
+
+                                Клики - 53
+
+                                Бюджет - 43527.0
+                                Цена товара - 3 757
+
+                                Расходы - 896.43
+
+                                Продажи - 3 757
+                 
+                                
+                            
+2026-05-13 21:05:28,423 - INFO -    📝 11/40 Обработка кампании 20536457
+2026-05-13 21:05:34,961 - INFO - 
+                                offer id - кляп-black
+
+                                sku - 1001060362
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 4,62 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 2
+
+                                ДРР - 17,2%
+
+                                Показы - 2 321
+
+                                Клики - 106
+
+                                Бюджет - 10500.0
+                                Цена товара - 1 500
+
+                                Расходы - 489.42
+
+                                Продажи - 2 840
+                 
+                                
+                            
+2026-05-13 21:05:35,011 - INFO - 
+                                offer id - кляп-красный
+
+                                sku - 1002707016
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 6,01 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 2
+
+                                ДРР - 17,9%
+
+                                Показы - 1 149
+
+                                Клики - 40
+
+                                Бюджет - 10500.0
+                                Цена товара - 1 500
+
+                                Расходы - 240.45
+
+                                Продажи - 1 340
+                 
+                                
+                            
+2026-05-13 21:05:35,011 - INFO -    📝 12/40 Обработка кампании 22338057
+2026-05-13 21:05:43,069 - INFO - 
+                                offer id - Наручники-XL
+
+                                sku - 2378759471
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 22
+
+                                ваша ставка - 23
+
+                                Средняя стоимость клика - 11,84 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 3
+
+                                ДРР - 39,7%
+
+                                Показы - 3 262
+
+                                Клики - 133
+
+                                Бюджет - 17760.0
+                                Цена товара - 2 256
+
+                                Расходы - 1 574.2
+
+                                Продажи - 3 966
+                 
+                                
+                            
+2026-05-13 21:05:43,070 - INFO -    📝 13/40 Обработка кампании 22408120
+2026-05-13 21:05:51,376 - INFO - 
+                                offer id - Наручники-XL
+
+                                sku - 2378759471
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 28
+
+                                ваша ставка - 10.5
+
+                                Средняя стоимость клика - 8,36 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 4 968
+
+                                Клики - 154
+
+                                Бюджет - 14600.0
+                                Цена товара - 2 256
+
+                                Расходы - 1 287.32
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:05:51,376 - INFO -    📝 14/40 Обработка кампании 22943258
+2026-05-13 21:05:58,099 - INFO - 
+                                offer id - чокер XL
+
+                                sku - 1577564202
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 10,71 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 17
+
+                                ДРР - 16,6%
+
+                                Показы - 3 151
+
+                                Клики - 165
+
+                                Бюджет - 20900.0
+                                Цена товара - 1 800
+
+                                Расходы - 1 767.74
+
+                                Продажи - 10 629
+                 
+                                
+                            
+2026-05-13 21:05:58,099 - INFO -    📝 15/40 Обработка кампании 22990050
+2026-05-13 21:06:06,089 - INFO - 
+                                offer id - кляп-10см
+
+                                sku - 1244287965
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1
+
+                                Заказы - 1 813 ₽
+
+                                В корзину(шт) - 6,59%
+
+                                ДРР - 0 ₽
+
+                                Показы - 173
+
+                                Клики - 4
+
+                                Бюджет - 6000.0
+                                Цена товара - 2 499
+
+                                Расходы - 28.4%
+
+                                Продажи - 514.59
+                 
+                                
+                            
+2026-05-13 21:06:06,089 - INFO -    📝 16/40 Обработка кампании 23518417
+2026-05-13 21:06:13,982 - INFO - 
+                                offer id - Бандаж_4х
+
+                                sku - 3550081206
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1,33 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 7
+
+                                ДРР - 1,0%
+
+                                Показы - 1 239
+
+                                Клики - 116
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 459
+
+                                Расходы - 154.12
+
+                                Продажи - 14 754
+                 
+                                
+                            
+2026-05-13 21:06:13,982 - INFO -    📝 17/40 Обработка кампании 23518427
+2026-05-13 21:06:22,452 - INFO - 
+                                offer id - Простынь_бдсм
+
+                                sku - 3550419443
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 4,09 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 3
+
+                                ДРР - 38,9%
+
+                                Показы - 2 037
+
+                                Клики - 125
+
+                                Бюджет - 6000.0
+                                Цена товара - 1 315
+
+                                Расходы - 511.4
+
+                                Продажи - 1 315
+                 
+                                
+                            
+2026-05-13 21:06:22,452 - INFO -    📝 18/40 Обработка кампании 23518447
+2026-05-13 21:06:30,022 - INFO - 
+                                offer id - губы_красные
+
+                                sku - 3550501398
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,04 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 16
+
+                                ДРР - 16,2%
+
+                                Показы - 2 875
+
+                                Клики - 237
+
+                                Бюджет - 6000.0
+                                Цена товара - 1 000
+
+                                Расходы - 484.63
+
+                                Продажи - 3 000
+                 
+                                
+                            
+2026-05-13 21:06:30,023 - INFO -    📝 19/40 Обработка кампании 23518461
+2026-05-13 21:06:38,137 - INFO - 
+                                offer id - Наручники_Gold
+
+                                sku - 3550616647
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 38
+
+                                ваша ставка - 17.5
+
+                                Средняя стоимость клика - 16,16 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 3
+
+                                ДРР - 30,9%
+
+                                Показы - 3 530
+
+                                Клики - 63
+
+                                Бюджет - 14600.0
+                                Цена товара - 1 650
+
+                                Расходы - 1 018.25
+
+                                Продажи - 3 300
+                 
+                                
+                            
+2026-05-13 21:06:38,137 - INFO -    📝 20/40 Обработка кампании 23518512
+2026-05-13 21:06:46,815 - INFO - 
+                                offer id - Чокер_ремень_наручники
+
+                                sku - 3549963080
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,65%
+
+                                ДРР - 1 139 ₽
+
+                                Показы - 209
+
+                                Клики - 6
+
+                                Бюджет - 4000.0
+                                Цена товара - 1 139
+
+                                Расходы - 0.0%
+
+                                Продажи - 336.95
+                 
+                                
+                            
+2026-05-13 21:06:46,815 - INFO -    📝 21/40 Обработка кампании 23518520
+2026-05-13 21:06:50,684 - WARNING -    ⚠️ Ошибка при обработке кампании 23518520 (попытка 1): Message: no such element: Unable to locate element: {"method":"xpath","selector":"//tbody"}
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f8186c4e]
+	chromedriver!(No symbol) [0x7ff7f8186f5c]
+	chromedriver!(No symbol) [0x7ff7f81d7cc7]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:07:01,650 - INFO - 
+                                offer id - ошейник_карабины
+
+                                sku - 3550058602
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,84%
+
+                                ДРР - 3 300 ₽
+
+                                Показы - 106
+
+                                Клики - 1
+
+                                Бюджет - 5000.0
+                                Цена товара - 1 650
+
+                                Расходы - 0.0%
+
+                                Продажи - 587.11
+                 
+                                
+                            
+2026-05-13 21:07:01,650 - INFO -    📝 22/40 Обработка кампании 23518540
+2026-05-13 21:07:09,131 - INFO - 
+                                offer id - Бандаж-BDSM_2_наруч
+
+                                sku - 3550264049
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1
+
+                                Заказы - 2 359 ₽
+
+                                В корзину(шт) - 4,81%
+
+                                ДРР - 4 718 ₽
+
+                                Показы - 127
+
+                                Клики - 6
+
+                                Бюджет - 2500.0
+                                Цена товара - 2 359
+
+                                Расходы - 8.9%
+
+                                Продажи - 209.46
+                 
+                                
+                            
+2026-05-13 21:07:09,131 - INFO -    📝 23/40 Обработка кампании 23518556
+2026-05-13 21:07:16,738 - INFO - 
+                                offer id - Падл_31см
+
+                                sku - 3550480083
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 24
+
+                                ваша ставка - 6
+
+                                Средняя стоимость клика - 3,87 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 9
+
+                                ДРР - 0,0%
+
+                                Показы - 3 700
+
+                                Клики - 122
+
+                                Бюджет - 5000.0
+                                Цена товара - 1 199
+
+                                Расходы - 471.77
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:07:16,739 - INFO -    📝 24/40 Обработка кампании 23518565
+2026-05-13 21:07:24,340 - INFO - 
+                                offer id - губы_black
+
+                                sku - 3550497708
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 10,62%
+
+                                ДРР - 2 000 ₽
+
+                                Показы - 193
+
+                                Клики - 4
+
+                                Бюджет - 2500.0
+                                Цена товара - 1 000
+
+                                Расходы - 0.0%
+
+                                Продажи - 236.89
+                 
+                                
+                            
+2026-05-13 21:07:24,340 - INFO -    📝 25/40 Обработка кампании 23518585
+2026-05-13 21:07:32,687 - INFO - 
+                                offer id - Наручники_МЕХ
+
+                                sku - 3550630567
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 35
+
+                                ваша ставка - 8
+
+                                Средняя стоимость клика - 3,59 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 5
+
+                                ДРР - 107,6%
+
+                                Показы - 7 339
+
+                                Клики - 217
+
+                                Бюджет - 8800.0
+                                Цена товара - 969
+
+                                Расходы - 779.12
+
+                                Продажи - 724
+                 
+                                
+                            
+2026-05-13 21:07:32,687 - INFO -    📝 26/40 Обработка кампании 23693928
+2026-05-13 21:07:41,084 - INFO - 
+                                offer id - кляп-дырка-4.5см
+
+                                sku - 2379169166
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,88 
+
+                                Заказы - 12
+
+                                В корзину(шт) - 16
+
+                                ДРР - 2,5%
+
+                                Показы - 3 023
+
+                                Клики - 164
+
+                                Бюджет - 6239.0
+                                Цена товара - 1 575
+
+                                Расходы - 472.51
+
+                                Продажи - 18 753
+                 
+                                
+                            
+2026-05-13 21:07:41,084 - INFO -    📝 27/40 Обработка кампании 23775223
+2026-05-13 21:07:49,551 - INFO - 
+                                offer id - pletka_4_eco
+
+                                sku - 1002710297
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 32
+
+                                ваша ставка - 10
+
+                                Средняя стоимость клика - 8,99 
+
+                                Заказы - 11
+
+                                В корзину(шт) - 16
+
+                                ДРР - 9,9%
+
+                                Показы - 3 529
+
+                                Клики - 105
+
+                                Бюджет - 12500.0
+                                Цена товара - 900
+
+                                Расходы - 944.11
+
+                                Продажи - 9 540
+                 
+                                
+                            
+2026-05-13 21:07:49,551 - INFO -    📝 28/40 Обработка кампании 23998458
+2026-05-13 21:07:58,113 - INFO - 
+                                offer id - Чокер_наручники_bdsm
+
+                                sku - 2379415440
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 12
+
+                                ваша ставка - 12
+
+                                Средняя стоимость клика - 7,16 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 11
+
+                                ДРР - 30,1%
+
+                                Показы - 5 360
+
+                                Клики - 311
+
+                                Бюджет - 25300.0
+                                Цена товара - 2 499
+
+                                Расходы - 2 226.1
+
+                                Продажи - 7 397
+                 
+                                
+                            
+2026-05-13 21:07:58,113 - INFO -    📝 29/40 Обработка кампании 24246130
+2026-05-13 21:08:05,425 - INFO - 
+                                offer id - stek-60
+
+                                sku - 1576598131
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 7,59 
+
+                                Заказы - 12
+
+                                В корзину(шт) - 19
+
+                                ДРР - 8,1%
+
+                                Показы - 3 161
+
+                                Клики - 148
+
+                                Бюджет - 14600.0
+                                Цена товара - 1 157
+
+                                Расходы - 1 122.71
+
+                                Продажи - 13 804
+                 
+                                
+                            
+2026-05-13 21:08:05,425 - INFO -    📝 30/40 Обработка кампании 24297705
+2026-05-13 21:08:14,047 - INFO - 
+                                offer id - pletka_2
+
+                                sku - 1577425915
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 19,53 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 19
+
+                                ДРР - 29,1%
+
+                                Показы - 3 244
+
+                                Клики - 98
+
+                                Бюджет - 23691.0
+                                Цена товара - 1 646
+
+                                Расходы - 1 913.84
+
+                                Продажи - 6 584
+                 
+                                
+                            
+2026-05-13 21:08:14,047 - INFO -    📝 31/40 Обработка кампании 24329038
+2026-05-13 21:08:22,754 - INFO - 
+                                offer id - Бандаж-BDSM
+
+                                sku - 2379245975
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1,26 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 10
+
+                                ДРР - 2,4%
+
+                                Показы - 1 421
+
+                                Клики - 132
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 360
+
+                                Расходы - 166.59
+
+                                Продажи - 7 080
+                 
+                                
+                            
+2026-05-13 21:08:22,754 - INFO -    📝 32/40 Обработка кампании 24455171
+2026-05-13 21:08:30,454 - INFO - 
+                                offer id - кляп-страпон-х2
+
+                                sku - 1245593058
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,33 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 1
+
+                                ДРР - 5,3%
+
+                                Показы - 1 492
+
+                                Клики - 100
+
+                                Бюджет - 3000.0
+                                Цена товара - 2 183
+
+                                Расходы - 232.67
+
+                                Продажи - 4 366
+                 
+                                
+                            
+2026-05-13 21:08:30,454 - INFO -    📝 33/40 Обработка кампании 25413541
+2026-05-13 21:08:38,264 - INFO - 
+                                offer id - кляп-фиолетовый
+
+                                sku - 1115653152
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 19
+
+                                ваша ставка - 20
+
+                                Средняя стоимость клика - 12,65 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 931
+
+                                Клики - 34
+
+                                Бюджет - 4000.0
+                                Цена товара - 1 318
+
+                                Расходы - 430.18
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:08:38,265 - INFO -    📝 34/40 Обработка кампании 25417544
+2026-05-13 21:08:45,838 - INFO - 
+                                offer id - кляп-5см
+
+                                sku - 1244553469
+
+                                стратегия - Целевой расход
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 3,00 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 6
+
+                                ДРР - 8,9%
+
+                                Показы - 2 210
+
+                                Клики - 100
+
+                                Бюджет - 6000.0
+                                Цена товара - 1 732
+
+                                Расходы - 299.69
+
+                                Продажи - 3 370
+                 
+                                
+                            
+2026-05-13 21:08:45,838 - INFO -    📝 35/40 Обработка кампании 25417814
+2026-05-13 21:08:53,648 - INFO - 
+                                offer id - губы_black
+
+                                sku - 3550497708
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,95 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 4
+
+                                ДРР - 57,7%
+
+                                Показы - 1 689
+
+                                Клики - 149
+
+                                Бюджет - 4000.0
+                                Цена товара - 1 000
+
+                                Расходы - 439.41
+
+                                Продажи - 761
+                 
+                                
+                            
+2026-05-13 21:08:53,648 - INFO -    📝 36/40 Обработка кампании 25417868
+2026-05-13 21:09:00,949 - INFO - 
+                                offer id - кляп-дырка-white-4.5см
+
+                                sku - 3550525248
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 6,84 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 1 695
+
+                                Клики - 61
+
+                                Бюджет - 11000.0
+                                Цена товара - 1 512
+
+                                Расходы - 417.21
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:09:00,949 - INFO -    📝 37/40 Обработка кампании 25465779
+2026-05-13 21:09:07,957 - INFO - 
+                                offer id - кляп-rose
+
+                                sku - 1115648448
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 19
+
+                                ваша ставка - 15
+
+                                Средняя стоимость клика - 6,35 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 3
+
+                                ДРР - 10,2%
+
+                                Показы - 1 687
+
+                                Клики - 65
+
+                                Бюджет - 5000.0
+                                Цена товара - 1 359
+
+                                Расходы - 412.98
+
+                                Продажи - 4 057
+                 
+                                
+                            
+2026-05-13 21:09:07,957 - INFO -    📝 38/40 Обработка кампании 25940704
+2026-05-13 21:09:15,622 - INFO - 
+                                offer id - Оковы-XL
+
+                                sku - 2436329222
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 4,03%
+
+                                ДРР - 0 ₽
+
+                                Показы - 51
+
+                                Клики - 1
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 349
+
+                                Расходы - 0.0%
+
+                                Продажи - 169.43
+                 
+                                
+                            
+2026-05-13 21:09:15,622 - INFO -    📝 39/40 Обработка кампании 25940973
+2026-05-13 21:09:23,888 - INFO - 
+                                offer id - Упряга-XL
+
+                                sku - 2378759304
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,38%
+
+                                ДРР - 0 ₽
+
+                                Показы - 46
+
+                                Клики - 2
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 260
+
+                                Расходы - 0.0%
+
+                                Продажи - 162.28
+                 
+                                
+                            
+2026-05-13 21:09:23,888 - INFO -    📝 40/40 Обработка кампании 26821847
+2026-05-13 21:09:32,665 - INFO - 
+                                offer id - intrigue_port_3sm
+
+                                sku - 1611577310
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 5,18%
+
+                                ДРР - 0 ₽
+
+                                Показы - 167
+
+                                Клики - 3
+
+                                Бюджет - 4000.0
+                                Цена товара - 3 299
+
+                                Расходы - 0.0%
+
+                                Продажи - 317.51
+                 
+                                
+                            
+2026-05-13 21:09:32,665 - INFO -    ✅ Аналитика CPC успешно получена
+2026-05-13 21:09:32,665 - INFO -    📊 Попытка 1/3 получения аналитики CPO
+2026-05-13 21:09:38,020 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:09:43,190 - INFO -    📄 Всего страниц - 1
+2026-05-13 21:09:50,541 - INFO -    ✅ Аналитика CPO успешно получена
+2026-05-13 21:09:50,541 - INFO -    ✅ Рекламная аналитика успешно собрана для 45 товаров
+2026-05-13 21:09:50,541 - INFO - Попытка №0 получить цены товаров
+2026-05-13 21:09:57,070 - INFO - Всего страниц с ценой - 1
+2026-05-13 21:10:48,352 - INFO -    ✅ Актуальные цены добавлены для 40 товаров
+2026-05-13 21:10:48,352 - INFO -    ✅ Получена рекламная аналитика для 45 товаров
+2026-05-13 21:10:48,352 - INFO - 📌 Шаг 5: Получение позиций товаров...
+2026-05-13 21:10:55,598 - INFO -    ✅ Успешно нажали на кнопку календаря
+2026-05-13 21:10:56,190 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:10:57,283 - INFO -    ✅ Успешно нажали на кнопку Товар
+2026-05-13 21:10:58,836 - INFO -    ✅ Успешно нажали на кнопку Только выбранные
+2026-05-13 21:11:15,265 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:11:15,296 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:11:16,415 - INFO - Get data - Наручники_МЕХ Расход = 713.32
+2026-05-13 21:11:28,277 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:11:28,310 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:11:29,426 - INFO - Get data - Наручники_Gold Расход = 1 150.16
+2026-05-13 21:11:41,310 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:11:41,341 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:11:42,481 - INFO - Get data - кляп-дырка-white-4.5см Расход = 362.03
+2026-05-13 21:11:54,343 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:11:54,375 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:11:55,492 - INFO - Get data - губы_красные Расход = 979.47
+2026-05-13 21:12:07,377 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:12:07,409 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:12:08,531 - INFO - Get data - губы_black Расход = 677.58
+2026-05-13 21:12:20,408 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:12:20,439 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:12:21,552 - INFO - Get data - Падл_31см Расход = 418.13
+2026-05-13 21:12:33,609 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:12:33,646 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:12:34,899 - INFO - Get data - Простынь_бдсм Расход = 498.79
+2026-05-13 21:12:46,750 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:12:46,781 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:12:47,902 - INFO - Get data - Бандаж-BDSM_2_наруч Расход = 673.93
+2026-05-13 21:12:59,939 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:12:59,972 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:13:01,109 - INFO - Get data - Бандаж_4х Расход = 1 878.25
+2026-05-13 21:13:12,959 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:13:12,990 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:13:14,105 - INFO - Get data - ошейник_карабины Расход = 587.11
+2026-05-13 21:13:25,976 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:13:26,008 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:13:27,125 - INFO - Get data - Чокер_ремень_наручники Расход = 455.53
+2026-05-13 21:13:38,976 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:13:39,008 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:13:40,130 - INFO - Get data - ross-pink Расход = 683.89
+2026-05-13 21:13:52,065 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:13:52,100 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:13:53,217 - INFO - Get data - Оковы-XL Расход = 169.43
+2026-05-13 21:14:05,075 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:14:05,108 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:14:06,239 - INFO - Get data - Чокер_наручники_bdsm Расход = 2 226.1
+2026-05-13 21:14:18,097 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:14:18,129 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:14:19,262 - INFO - Get data - Бандаж-BDSM Расход = 874.59
+2026-05-13 21:14:31,106 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:14:31,136 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:14:32,246 - INFO - Get data - кляп-дырка-4.5см Расход = 2 505.31
+2026-05-13 21:14:44,112 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:14:44,144 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:14:45,264 - INFO - Get data - Наручники-XL Расход = 3 035.49
+2026-05-13 21:14:57,161 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:14:57,192 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:14:58,311 - INFO - Get data - Наручник-STEEL Расход = 904.11
+2026-05-13 21:15:10,152 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:15:10,184 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:15:11,300 - INFO - Get data - Упряга-XL Расход = 162.28
+2026-05-13 21:15:23,165 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:15:23,199 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:15:24,316 - INFO - Get data - ross-gradient Расход = 1 620.34
+2026-05-13 21:15:44,428 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:15:44,464 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:15:45,591 - INFO - Get data - ross-fiolet Расход = 105.81
+2026-05-13 21:15:57,463 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:15:57,497 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:15:58,617 - INFO - Get data - garter-bant Расход = 359.78
+2026-05-13 21:16:10,527 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:16:10,558 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:16:11,674 - INFO - Get data - intrigue_port_3sm Расход = 317.51
+2026-05-13 21:16:23,534 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:16:23,567 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:16:24,684 - INFO - Get data - dildo_1 Расход = 3 378.55
+2026-05-13 21:16:36,550 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:16:36,581 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:16:37,702 - INFO - Get data - чокер XL Расход = 1 767.74
+2026-05-13 21:16:49,566 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:16:49,598 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:16:50,717 - INFO - Get data - pletka_2 Расход = 1 940.74
+2026-05-13 21:17:02,586 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:17:02,616 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:17:03,946 - INFO - Get data - pletka_3 Расход = 0
+2026-05-13 21:17:15,799 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:17:15,834 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:17:16,981 - INFO - Get data - pletka_1 Расход = 0
+2026-05-13 21:17:28,850 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:17:28,882 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:17:30,002 - INFO - Get data - stek-60 Расход = 1 218.56
+2026-05-13 21:17:41,852 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:17:41,883 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:17:42,999 - INFO - Get data - кляп-страпон-х2 Расход = 672.32
+2026-05-13 21:17:54,870 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:17:54,923 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:17:56,085 - INFO - Get data - кляп-5см Расход = 636.69
+2026-05-13 21:18:08,167 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:18:08,198 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:18:09,367 - INFO - Get data - кляп-10см Расход = 705.16
+2026-05-13 21:18:21,216 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:18:21,249 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:18:22,364 - INFO - Get data - чекер-bdsm Расход = 0
+2026-05-13 21:18:34,217 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:18:34,248 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:18:35,368 - INFO - Get data - vibgr-ross Расход = 11 110.82
+2026-05-13 21:18:47,221 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:18:47,254 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:18:48,390 - INFO - Get data - кляп-фиолетовый Расход = 561.98
+2026-05-13 21:19:00,424 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:19:00,456 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:19:01,577 - INFO - Get data - кляп-rose Расход = 818.68
+2026-05-13 21:19:13,436 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:19:13,470 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:19:14,593 - INFO - Get data - pletka_4_eco Расход = 944.11
+2026-05-13 21:19:26,454 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:19:26,485 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:19:27,601 - INFO - Get data - кляп-красный Расход = 271.84
+2026-05-13 21:19:39,453 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:19:39,487 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:19:40,607 - INFO - Get data - кляп-black Расход = 508.43
+2026-05-13 21:19:44,240 - WARNING -    ⚠️ Позиции товаров не получены (пустой результат)
+2026-05-13 21:19:46,242 - INFO - 📌 Шаг 7: Загрузка данных в Google Sheets...
+2026-05-13 21:31:05,644 - INFO -    ✅ Данные загружены в Google Sheets
+2026-05-13 21:31:05,645 - INFO - ================================================================================
+2026-05-13 21:31:05,645 - INFO - ✅ СКРИПТ УСПЕШНО ЗАВЕРШЁН
+2026-05-13 21:31:05,645 - INFO -    Время начала:  2026-05-13 21:03:12
+2026-05-13 21:31:05,645 - INFO -    Время окончания: 2026-05-13 21:31:05
+2026-05-13 21:31:05,645 - INFO -    Длительность: 1673.51 секунд
+2026-05-13 21:31:05,645 - INFO -    Обработано товаров: 40
+2026-05-13 21:31:05,645 - INFO -    Получено рекламных данных: да
+2026-05-13 21:31:05,645 - INFO -    Получены позиции: нет
+2026-05-13 21:31:05,645 - INFO - ================================================================================
+2026-05-13 21:31:05,645 - INFO - 🏁 Состояние сброшено (is_running = False)
+2026-05-13 21:47:47,434 - INFO - ⏰ Автозапуск по расписанию
+2026-05-13 21:47:47,434 - INFO - ✅ Скрипт поставлен в очередь на выполнение
+2026-05-13 21:47:47,434 - INFO - ================================================================================
+2026-05-13 21:47:47,434 - INFO -    ✅ Автозапуск инициирован
+2026-05-13 21:47:47,434 - INFO - 🚀 СКРИПТ ЗАПУЩЕН [2026-05-13 21:47:47]
+2026-05-13 21:47:47,434 - INFO -    API KEYS: ['AUTO1', 'AUTO2', 'AUTO3', 'AUTO4']
+2026-05-13 21:47:47,434 - INFO - ================================================================================
+2026-05-13 21:47:47,434 - INFO - 📌 Шаг 1: Инициализация OzonSellerParse...
+2026-05-13 21:47:47,434 - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-05-13 21:47:47,832 - INFO -    ✅ Токен успешно обновлен
+2026-05-13 21:47:48,833 - INFO -    ✅ OzonSellerParse инициализирован
+2026-05-13 21:47:48,833 - INFO - 📌 Шаг 2: Инициализация InterfaceParser...
+2026-05-13 21:47:48,833 - INFO -    ✅InterfaceParser успешно работает
+2026-05-13 21:47:48,833 - INFO - 📌 Шаг 3 (без браузера): Получение аналитики из API...
+2026-05-13 21:47:48,833 - INFO - ============================================================
+2026-05-13 21:47:48,833 - INFO - 🚀 НАЧАЛО РАБОТЫ OZON API PARSER
+2026-05-13 21:47:48,833 - INFO - ============================================================
+2026-05-13 21:47:48,833 - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-05-13 21:47:49,175 - INFO -    ✅ Токен успешно обновлен
+2026-05-13 21:47:50,176 - INFO -    📦 Начинаем получение списка товаров в продаже...
+2026-05-13 21:47:50,617 - INFO -    📄 Получено 40 товаров (last_id: начало)
+2026-05-13 21:47:50,978 - INFO -    📄 Получено 0 товаров (last_id: WzM2NDAxMzM0NTIsMzY0MDEzMzQ1Ml0=)
+2026-05-13 21:47:50,978 - INFO -    ✅ Всего получено 40 товаров в продаже
+2026-05-13 21:47:50,979 - INFO - ✅ Получено 40 offer_id товаров в продаже
+2026-05-13 21:47:51,980 - INFO -    📝 Получение информации для 40 товаров (1 частей по 100)
+2026-05-13 21:47:51,980 - INFO -    🔄 Обработка части 1/1 (40 товаров)
+2026-05-13 21:47:52,465 - INFO -    ✅ Получена информация для 40 товаров
+2026-05-13 21:47:52,966 - INFO -    ✅ Всего получена информация для 40 товаров, найдено 49 SKU
+2026-05-13 21:47:52,967 - INFO -    📊 Запрос аналитики за 2026-05-13
+2026-05-13 21:47:53,454 - INFO -    ✅ Аналитика успешно получена
+2026-05-13 21:47:53,455 - INFO -    🔗 Сопоставление метрик с SKU товаров...
+2026-05-13 21:47:53,455 - INFO -    🔗 Обработано 40 SKU, сформировано 40 товаров
+2026-05-13 21:47:53,455 - INFO - ============================================================
+2026-05-13 21:47:53,455 - INFO - ✅ API ПАРСЕР УСПЕШНО ЗАВЕРШИЛ РАБОТУ
+2026-05-13 21:47:53,455 - INFO -    Обработано товаров: 40
+2026-05-13 21:47:53,455 - INFO - ============================================================
+2026-05-13 21:47:53,455 - INFO -    ✅ Получено 40 товаров из API
+2026-05-13 21:47:53,455 - INFO -    ✅ InterfaceParser инициализирован
+2026-05-13 21:47:53,455 - INFO - 📌 Шаг 4: Получение рекламной аналитики...
+2026-05-13 21:47:54,904 - INFO -    📊 Начинаем сбор рекламной аналитики...
+2026-05-13 21:47:54,904 - INFO -    📊 Попытка 1/3 получения аналитики CPC
+2026-05-13 21:48:01,016 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:48:05,574 - INFO -    📄 Всего страниц - 3
+2026-05-13 21:48:12,471 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: stale element reference: stale element not found
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f814515b]
+	chromedriver!(No symbol) [0x7ff7f81435d0]
+	chromedriver!(No symbol) [0x7ff7f813640b]
+	chromedriver!(No symbol) [0x7ff7f8136585]
+	chromedriver!(No symbol) [0x7ff7f81341ae]
+	chromedriver!(No symbol) [0x7ff7f8138c0f]
+	chromedriver!(No symbol) [0x7ff7f81d5c2d]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:48:12,473 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: stale element reference: stale element not found
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f814515b]
+	chromedriver!(No symbol) [0x7ff7f81435d0]
+	chromedriver!(No symbol) [0x7ff7f813640b]
+	chromedriver!(No symbol) [0x7ff7f8136585]
+	chromedriver!(No symbol) [0x7ff7f81341ae]
+	chromedriver!(No symbol) [0x7ff7f8138c0f]
+	chromedriver!(No symbol) [0x7ff7f81d5c2d]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:48:12,475 - WARNING -    ⚠️ Ошибка при обработке страницы: Message: stale element reference: stale element not found
+  (Session info: chrome=148.0.7778.167); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7f83c0295+146d5]
+	chromedriver!GetHandleVerifier [0x7ff7f83c0300+14740]
+	chromedriver!(No symbol) [0x7ff7f812d7cd]
+	chromedriver!(No symbol) [0x7ff7f814515b]
+	chromedriver!(No symbol) [0x7ff7f81435d0]
+	chromedriver!(No symbol) [0x7ff7f813640b]
+	chromedriver!(No symbol) [0x7ff7f8136585]
+	chromedriver!(No symbol) [0x7ff7f81341ae]
+	chromedriver!(No symbol) [0x7ff7f8138c0f]
+	chromedriver!(No symbol) [0x7ff7f81d5c2d]
+	chromedriver!(No symbol) [0x7ff7f81aff6a]
+	chromedriver!(No symbol) [0x7ff7f81d4818]
+	chromedriver!(No symbol) [0x7ff7f8179018]
+	chromedriver!(No symbol) [0x7ff7f8179f03]
+	chromedriver!GetHandleVerifier [0x7ff7f86d5949+329d89]
+	chromedriver!GetHandleVerifier [0x7ff7f86cfe96+3242d6]
+	chromedriver!GetHandleVerifier [0x7ff7f86f3102+347542]
+	chromedriver!GetHandleVerifier [0x7ff7f83dd425+31865]
+	chromedriver!GetHandleVerifier [0x7ff7f83e605c+3a49c]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9684+1dac4]
+	chromedriver!GetHandleVerifier [0x7ff7f83c9836+1dc76]
+	chromedriver!GetHandleVerifier [0x7ff7f83ae347+2787]
+	KERNEL32!BaseThreadInitThunk [0x7ff9a3a97374+14]
+	ntdll!RtlUserThreadStart [0x7ff9a539cc91+21]
+
+2026-05-13 21:48:12,475 - INFO -    📊 Обработка 40 рекламных кампаний
+2026-05-13 21:48:12,476 - INFO -    📝 1/40 Обработка кампании 10595711
+2026-05-13 21:48:20,479 - INFO - 
+                                offer id - vibgr-ross
+
+                                sku - 1138910513
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 40
+
+                                ваша ставка - 23
+
+                                Средняя стоимость клика - 20,77 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 10
+
+                                ДРР - 13,0%
+
+                                Показы - 4 753
+
+                                Клики - 146
+
+                                Бюджет - 30605.0
+                                Цена товара - 3 724
+
+                                Расходы - 3 032.97
+
+                                Продажи - 23 256
+                 
+                                
+                            
+2026-05-13 21:48:20,480 - INFO -    📝 2/40 Обработка кампании 11076178
+2026-05-13 21:48:29,113 - INFO - 
+                                offer id - dildo_1
+
+                                sku - 1590350185
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 24,01 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 6
+
+                                ДРР - 20,4%
+
+                                Показы - 3 678
+
+                                Клики - 107
+
+                                Бюджет - 30000.0
+                                Цена товара - 3 275
+
+                                Расходы - 2 569.01
+
+                                Продажи - 12 574
+                 
+                                
+                            
+2026-05-13 21:48:29,113 - INFO -    📝 3/40 Обработка кампании 12483544
+2026-05-13 21:48:37,172 - INFO - 
+                                offer id - vibgr-ross
+
+                                sku - 1138910513
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 34
+
+                                ваша ставка - 26
+
+                                Средняя стоимость клика - 20,64 
+
+                                Заказы - 7
+
+                                В корзину(шт) - 24
+
+                                ДРР - 16,1%
+
+                                Показы - 5 861
+
+                                Клики - 205
+
+                                Бюджет - 45397.0
+                                Цена товара - 3 724
+
+                                Расходы - 4 231.02
+
+                                Продажи - 26 297
+                 
+                                
+                            
+2026-05-13 21:48:37,172 - INFO -    📝 4/40 Обработка кампании 15978319
+2026-05-13 21:48:45,078 - INFO - 
+                                offer id - ross-fiolet
+
+                                sku - 2303276196
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 105
+
+                                ваша ставка - 25
+
+                                Средняя стоимость клика - 21,16 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 1
+
+                                ДРР - 0,0%
+
+                                Показы - 686
+
+                                Клики - 5
+
+                                Бюджет - 14000.0
+                                Цена товара - 3 599
+
+                                Расходы - 105.81
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:48:45,078 - INFO -    📝 5/40 Обработка кампании 16374566
+2026-05-13 21:48:53,046 - INFO - 
+                                offer id - stek-60
+
+                                sku - 1576598131
+
+                                стратегия - Целевой расход
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,93 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 1
+
+                                ДРР - 0,0%
+
+                                Показы - 630
+
+                                Клики - 27
+
+                                Бюджет - 14800.0
+                                Цена товара - 1 157
+
+                                Расходы - 78.99
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:48:53,046 - INFO -    📝 6/40 Обработка кампании 16687166
+2026-05-13 21:49:01,158 - INFO - 
+                                offer id - ross-gradient
+
+                                sku - 2303299653
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 51
+
+                                ваша ставка - 22.9
+
+                                Средняя стоимость клика - 21,54 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 7
+
+                                ДРР - 24,2%
+
+                                Показы - 3 868
+
+                                Клики - 79
+
+                                Бюджет - 32000.0
+                                Цена товара - 3 972
+
+                                Расходы - 1 701.85
+
+                                Продажи - 7 018
+                 
+                                
+                            
+2026-05-13 21:49:01,158 - INFO -    📝 7/40 Обработка кампании 19080761
+2026-05-13 21:49:09,908 - INFO - 
+                                offer id - ross-pink
+
+                                sku - 3083873907
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 41,76 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 786
+
+                                Клики - 18
+
+                                Бюджет - 8000.0
+                                Цена товара - 3 890
+
+                                Расходы - 751.71
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:49:09,908 - INFO -    📝 8/40 Обработка кампании 19253534
+2026-05-13 21:49:17,972 - INFO - 
+                                offer id - Наручник-STEEL
+
+                                sku - 2378759430
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 10,59 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 9
+
+                                ДРР - 4,1%
+
+                                Показы - 1 383
+
+                                Клики - 88
+
+                                Бюджет - 9775.0
+                                Цена товара - 3 799
+
+                                Расходы - 931.53
+
+                                Продажи - 22 794
+                 
+                                
+                            
+2026-05-13 21:49:17,972 - INFO -    📝 9/40 Обработка кампании 20237332
+2026-05-13 21:49:25,641 - INFO - 
+                                offer id - ross-black
+
+                                sku - 2303288208
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 51
+
+                                ваша ставка - 18.7
+
+                                Средняя стоимость клика - 17,87 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 4
+
+                                ДРР - 12,8%
+
+                                Показы - 3 786
+
+                                Клики - 109
+
+                                Бюджет - 21200.0
+                                Цена товара - 3 757
+
+                                Расходы - 1 947.89
+
+                                Продажи - 15 161
+                 
+                                
+                            
+2026-05-13 21:49:25,641 - INFO -    📝 10/40 Обработка кампании 20237336
+2026-05-13 21:49:33,539 - INFO - 
+                                offer id - ross-black
+
+                                sku - 2303288208
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 46
+
+                                ваша ставка - 17.3
+
+                                Средняя стоимость клика - 16,93 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 3
+
+                                ДРР - 24,3%
+
+                                Показы - 1 615
+
+                                Клики - 54
+
+                                Бюджет - 43527.0
+                                Цена товара - 3 757
+
+                                Расходы - 913.99
+
+                                Продажи - 3 757
+                 
+                                
+                            
+2026-05-13 21:49:33,539 - INFO -    📝 11/40 Обработка кампании 20536457
+2026-05-13 21:49:41,350 - INFO - 
+                                offer id - кляп-black
+
+                                sku - 1001060362
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 4,68 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 2
+
+                                ДРР - 18,5%
+
+                                Показы - 2 489
+
+                                Клики - 112
+
+                                Бюджет - 10500.0
+                                Цена товара - 1 500
+
+                                Расходы - 524.11
+
+                                Продажи - 2 840
+                 
+                                
+                            
+2026-05-13 21:49:41,399 - INFO - 
+                                offer id - кляп-красный
+
+                                sku - 1002707016
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 6,19 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 2
+
+                                ДРР - 21,2%
+
+                                Показы - 1 241
+
+                                Клики - 46
+
+                                Бюджет - 10500.0
+                                Цена товара - 1 500
+
+                                Расходы - 284.6
+
+                                Продажи - 1 340
+                 
+                                
+                            
+2026-05-13 21:49:41,399 - INFO -    📝 12/40 Обработка кампании 22338057
+2026-05-13 21:49:48,613 - INFO - 
+                                offer id - Наручники-XL
+
+                                sku - 2378759471
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 22
+
+                                ваша ставка - 23
+
+                                Средняя стоимость клика - 11,73 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 3
+
+                                ДРР - 28,1%
+
+                                Показы - 3 357
+
+                                Клики - 136
+
+                                Бюджет - 17760.0
+                                Цена товара - 2 256
+
+                                Расходы - 1 595.18
+
+                                Продажи - 5 676
+                 
+                                
+                            
+2026-05-13 21:49:48,613 - INFO -    📝 13/40 Обработка кампании 22408120
+2026-05-13 21:49:57,202 - INFO - 
+                                offer id - Наручники-XL
+
+                                sku - 2378759471
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 28
+
+                                ваша ставка - 10.5
+
+                                Средняя стоимость клика - 8,28 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 5 080
+
+                                Клики - 161
+
+                                Бюджет - 14600.0
+                                Цена товара - 2 256
+
+                                Расходы - 1 332.85
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:49:57,202 - INFO -    📝 14/40 Обработка кампании 22943258
+2026-05-13 21:50:06,059 - INFO - 
+                                offer id - чокер XL
+
+                                sku - 1577564202
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 11,11 
+
+                                Заказы - 7
+
+                                В корзину(шт) - 19
+
+                                ДРР - 15,4%
+
+                                Показы - 3 331
+
+                                Клики - 172
+
+                                Бюджет - 20900.0
+                                Цена товара - 1 800
+
+                                Расходы - 1 910.87
+
+                                Продажи - 12 429
+                 
+                                
+                            
+2026-05-13 21:50:06,059 - INFO -    📝 15/40 Обработка кампании 22990050
+2026-05-13 21:50:15,049 - INFO - 
+                                offer id - кляп-10см
+
+                                sku - 1244287965
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1
+
+                                Заказы - 1 813 ₽
+
+                                В корзину(шт) - 6,63%
+
+                                ДРР - 2 499 ₽
+
+                                Показы - 184
+
+                                Клики - 5
+
+                                Бюджет - 6000.0
+                                Цена товара - 2 499
+
+                                Расходы - 29.8%
+
+                                Продажи - 539.89
+                 
+                                
+                            
+2026-05-13 21:50:15,049 - INFO -    📝 16/40 Обработка кампании 23518417
+2026-05-13 21:50:24,051 - INFO - 
+                                offer id - Бандаж_4х
+
+                                sku - 3550081206
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1,35 
+
+                                Заказы - 6
+
+                                В корзину(шт) - 7
+
+                                ДРР - 1,2%
+
+                                Показы - 1 334
+
+                                Клики - 128
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 459
+
+                                Расходы - 173.09
+
+                                Продажи - 14 754
+                 
+                                
+                            
+2026-05-13 21:50:24,051 - INFO -    📝 17/40 Обработка кампании 23518427
+2026-05-13 21:50:32,184 - INFO - 
+                                offer id - Простынь_бдсм
+
+                                sku - 3550419443
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 4,02 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 3
+
+                                ДРР - 40,6%
+
+                                Показы - 2 127
+
+                                Клики - 133
+
+                                Бюджет - 6000.0
+                                Цена товара - 1 315
+
+                                Расходы - 534.16
+
+                                Продажи - 1 315
+                 
+                                
+                            
+2026-05-13 21:50:32,184 - INFO -    📝 18/40 Обработка кампании 23518447
+2026-05-13 21:50:40,573 - INFO - 
+                                offer id - губы_красные
+
+                                sku - 3550501398
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,13 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 19
+
+                                ДРР - 14,4%
+
+                                Показы - 3 074
+
+                                Клики - 254
+
+                                Бюджет - 6000.0
+                                Цена товара - 1 000
+
+                                Расходы - 541.68
+
+                                Продажи - 3 761
+                 
+                                
+                            
+2026-05-13 21:50:40,573 - INFO -    📝 19/40 Обработка кампании 23518461
+2026-05-13 21:50:49,085 - INFO - 
+                                offer id - Наручники_Gold
+
+                                sku - 3550616647
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 38
+
+                                ваша ставка - 17.5
+
+                                Средняя стоимость клика - 16,57 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 3
+
+                                ДРР - 33,7%
+
+                                Показы - 3 749
+
+                                Клики - 67
+
+                                Бюджет - 14600.0
+                                Цена товара - 1 650
+
+                                Расходы - 1 110.51
+
+                                Продажи - 3 300
+                 
+                                
+                            
+2026-05-13 21:50:49,085 - INFO -    📝 20/40 Обработка кампании 23518512
+2026-05-13 21:50:57,326 - INFO - 
+                                offer id - Чокер_ремень_наручники
+
+                                sku - 3549963080
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,64%
+
+                                ДРР - 1 139 ₽
+
+                                Показы - 221
+
+                                Клики - 6
+
+                                Бюджет - 4000.0
+                                Цена товара - 1 139
+
+                                Расходы - 0.0%
+
+                                Продажи - 358.82
+                 
+                                
+                            
+2026-05-13 21:50:57,326 - INFO -    📝 21/40 Обработка кампании 23518520
+2026-05-13 21:51:05,735 - INFO - 
+                                offer id - ошейник_карабины
+
+                                sku - 3550058602
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,68%
+
+                                ДРР - 3 300 ₽
+
+                                Показы - 108
+
+                                Клики - 1
+
+                                Бюджет - 5000.0
+                                Цена товара - 1 650
+
+                                Расходы - 0.0%
+
+                                Продажи - 601.24
+                 
+                                
+                            
+2026-05-13 21:51:05,736 - INFO -    📝 22/40 Обработка кампании 23518540
+2026-05-13 21:51:13,772 - INFO - 
+                                offer id - Бандаж-BDSM_2_наруч
+
+                                sku - 3550264049
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1
+
+                                Заказы - 2 359 ₽
+
+                                В корзину(шт) - 4,77%
+
+                                ДРР - 4 718 ₽
+
+                                Показы - 134
+
+                                Клики - 6
+
+                                Бюджет - 2500.0
+                                Цена товара - 2 359
+
+                                Расходы - 9.2%
+
+                                Продажи - 218.02
+                 
+                                
+                            
+2026-05-13 21:51:13,772 - INFO -    📝 23/40 Обработка кампании 23518556
+2026-05-13 21:51:21,916 - INFO - 
+                                offer id - Падл_31см
+
+                                sku - 3550480083
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 24
+
+                                ваша ставка - 6
+
+                                Средняя стоимость клика - 3,85 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 9
+
+                                ДРР - 40,2%
+
+                                Показы - 3 821
+
+                                Клики - 125
+
+                                Бюджет - 5000.0
+                                Цена товара - 1 199
+
+                                Расходы - 481.56
+
+                                Продажи - 1 199
+                 
+                                
+                            
+2026-05-13 21:51:21,916 - INFO -    📝 24/40 Обработка кампании 23518565
+2026-05-13 21:51:29,800 - INFO - 
+                                offer id - губы_black
+
+                                sku - 3550497708
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 10,62%
+
+                                ДРР - 2 000 ₽
+
+                                Показы - 201
+
+                                Клики - 4
+
+                                Бюджет - 2500.0
+                                Цена товара - 1 000
+
+                                Расходы - 0.0%
+
+                                Продажи - 246.28
+                 
+                                
+                            
+2026-05-13 21:51:29,800 - INFO -    📝 25/40 Обработка кампании 23518585
+2026-05-13 21:51:37,167 - INFO - 
+                                offer id - Наручники_МЕХ
+
+                                sku - 3550630567
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 35
+
+                                ваша ставка - 8
+
+                                Средняя стоимость клика - 3,59 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 6
+
+                                ДРР - 115,6%
+
+                                Показы - 7 749
+
+                                Клики - 233
+
+                                Бюджет - 8800.0
+                                Цена товара - 969
+
+                                Расходы - 837.22
+
+                                Продажи - 724
+                 
+                                
+                            
+2026-05-13 21:51:37,168 - INFO -    📝 26/40 Обработка кампании 23693928
+2026-05-13 21:51:46,019 - INFO - 
+                                offer id - кляп-дырка-4.5см
+
+                                sku - 2379169166
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,89 
+
+                                Заказы - 13
+
+                                В корзину(шт) - 17
+
+                                ДРР - 2,5%
+
+                                Показы - 3 220
+
+                                Клики - 175
+
+                                Бюджет - 6239.0
+                                Цена товара - 1 575
+
+                                Расходы - 505.31
+
+                                Продажи - 20 279
+                 
+                                
+                            
+2026-05-13 21:51:46,019 - INFO -    📝 27/40 Обработка кампании 23775223
+2026-05-13 21:51:53,428 - INFO - 
+                                offer id - pletka_4_eco
+
+                                sku - 1002710297
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 32
+
+                                ваша ставка - 10
+
+                                Средняя стоимость клика - 9,08 
+
+                                Заказы - 13
+
+                                В корзину(шт) - 17
+
+                                ДРР - 8,7%
+
+                                Показы - 3 793
+
+                                Клики - 108
+
+                                Бюджет - 12500.0
+                                Цена товара - 900
+
+                                Расходы - 980.97
+
+                                Продажи - 11 268
+                 
+                                
+                            
+2026-05-13 21:51:53,428 - INFO -    📝 28/40 Обработка кампании 23998458
+2026-05-13 21:52:00,755 - INFO - 
+                                offer id - Чокер_наручники_bdsm
+
+                                sku - 2379415440
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 12
+
+                                ваша ставка - 12
+
+                                Средняя стоимость клика - 7,26 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 12
+
+                                ДРР - 24,2%
+
+                                Показы - 5 650
+
+                                Клики - 330
+
+                                Бюджет - 25300.0
+                                Цена товара - 2 499
+
+                                Расходы - 2 397.07
+
+                                Продажи - 9 896
+                 
+                                
+                            
+2026-05-13 21:52:00,755 - INFO -    📝 29/40 Обработка кампании 24246130
+2026-05-13 21:52:08,625 - INFO - 
+                                offer id - stek-60
+
+                                sku - 1576598131
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 7,59 
+
+                                Заказы - 12
+
+                                В корзину(шт) - 20
+
+                                ДРР - 8,7%
+
+                                Показы - 3 420
+
+                                Клики - 159
+
+                                Бюджет - 14600.0
+                                Цена товара - 1 157
+
+                                Расходы - 1 206.19
+
+                                Продажи - 13 804
+                 
+                                
+                            
+2026-05-13 21:52:08,625 - INFO -    📝 30/40 Обработка кампании 24297705
+2026-05-13 21:52:16,537 - INFO - 
+                                offer id - pletka_2
+
+                                sku - 1577425915
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 19,65 
+
+                                Заказы - 5
+
+                                В корзину(шт) - 20
+
+                                ДРР - 24,8%
+
+                                Показы - 3 475
+
+                                Клики - 104
+
+                                Бюджет - 23691.0
+                                Цена товара - 1 646
+
+                                Расходы - 2 043.29
+
+                                Продажи - 8 230
+                 
+                                
+                            
+2026-05-13 21:52:16,537 - INFO -    📝 31/40 Обработка кампании 24329038
+2026-05-13 21:52:24,446 - INFO - 
+                                offer id - Бандаж-BDSM
+
+                                sku - 2379245975
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 1,30 
+
+                                Заказы - 4
+
+                                В корзину(шт) - 10
+
+                                ДРР - 1,9%
+
+                                Показы - 1 516
+
+                                Клики - 139
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 360
+
+                                Расходы - 181.09
+
+                                Продажи - 9 440
+                 
+                                
+                            
+2026-05-13 21:52:24,446 - INFO -    📝 32/40 Обработка кампании 24455171
+2026-05-13 21:52:33,111 - INFO - 
+                                offer id - кляп-страпон-х2
+
+                                sku - 1245593058
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,24 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 1
+
+                                ДРР - 5,8%
+
+                                Показы - 1 604
+
+                                Клики - 113
+
+                                Бюджет - 3000.0
+                                Цена товара - 2 183
+
+                                Расходы - 253.18
+
+                                Продажи - 4 366
+                 
+                                
+                            
+2026-05-13 21:52:33,112 - INFO -    📝 33/40 Обработка кампании 25413541
+2026-05-13 21:52:40,693 - INFO - 
+                                offer id - кляп-фиолетовый
+
+                                sku - 1115653152
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 19
+
+                                ваша ставка - 20
+
+                                Средняя стоимость клика - 12,94 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 1 052
+
+                                Клики - 36
+
+                                Бюджет - 4000.0
+                                Цена товара - 1 318
+
+                                Расходы - 465.86
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:52:40,693 - INFO -    📝 34/40 Обработка кампании 25417544
+2026-05-13 21:52:48,406 - INFO - 
+                                offer id - кляп-5см
+
+                                sku - 1244553469
+
+                                стратегия - Целевой расход
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,90 
+
+                                Заказы - 2
+
+                                В корзину(шт) - 6
+
+                                ДРР - 9,0%
+
+                                Показы - 2 344
+
+                                Клики - 105
+
+                                Бюджет - 6000.0
+                                Цена товара - 1 732
+
+                                Расходы - 304.59
+
+                                Продажи - 3 370
+                 
+                                
+                            
+2026-05-13 21:52:48,406 - INFO -    📝 35/40 Обработка кампании 25417814
+2026-05-13 21:52:57,562 - INFO - 
+                                offer id - губы_black
+
+                                sku - 3550497708
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 2,93 
+
+                                Заказы - 1
+
+                                В корзину(шт) - 4
+
+                                ДРР - 65,4%
+
+                                Показы - 1 860
+
+                                Клики - 170
+
+                                Бюджет - 4000.0
+                                Цена товара - 1 000
+
+                                Расходы - 497.68
+
+                                Продажи - 761
+                 
+                                
+                            
+2026-05-13 21:52:57,562 - INFO -    📝 36/40 Обработка кампании 25417868
+2026-05-13 21:53:06,187 - INFO - 
+                                offer id - кляп-дырка-white-4.5см
+
+                                sku - 3550525248
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 6,86 
+
+                                Заказы - 0
+
+                                В корзину(шт) - 2
+
+                                ДРР - 0,0%
+
+                                Показы - 1 853
+
+                                Клики - 69
+
+                                Бюджет - 11000.0
+                                Цена товара - 1 512
+
+                                Расходы - 473.36
+
+                                Продажи - 0
+                 
+                                
+                            
+2026-05-13 21:53:06,187 - INFO -    📝 37/40 Обработка кампании 25465779
+2026-05-13 21:53:14,007 - INFO - 
+                                offer id - кляп-rose
+
+                                sku - 1115648448
+
+                                стратегия - Средняя стоимость клика
+
+                                конкурентная ставка - 19
+
+                                ваша ставка - 15
+
+                                Средняя стоимость клика - 6,77 
+
+                                Заказы - 3
+
+                                В корзину(шт) - 3
+
+                                ДРР - 11,7%
+
+                                Показы - 1 861
+
+                                Клики - 70
+
+                                Бюджет - 5000.0
+                                Цена товара - 1 359
+
+                                Расходы - 474.06
+
+                                Продажи - 4 057
+                 
+                                
+                            
+2026-05-13 21:53:14,007 - INFO -    📝 38/40 Обработка кампании 25940704
+2026-05-13 21:53:22,105 - INFO - 
+                                offer id - Оковы-XL
+
+                                sku - 2436329222
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,90%
+
+                                ДРР - 0 ₽
+
+                                Показы - 51
+
+                                Клики - 1
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 349
+
+                                Расходы - 0.0%
+
+                                Продажи - 169.43
+                 
+                                
+                            
+2026-05-13 21:53:22,105 - INFO -    📝 39/40 Обработка кампании 25940973
+2026-05-13 21:53:31,289 - INFO - 
+                                offer id - Упряга-XL
+
+                                sku - 2378759304
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 3,40%
+
+                                ДРР - 0 ₽
+
+                                Показы - 49
+
+                                Клики - 2
+
+                                Бюджет - 2000.0
+                                Цена товара - 2 260
+
+                                Расходы - 0.0%
+
+                                Продажи - 172.02
+                 
+                                
+                            
+2026-05-13 21:53:31,290 - INFO -    📝 40/40 Обработка кампании 26821847
+2026-05-13 21:53:39,606 - INFO - 
+                                offer id - intrigue_port_3sm
+
+                                sku - 1611577310
+
+                                стратегия - Автостратегия
+
+                                конкурентная ставка - -
+
+                                ваша ставка - -
+
+                                Средняя стоимость клика - 0
+
+                                Заказы - 0 ₽
+
+                                В корзину(шт) - 5,11%
+
+                                ДРР - 0 ₽
+
+                                Показы - 174
+
+                                Клики - 3
+
+                                Бюджет - 4000.0
+                                Цена товара - 3 299
+
+                                Расходы - 0.0%
+
+                                Продажи - 333.86
+                 
+                                
+                            
+2026-05-13 21:53:39,606 - INFO -    ✅ Аналитика CPC успешно получена
+2026-05-13 21:53:39,606 - INFO -    📊 Попытка 1/3 получения аналитики CPO
+2026-05-13 21:53:44,712 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:53:50,343 - INFO -    📄 Всего страниц - 1
+2026-05-13 21:53:57,931 - INFO -    ✅ Аналитика CPO успешно получена
+2026-05-13 21:53:57,931 - INFO -    ✅ Рекламная аналитика успешно собрана для 45 товаров
+2026-05-13 21:53:57,931 - INFO - Попытка №0 получить цены товаров
+2026-05-13 21:54:05,653 - INFO - Всего страниц с ценой - 1
+2026-05-13 21:54:57,070 - INFO -    ✅ Актуальные цены добавлены для 40 товаров
+2026-05-13 21:54:57,071 - INFO -    ✅ Получена рекламная аналитика для 45 товаров
+2026-05-13 21:54:57,071 - INFO - 📌 Шаг 5: Получение позиций товаров...
+2026-05-13 21:55:03,506 - INFO -    ✅ Успешно нажали на кнопку календаря
+2026-05-13 21:55:04,095 - INFO -    ✅ Успешно нажали на дату Сегодня
+2026-05-13 21:55:05,188 - INFO -    ✅ Успешно нажали на кнопку Товар
+2026-05-13 21:55:06,742 - INFO -    ✅ Успешно нажали на кнопку Только выбранные
+2026-05-13 21:55:23,155 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:55:23,187 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:55:24,310 - INFO - Get data - Наручники_МЕХ Расход = 713.32
+2026-05-13 21:55:36,247 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:55:36,281 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:55:37,397 - INFO - Get data - Наручники_Gold Расход = 1 150.16
+2026-05-13 21:55:49,276 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:55:49,308 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:55:50,458 - INFO - Get data - кляп-дырка-white-4.5см Расход = 362.03
+2026-05-13 21:56:02,516 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:56:02,550 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:56:03,666 - INFO - Get data - губы_красные Расход = 979.47
+2026-05-13 21:56:15,513 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:56:15,543 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:56:16,658 - INFO - Get data - губы_black Расход = 677.58
+2026-05-13 21:56:28,507 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:56:28,538 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:56:29,653 - INFO - Get data - Падл_31см Расход = 418.13
+2026-05-13 21:56:41,497 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:56:41,529 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:56:42,769 - INFO - Get data - Простынь_бдсм Расход = 498.79
+2026-05-13 21:56:54,622 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:56:54,653 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:56:55,773 - INFO - Get data - Бандаж-BDSM_2_наруч Расход = 673.93
+2026-05-13 21:57:07,617 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:57:07,648 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:57:08,761 - INFO - Get data - Бандаж_4х Расход = 1 878.25
+2026-05-13 21:57:20,601 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:57:20,632 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:57:21,748 - INFO - Get data - ошейник_карабины Расход = 587.11
+2026-05-13 21:57:33,585 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:57:33,617 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:57:34,734 - INFO - Get data - Чокер_ремень_наручники Расход = 455.53
+2026-05-13 21:57:46,608 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:57:46,640 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:57:47,755 - INFO - Get data - ross-pink Расход = 683.89
+2026-05-13 21:57:59,604 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:57:59,637 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:58:00,754 - INFO - Get data - Оковы-XL Расход = 169.43
+2026-05-13 21:58:12,599 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:58:12,631 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:58:13,912 - INFO - Get data - Чокер_наручники_bdsm Расход = 2 226.1
+2026-05-13 21:58:25,768 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:58:25,798 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:58:26,916 - INFO - Get data - Бандаж-BDSM Расход = 874.59
+2026-05-13 21:58:38,767 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:58:38,799 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:58:39,915 - INFO - Get data - кляп-дырка-4.5см Расход = 2 505.31
+2026-05-13 21:58:51,764 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:58:51,796 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:58:52,918 - INFO - Get data - Наручники-XL Расход = 3 035.49
+2026-05-13 21:59:04,800 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:59:04,832 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:59:05,956 - INFO - Get data - Наручник-STEEL Расход = 904.11
+2026-05-13 21:59:17,803 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:59:17,834 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:59:18,948 - INFO - Get data - Упряга-XL Расход = 162.28
+2026-05-13 21:59:30,909 - INFO - Найден INDEX Расхода - 3
+2026-05-13 21:59:30,941 - INFO - Найден INDEX ДРР - 6
+2026-05-13 21:59:32,057 - INFO - Get data - ross-gradient Расход = 1 620.34

@@ -397,84 +397,172 @@ class InterfaceParser:
         return result_date
 
 
-    def pars_table_advert(self, row, all_td: list, camping_type):
+    def pars_table_advert(self, driver, row, all_td: list, camping_type):
         print(camping_type)
 
-        if str(camping_type) == "Поиск и рекомендации":
-            if len(all_td) == 19:
-                concurent_bet = '-'
-                my_bet = '-'
-                target_drr = all_td[4].text.replace('\n', '').strip().replace('₽', '')
-                sr_click = all_td[5].text.replace('\n', '').strip().replace('₽', '')
-                count_offers = all_td[6].text.replace('\n', '').strip().replace('\n', '').strip()
-                selled = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                expense = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                drr = all_td[9].text.replace('\n', '').strip()
-                views = all_td[12].text.replace('\n', '').strip()
-                clicks = all_td[13].text.replace('\n', '').strip()
-                to_cart = all_td[14].text.replace('\n', '').strip()
-                ctp = all_td[15].text.replace('\n', '').strip()
-                product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
-            else:
-                try:
-                    concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
-                except:
+        concurent_bet = '-'
+        my_bet = "-"
+        sr_click = "-"
+        count_offers = "-"
+        selled = "-"
+        expense = "-"
+        drr = "-"
+        views = "-"
+        clicks = "-"
+        to_cart = "-"
+        ctp = "-"
+        product_price = "-"
+
+        concurent_bet_index = False
+        my_bet_index = False
+        sr_click_index = False
+        count_offers_index = False
+        selled_index = False
+        expense_index = False
+        drr_index = False
+        views_index = False
+        clicks_index = False
+        to_cart_index = False
+        ctp_index = False
+        product_price_index = False
+
+        try:
+            thead_table = driver.find_element(By.XPATH, "//thead")
+            all_th = thead_table.find_elements(By.XPATH, ".//th")
+
+            for th in all_th:
+                if "Конкурентная ставка" == th.text:
+                    concurent_bet_index = all_th.index(th)
+                elif "Ваша ставка" == th.text:
+                    my_bet_index = all_th.index(th)
+                elif "Средняя стоимость клика" == th.text:
+                    sr_click_index = all_th.index(th)
+                elif "Заказы" == th.text:
+                    count_offers_index = all_th.index(th)
+                elif "Продажи" == th.text:
+                    selled_index = all_th.index(th)
+                elif "Расход" == th.text:
+                    expense_index = all_th.index(th)
+                elif "ДРР" == th.text:
+                    drr_index = all_th.index(th)
+                elif "Показы" == th.text:
+                    views_index = all_th.index(th)
+                elif "Клики" == th.text:
+                    clicks_index = all_th.index(th)
+                elif "В корзину" == th.text:
+                    to_cart_index = all_th.index(th)
+                elif "CTR" == th.text:
+                    ctp_index = all_th.index(th)
+                elif "Ваша цена" == th.text:
+                    product_price_index = all_th.index(th)
+
+            print(f"concurent_bet_index: {concurent_bet_index}", f"my_bet_index: {my_bet_index}",  f"sr_click_index: {sr_click_index}", f"count_offers_index: {count_offers_index}", f"selled_index: {selled_index}", f"expense_index: {expense_index}", f"drr_index: {drr_index}", f"views_index: {views_index}", f"clicks_index: {clicks_index}", f"to_cart_index: {to_cart_index}", f"ctp_index: {ctp_index}", f"product_price_index: {product_price_index}", sep='\n', end='\n\n')
+
+            if concurent_bet_index:
+                concurent_bet = all_td[concurent_bet_index].text.replace('₽', '').strip().replace('\n', '').strip()
+            if my_bet_index:
+                my_bet = all_td[my_bet_index].find_element(By.XPATH,
+                                                  f".//input[(@data-testid='InputCount')]").get_attribute('value')
+            if sr_click_index:
+                sr_click = all_td[sr_click_index].text.replace('\n', '').strip().replace('₽', '')
+            if count_offers_index:
+                count_offers = all_td[count_offers_index].text.replace('\n', '').strip().replace('\n', '').strip()
+            if selled_index:
+                selled = all_td[selled_index].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+            if expense_index:
+                expense = all_td[expense_index].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+            if drr_index:
+                drr = all_td[drr_index].text.replace('\n', '').strip()
+            if views_index:
+                views = all_td[views_index].text.replace('\n', '').strip()
+            if clicks_index:
+                clicks = all_td[clicks_index].text.replace('\n', '').strip()
+            if to_cart_index:
+                to_cart = all_td[to_cart_index].text.replace('\n', '').strip()
+            if ctp_index:
+                ctp = all_td[ctp_index].text.replace('\n', '').strip()
+            if product_price_index:
+                product_price = all_td[product_price_index].text.replace('₽', '').replace('\n', '').strip()
+
+            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
+            return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
+        except Exception as e:
+            print(traceback.format_exc())
+
+            if str(camping_type) == "Поиск и рекомендации":
+                if len(all_td) == 19:
                     concurent_bet = '-'
-                try:
-                    my_bet = row.find_element(By.XPATH,
-                                              f".//input[(@data-testid='InputCount')]").get_attribute(
-                        'value')
-                except:
                     my_bet = '-'
-                sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
-                count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
-                selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                drr = all_td[10].text.replace('\n', '').strip()
-                views = all_td[13].text.replace('\n', '').strip()
-                clicks = all_td[14].text.replace('\n', '').strip()
-                to_cart = all_td[15].text.replace('\n', '').strip()
-                ctp = all_td[16].text.replace('\n', '').strip()
-                product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
-        else:
-            if len(all_td) == 19:
-                my_bet = '-'
-                concurent_bet = '-'
-                sr_click = all_td[4].text.replace('\n', '').strip().replace('₽', '')
-                count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
-                selled = all_td[6].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                drr = all_td[8].text.replace('\n', '').strip()
-                views = all_td[11].text.replace('\n', '').strip()
-                clicks = all_td[12].text.replace('\n', '').strip()
-                to_cart = all_td[13].text.replace('\n', '').strip()
-                ctp = all_td[14].text.replace('\n', '').strip()
-                product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
+                    target_drr = all_td[4].text.replace('\n', '').strip().replace('₽', '')
+                    sr_click = all_td[5].text.replace('\n', '').strip().replace('₽', '')
+                    count_offers = all_td[6].text.replace('\n', '').strip().replace('\n', '').strip()
+                    selled = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    expense = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    drr = all_td[9].text.replace('\n', '').strip()
+                    views = all_td[12].text.replace('\n', '').strip()
+                    clicks = all_td[13].text.replace('\n', '').strip()
+                    to_cart = all_td[14].text.replace('\n', '').strip()
+                    ctp = all_td[15].text.replace('\n', '').strip()
+                    product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
+                else:
+                    try:
+                        concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
+                    except:
+                        concurent_bet = '-'
+                    try:
+                        my_bet = row.find_element(By.XPATH,
+                                                  f".//input[(@data-testid='InputCount')]").get_attribute('value')
+                    except:
+                        my_bet = '-'
+                    sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
+                    count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
+                    selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    drr = all_td[10].text.replace('\n', '').strip()
+                    views = all_td[13].text.replace('\n', '').strip()
+                    clicks = all_td[14].text.replace('\n', '').strip()
+                    to_cart = all_td[15].text.replace('\n', '').strip()
+                    ctp = all_td[16].text.replace('\n', '').strip()
+                    product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
             else:
-                try:
-                    concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
-                except:
-                    concurent_bet = '-'
-                try:
-                    my_bet = row.find_element(By.XPATH,
-                                              f".//input[(@data-testid='InputCount')]").get_attribute(
-                        'value')
-                except:
+                if len(all_td) == 19:
                     my_bet = '-'
-                sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
-                count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
-                selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                drr = all_td[10].text.replace('\n', '').strip()
-                views = all_td[13].text.replace('\n', '').strip()
-                clicks = all_td[14].text.replace('\n', '').strip()
-                to_cart = all_td[15].text.replace('\n', '').strip()
-                ctp = all_td[16].text.replace('\n', '').strip()
-                product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
+                    concurent_bet = '-'
+                    sr_click = all_td[4].text.replace('\n', '').strip().replace('₽', '')
+                    count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
+                    selled = all_td[6].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    drr = all_td[8].text.replace('\n', '').strip()
+                    views = all_td[11].text.replace('\n', '').strip()
+                    clicks = all_td[12].text.replace('\n', '').strip()
+                    to_cart = all_td[13].text.replace('\n', '').strip()
+                    ctp = all_td[14].text.replace('\n', '').strip()
+                    product_price = all_td[16].text.replace('₽', '').replace('\n', '').strip()
+                else:
+                    try:
+                        concurent_bet = all_td[4].text.replace('₽', '').strip().replace('\n', '').strip()
+                    except:
+                        concurent_bet = '-'
+                    try:
+                        my_bet = row.find_element(By.XPATH,
+                                                  f".//input[(@data-testid='InputCount')]").get_attribute(
+                            'value')
+                    except:
+                        my_bet = '-'
+                    sr_click = all_td[6].text.replace('\n', '').strip().replace('₽', '')
+                    count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
+                    selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                    drr = all_td[10].text.replace('\n', '').strip()
+                    views = all_td[13].text.replace('\n', '').strip()
+                    clicks = all_td[14].text.replace('\n', '').strip()
+                    to_cart = all_td[15].text.replace('\n', '').strip()
+                    ctp = all_td[16].text.replace('\n', '').strip()
+                    product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
 
 
-        print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
-        return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
+            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
+            return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
 
 
     def parser_advert_dict(self, advert_dict, max_retries: int = 3):
@@ -540,7 +628,7 @@ class InterfaceParser:
                         offer_id = str(sku_split[1].replace('\n', '').strip())
 
                         print(f"Длинна all td - {len(all_td)}")
-                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(row, all_td, camping_type)
+                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(driver, row, all_td, camping_type)
 
                         logger.info(
                             f"""
@@ -663,6 +751,26 @@ class InterfaceParser:
                                 sku_and_offer_id = all_td[2].text
                                 sku_split = sku_and_offer_id.split("\n")
 
+                                # try:
+                                #     theaders = driver.find_elements(By.XPATH, "//thead")
+                                #     all_th = theaders.find_elements(By.XPATH, ".//th")
+                                #
+                                #     for th in all_th:
+                                #         if 'SKU' in th.text:
+                                #             sku_index = all_th.index(th)
+                                #         elif 'Ставка' in th.text:
+                                #             bet_index = all_th.index(th)
+                                #         elif 'Ваша цена' in th.text:
+                                #             product_price_index = all_th.index(th)
+                                #         elif 'Индекс' in th.text:
+                                #             index_view_index = all_th.index(th)
+                                #         elif 'Заказы' in th.text and 'Оплата за заказ' in th.text:
+                                #             product_buy_pay_index = all_th.index(th)
+                                #         elif 'Заказы' in th.text and 'Комбо-модель' in th.text:
+                                #             product_buy_combo_model_index = all_th.index(th)
+                                # except:
+                                #     print(traceback.format_exc())
+
                                 sku = sku_split[0].strip().replace("\n", "").strip().replace('\u202f', '')
                                 offer_id = sku_split[1].strip().replace("\n", "").strip().replace('\u202f', '')
 
@@ -706,6 +814,9 @@ class InterfaceParser:
                                     'expense_combo': expense_combo,
                                     'selled': combo_sell,
                                 }
+
+                                print(offer_dict)
+                                input('test')
 
                                 if offer_id in analytic_advert_dict.keys():
                                     analytic_advert_dict[offer_id].append(offer_dict)
@@ -1216,6 +1327,8 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
+    parser.get_advert_analytics_pay_to_buy({})
+
     parser.auth()
     time.sleep(2)
     parser.close()

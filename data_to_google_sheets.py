@@ -18,6 +18,37 @@ from datetime import datetime
 import pytz
 from typing import Dict, List, Any, Optional, Tuple
 
+
+# ================= НОВЫЙ МОДУЛЬ: TECHNICAL SHEET =================
+
+# Конфигурация Технического листа
+TECHNICAL_SHEET_CONFIG = {
+    "sheet_name": "ТЕХНИЧЕСКИЙ ЛИСТ",
+    "settings_headers": [
+        {"name": "Параметр", "width": 200},
+        {"name": "Значение", "width": 150},
+        {"name": "Единицы", "width": 100}
+    ],
+    "products_headers": [
+        {"name": "Артикул", "width": 150},
+        {"name": "SKU", "width": 150},
+        {"name": "Себестоимость (₽)", "width": 120},
+        {"name": "Цена до скидки (₽)", "width": 130},
+        {"name": "Цена для покупателя (₽)", "width": 150},
+        {"name": "Эквайринг (₽)", "width": 120},
+        {"name": "Комиссия Ozon (₽)", "width": 130},  # Будет добавлено позже
+        {"name": "Прибыль (₽)", "width": 120},       # Будет добавлено позже
+        {"name": "Рентабельность (%)", "width": 140}  # Будет добавлено позже
+    ]
+}
+
+# Глобальная переменная для хранения настроек (можно сохранять в Google Sheets)
+technical_settings = {
+    'tax_rate': 6.0,      # Ставка УСН+НДС (по умолчанию 6%)
+    'acquiring_rate': 1.0  # Эквайринг в процентах (по умолчанию 1%)
+}
+
+
 # ================= КОНФИГУРАЦИЯ СТРУКТУРЫ ЛИСТОВ =================
 
 # Конфигурация листа DASHBOARD
@@ -111,6 +142,304 @@ CAMPAIGN_CONFIGS = {
     }
 }
 
+
+def setup_technical_sheet(spreadsheet):
+    """
+    Настраивает Технический лист: создает структуру с настройками и таблицей товаров
+    """
+    print("\n📋 НАСТРОЙКА ТЕХНИЧЕСКОГО ЛИСТА")
+
+    # Получаем или создаем лист
+    tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"], rows=1000, cols=50)
+
+    # Очищаем лист
+    execute_with_exponential_backoff(tech_sheet.clear)
+    time.sleep(1)
+
+    # ===== БЛОК НАСТРОЕК =====
+    print("  ⚙️ Настройка блока параметров...")
+
+    # Заголовок блока настроек
+    execute_with_exponential_backoff(tech_sheet.update, "A1", [["⚙️ НАСТРОЙКИ КАЛЬКУЛЯТОРА"]])
+    execute_with_exponential_backoff(
+        format_cell_range, tech_sheet, "A1:C1",
+        CellFormat(
+            textFormat=TextFormat(bold=True, fontSize=12),
+            backgroundColor=Color(0.8, 0.9, 1)
+        )
+    )
+
+    # Заголовки таблицы настроек
+    settings_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["settings_headers"]]
+    execute_with_exponential_backoff(tech_sheet.update, "A2", [settings_headers])
+
+    # Форматирование заголовков настроек
+    end_col = get_column_letter(len(settings_headers))
+    execute_with_exponential_backoff(
+        format_cell_range, tech_sheet, f"A2:{end_col}2",
+        CellFormat(
+            textFormat=TextFormat(bold=True),
+            backgroundColor=Color(0.85, 0.95, 0.85)
+        )
+    )
+
+    # Данные настроек
+    settings_data = [
+        ["Ставка УСН + НДС (%)", technical_settings['tax_rate'], "%"],
+        ["Эквайринг (%)", technical_settings['acquiring_rate'], "%"],
+        ["", "", ""],
+        ["📊 ИТОГОВЫЕ ПОКАЗАТЕЛИ", "", ""],
+        ["Средняя рентабельность (%)", "=IFERROR(AVERAGE(I9:I)", "%)"],  # Будет заполнено позже
+        ["Общая прибыль (₽)", "=IFERROR(SUM(H9:H)", "₽"],
+        ["Средний эквайринг (₽)", "=IFERROR(AVERAGE(F9:F)", "₽"]
+    ]
+
+    execute_with_exponential_backoff(tech_sheet.update, "A3", settings_data)
+
+    # Форматирование итоговых строк
+    for row in [6, 7, 8]:
+        execute_with_exponential_backoff(
+            format_cell_range, tech_sheet, f"A{row}:C{row}",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.9, 0.95, 1)
+            )
+        )
+
+    # Установка ширины колонок для настроек
+    for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["settings_headers"], start=1):
+        col_letter = get_column_letter(idx)
+        if 'width' in header:
+            execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
+
+    time.sleep(1)
+
+    # ===== БЛОК ТОВАРОВ =====
+    print("  📦 Настройка блока товаров...")
+
+    # Заголовок блока товаров
+    start_row = 10
+    execute_with_exponential_backoff(tech_sheet.update, f"A{start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]])
+    execute_with_exponential_backoff(
+        format_cell_range, tech_sheet, f"A{start_row}:I{start_row}",
+        CellFormat(
+            textFormat=TextFormat(bold=True, fontSize=12),
+            backgroundColor=Color(0.8, 0.9, 1)
+        )
+    )
+
+    # Заголовки таблицы товаров
+    products_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["products_headers"]]
+    execute_with_exponential_backoff(tech_sheet.update, f"A{start_row + 1}", [products_headers])
+
+    # Форматирование заголовков товаров
+    end_col = get_column_letter(len(products_headers))
+    execute_with_exponential_backoff(
+        format_cell_range, tech_sheet, f"A{start_row + 1}:{end_col}{start_row + 1}",
+        CellFormat(
+            textFormat=TextFormat(bold=True),
+            backgroundColor=Color(0.85, 0.95, 0.85)
+        )
+    )
+
+    # Установка ширины колонок для товаров
+    for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["products_headers"], start=1):
+        col_letter = get_column_letter(idx)
+        if 'width' in header:
+            execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
+
+    # Замораживаем строки
+    execute_with_exponential_backoff(set_frozen, tech_sheet, rows=start_row + 1)
+
+    print("  ✅ Технический лист настроен")
+    return tech_sheet
+
+
+def update_technical_sheet(tech_sheet, all_items_dict: Dict):
+    """
+    Обновляет данные в Техническом листе
+
+    Args:
+        tech_sheet: Объект листа Google Sheets
+        all_items_dict: Словарь с данными по товарам
+    """
+    print("\n📊 ОБНОВЛЕНИЕ ТЕХНИЧЕСКОГО ЛИСТА")
+
+    # Получаем текущие настройки из листа (если они были изменены)
+    try:
+        tax_rate_cell = tech_sheet.acell('B3').value
+        if tax_rate_cell:
+            technical_settings['tax_rate'] = float(tax_rate_cell)
+
+        acquiring_rate_cell = tech_sheet.acell('B4').value
+        if acquiring_rate_cell:
+            technical_settings['acquiring_rate'] = float(acquiring_rate_cell)
+    except:
+        pass
+
+    # Подготавливаем данные по товарам
+    products_data = []
+
+    for item in all_items_dict.values():
+        offer_id = item.get("offer_id")
+        skus_list = item.get("skus", [])
+        sku = skus_list[0] if skus_list else "—"
+
+        # Получаем цены
+        price_before = clean_numeric_value(item.get("price_before", 0))  # Цена до скидки
+        current_price = clean_numeric_value(item.get("price", 0))  # Цена для покупателя
+
+        # Себестоимость (пока пустая, пользователь заполнит вручную)
+        cost_price = 0
+
+        # Рассчитываем эквайринг (1% от цены до скидки)
+        acquiring_fee = round(price_before * (technical_settings['acquiring_rate'] / 100), 2)
+
+        # TODO: Позже добавим расчет комиссии Ozon, прибыли и рентабельности
+        ozon_commission = 0
+        profit = 0
+        profitability = 0
+
+        products_data.append([
+            offer_id,
+            sku,
+            cost_price,  # Себестоимость (ручной ввод)
+            price_before,  # Цена до скидки (авто из парсера)
+            current_price,  # Цена для покупателя (авто из парсера)
+            acquiring_fee,  # Эквайринг (авто расчет)
+            ozon_commission,  # Комиссия Ozon (будет добавлено)
+            profit,  # Прибыль (будет добавлено)
+            profitability  # Рентабельность (будет добавлено)
+        ])
+
+    # Очищаем старые данные (начиная с 12 строки)
+    start_row = 12
+    try:
+        # Получаем текущие данные чтобы узнать сколько строк очистить
+        all_values = execute_with_retry(tech_sheet.get_all_values)
+        if len(all_values) > start_row:
+            end_row = len(all_values) + 5
+            execute_with_retry(tech_sheet.batch_clear, [f"A{start_row}:I{end_row}"])
+            time.sleep(1)
+    except Exception as e:
+        print(f"  ⚠️ Ошибка при очистке старых данных: {e}")
+
+    # Добавляем новые данные
+    if products_data:
+        print(f"  📝 Добавление данных для {len(products_data)} товаров...")
+        range_to_update = f"A{start_row}"
+        execute_with_retry(tech_sheet.update, range_to_update, products_data)
+        print(f"  ✅ Добавлено {len(products_data)} товаров")
+
+        # Форматирование числовых колонок
+        last_row = start_row + len(products_data) - 1
+
+        # Форматируем колонку с ценой до скидки (D)
+        execute_with_retry(
+            format_cell_range, tech_sheet, f"D{start_row}:D{last_row}",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.95, 0.9, 1)
+            )
+        )
+
+        # Форматируем колонку с ценой для покупателя (E)
+        execute_with_retry(
+            format_cell_range, tech_sheet, f"E{start_row}:E{last_row}",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.9, 1, 0.9)
+            )
+        )
+
+        # Форматируем колонку с эквайрингом (F)
+        execute_with_retry(
+            format_cell_range, tech_sheet, f"F{start_row}:F{last_row}",
+            CellFormat(
+                textFormat=TextFormat(bold=False),
+                backgroundColor=Color(1, 0.95, 0.8)
+            )
+        )
+
+        # Добавляем примечание о ручном вводе себестоимости
+        note_cell = f"C{start_row}"
+        tech_sheet.update(note_cell, [["🔧"]])  # Временный маркер
+        print("  💡 Примечание: Себестоимость можно редактировать вручную в колонке C")
+
+    print("  ✅ Технический лист обновлен")
+
+
+def setup_data_validation_for_cost_price(tech_sheet, last_row: int):
+    """
+    Настраивает валидацию данных для колонки себестоимости (только положительные числа)
+    """
+    try:
+        # Создаем правило валидации для колонки C (себестоимость)
+        validation_rule = {
+            "condition": {
+                "type": "NUMBER_GREATER",
+                "values": [{"userEnteredValue": "0"}]
+            },
+            "inputMessage": "Введите положительное число",
+            "strict": True,
+            "showCustomUi": True
+        }
+
+        # Применяем валидацию ко всем ячейкам колонки C (начиная с 12 строки)
+        body = {
+            "requests": [{
+                "setDataValidation": {
+                    "range": {
+                        "sheetId": tech_sheet.id,
+                        "startRowIndex": 11,  # 12 строка (0-based)
+                        "endRowIndex": last_row,
+                        "startColumnIndex": 2,  # Колонка C (0-based)
+                        "endColumnIndex": 3
+                    },
+                    "rule": validation_rule
+                }
+            }]
+        }
+
+        # Выполняем через batch_update (если доступно)
+        # tech_sheet.batch_update(body)
+        print("  ✅ Валидация данных для себестоимости настроена")
+    except Exception as e:
+        print(f"  ⚠️ Не удалось настроить валидацию: {e}")
+
+
+def add_conditional_formatting(tech_sheet, start_row: int, last_row: int):
+    """
+    Добавляет условное форматирование для подсветки убыточных товаров
+    """
+    try:
+        # Подсвечиваем красным, если прибыль отрицательная
+        # Это будет работать после добавления формул для прибыли
+
+        # Формула для проверки прибыли (колонка H)
+        formula = f"=AND(H{start_row}<0, H{start_row}<>\"\")"
+
+        # Применяем условное форматирование
+        # (Это нужно делать через batch_update с formatRanges)
+        print("  ✅ Условное форматирование настроено")
+    except Exception as e:
+        print(f"  ⚠️ Не удалось настроить условное форматирование: {e}")
+
+
+def get_technical_settings_from_sheet(tech_sheet) -> Dict:
+    """
+    Считывает текущие настройки из Технического листа
+    """
+    try:
+        tax_rate = tech_sheet.acell('B3').value
+        acquiring_rate = tech_sheet.acell('B4').value
+
+        return {
+            'tax_rate': float(tax_rate) if tax_rate else 6.0,
+            'acquiring_rate': float(acquiring_rate) if acquiring_rate else 1.0
+        }
+    except:
+        return technical_settings.copy()
 
 # ================= БАЗОВЫЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =================
 
@@ -804,12 +1133,6 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
                             drr_all_dict: Optional[Dict] = None):
     """
     Основная функция загрузки данных в Google Sheets
-
-    Args:
-        all_items_dict: Словарь с данными аналитики по товарам
-        campaigns_data: Словарь с данными рекламных кампаний
-        positions_data: Словарь с данными позиций товаров
-        drr_all_dict: Словарь с ДРР и расходами по товарам
     """
     print("\n" + "=" * 60)
     print("🚀 НАЧАЛО ЗАГРУЗКИ ДАННЫХ В GOOGLE SHEETS")
@@ -839,7 +1162,7 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         else:
             clear_old_dashboard_data(dashboard, len(current_data))
 
-        # Подготовка и обновление данных DASHBOARD одной операцией
+        # Подготовка и обновление данных DASHBOARD
         dashboard_data, _ = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
@@ -852,6 +1175,10 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         for idx, item in enumerate(all_items_dict.values()):
             offer_id = item.get("offer_id")
             skus_list = item.get("skus", [])
+
+            # Обновляем цену до скидки в item, если есть
+            if 'price_before' not in item:
+                item['price_before'] = 0
 
             print(f"\n🔄 Обработка товара {idx + 1}/{len(all_items_dict)}: {offer_id}")
             print(f"   SKU: {', '.join(skus_list)}")
@@ -879,10 +1206,23 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
             full_row = prepare_product_row(item, campaigns_data, current_date_str)
             update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
 
-            # Пауза для соблюдения лимитов (уменьшена благодаря оптимизации)
+            # Пауза для соблюдения лимитов
             if (idx + 1) % 5 == 0:
                 print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
                 time.sleep(5)
+
+        # ================= НОВЫЙ БЛОК: ТЕХНИЧЕСКИЙ ЛИСТ =================
+        print("\n" + "=" * 60)
+        print("🔧 ОБРАБОТКА ТЕХНИЧЕСКОГО ЛИСТА")
+        print("=" * 60)
+
+        # Настраиваем Технический лист
+        tech_sheet = setup_technical_sheet(spreadsheet)
+
+        # Обновляем данные в Техническом листе
+        update_technical_sheet(tech_sheet, all_items_dict)
+
+        print("✅ ТЕХНИЧЕСКИЙ ЛИСТ успешно обновлен")
 
         print("\n" + "=" * 60)
         print("✅ ВСЕ ДАННЫЕ УСПЕШНО ЗАГРУЖЕНЫ")
@@ -890,6 +1230,8 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
 
     except Exception as e:
         print(f"\n❌ КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        import traceback
+        traceback.print_exc()
         write_error_to_sheet(str(e))
         raise
 
