@@ -1081,10 +1081,25 @@ class InterfaceParser:
                                     print(all_td[5].text.split('\n'))
                                     item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
                                     item_price_before = all_td[4].text.split('\n')[0].replace('₽', '').strip().replace('\n', '').strip()
-                                    print(item_offer_id, f"Цена после скидки - {item_price}", f"Цена ДО скидки - {item_price_before}", sep='\n', end='\n\n')
 
+                                    self.scroll_to_element_center(all_td[19])
+                                    time.sleep(2)
+                                    cost_price = all_td[19].text
+                                    if '\n' in cost_price:
+                                        cost_price = cost_price.split('\n')[0]
+                                    cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                                    commission_fbo = all_td[20].text.replace('₽', '').strip().replace('\n', '').strip()
+                                    stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
+
+                                    print(item_offer_id, f"Цена после скидки - {item_price}", f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}", f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}", sep='\n', end='\n\n')
                                     if item_offer_id not in prices_dict.keys():
-                                        prices_dict[item_offer_id] = {'price': item_price, 'price_before': item_price_before}
+                                        prices_dict[item_offer_id] = {'price': item_price,
+                                                                      'price_before': item_price_before,
+                                                                      'cost_price': cost_price,
+                                                                      'commission_fbo': commission_fbo,
+                                                                      'stock_balance': stock_balance,
+                                                                      }
                                     break
                                 except:
                                     time.sleep(1)
@@ -1293,11 +1308,17 @@ class InterfaceParser:
                     for offer_id in price_dict:
                         actual_price = price_dict[offer_id]['price']
                         price_before = price_dict[offer_id]['price_before']
+                        cost_price = price_dict[offer_id]['cost_price']
+                        commission_fbo = price_dict[offer_id]['commission_fbo']
+                        stock_balance = price_dict[offer_id]['stock_balance']
 
                         if offer_id in res_dict:
                             for item_dict in res_dict[offer_id]:
                                 item_dict['product_price'] = actual_price
                                 item_dict['product_price_before'] = price_before
+                                item_dict['cost_price'] = cost_price
+                                item_dict['commission_fbo'] = commission_fbo
+                                item_dict['stock_balance'] = stock_balance
                         else:
                             logger.warning(f"   ⚠️ offer_id {offer_id} не найден в рекламной аналитике")
 
@@ -1323,7 +1344,8 @@ class InterfaceParser:
 if __name__ == "__main__":
     parser = InterfaceParser()
 
-    parser.start_browser(headless=False)
+    parser.start_browser(headless=True)
+    parser.get_actual_prices_offer_id()
 
     parser.auth()
     time.sleep(2)
