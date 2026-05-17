@@ -1345,7 +1345,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=True)
-    parser.get_actual_prices_offer_id()
+    #parser.get_actual_prices_offer_id()
 
     parser.auth()
     time.sleep(2)
