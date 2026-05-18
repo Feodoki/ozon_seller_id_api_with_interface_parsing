@@ -159,6 +159,363 @@ CAMPAIGN_CONFIGS = {
     }
 }
 
+# ================= НОВАЯ КОНФИГУРАЦИЯ: ЛИСТ СТОИМОСТИ ЛОГИСТИКИ =================
+
+LOGISTICS_PRICE_CONFIG = {
+    "sheet_name": "Стоимость логистики",
+    "headers": [
+        {"name": "Объём товара (л)", "width": 150},
+        {"name": "Для товаров до 300 руб.", "width": 200},
+        {"name": "Для товаров свыше 300 руб.", "width": 200}
+    ],
+    "default_data": [
+        ["0-0,200 л", 17.28, 56],
+        ["0,201-0,4 л", 19.32, 63],
+        ["0,401-0,6 л", 21.35, 67],
+        ["0,601-0,8 л", 22.37, 67],
+        ["0,801-1 л", 23.38, 67],
+        ["1,001-1,25 л", 25.42, 71],
+        ["1,251-1,5 л", 26.43, 74],
+        ["1,501-1,75 л", 27.45, 74],
+        ["1,751-2 л", 29.48, 74],
+        ["2,001-3 л", 31.52, 74],
+        ["3,001-4 л", 35.58, 78],
+        ["4,001-5 л", 38.63, 89],
+        ["5,001-6 л", 42.70, 89],
+        ["6,001-7 л", 57.95, 99],
+        ["7,001-8 л", 62.02, 99],
+        ["8,001-9 л", 65.07, 100],
+        ["9,001-10 л", 69.13, 100],
+        ["10,001-11 л", 79.30, 102]
+    ],
+    "note": "💡 Редактируйте эту таблицу при изменении стоимости логистики Озон. Данные автоматически подтягиваются в Технический лист."
+}
+
+# ================= НОВАЯ КОНФИГУРАЦИЯ: ЛИСТ НАЦЕНКИ =================
+
+MARKUP_CONFIG = {
+    "sheet_name": "Наценка за нелокальную доставку",
+    "headers": [
+        {"name": "Кластер доставки", "width": 250},
+        {"name": "Наценка за нелокальную продажу от вашей цены товара", "width": 350}
+    ],
+    "default_data": [
+        ["Кластер 1", 0],
+        ["Кластер 2", 0],
+        ["Кластер 3", 0],
+        # Добавьте нужные кластеры
+    ],
+    "note": "💡 Таблица для будущего использования. Наценка будет добавляться к стоимости логистики."
+}
+
+
+def setup_markup_sheet(spreadsheet):
+    """
+    Настраивает лист "Наценка за нелокальную доставку"
+    """
+    print("\n💰 НАСТРОЙКА ЛИСТА НАЦЕНКИ ЗА НЕЛОКАЛЬНУЮ ДОСТАВКУ")
+
+    # Получаем или создаем лист
+    sheet = get_or_create_sheet(spreadsheet, MARKUP_CONFIG["sheet_name"], rows=100, cols=5)
+
+    # Проверяем, нужно ли настраивать структуру
+    all_values = execute_with_retry(sheet.get_all_values)
+
+    if len(all_values) < 5 or (len(all_values) > 0 and not any("Кластер доставки" in str(row) for row in all_values)):
+        print("  🆕 Настройка структуры листа наценки...")
+
+        # Очищаем лист
+        execute_with_exponential_backoff(sheet.clear)
+        time.sleep(1)
+
+        # Заголовок
+        execute_with_exponential_backoff(sheet.update, "A1", [["💰 НАЦЕНКА ЗА НЕЛОКАЛЬНУЮ ДОСТАВКУ"]])
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, "A1:B1",
+            CellFormat(
+                textFormat=TextFormat(bold=True, fontSize=12),
+                backgroundColor=Color(0.8, 0.9, 1)
+            )
+        )
+
+        # Заголовки столбцов
+        headers = [h['name'] for h in MARKUP_CONFIG["headers"]]
+        execute_with_exponential_backoff(sheet.update, "A2", [headers])
+
+        # Форматирование заголовков
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, "A2:B2",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.85, 0.95, 0.85)
+            )
+        )
+
+        # Данные таблицы
+        execute_with_exponential_backoff(
+            sheet.update,
+            "A3",
+            MARKUP_CONFIG["default_data"]
+        )
+
+        # Устанавливаем ширину колонок
+        for idx, header in enumerate(MARKUP_CONFIG["headers"], start=1):
+            col_letter = get_column_letter(idx)
+            if 'width' in header:
+                execute_with_exponential_backoff(set_column_width, sheet, col_letter, header['width'])
+
+        # Примечание
+        note_row = 3 + len(MARKUP_CONFIG["default_data"]) + 1
+        execute_with_exponential_backoff(
+            sheet.update,
+            f"A{note_row}",
+            [[MARKUP_CONFIG["note"]]]
+        )
+
+        # Форматирование примечания
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, f"A{note_row}:B{note_row}",
+            CellFormat(
+                textFormat=TextFormat(italic=True, fontSize=10),
+                backgroundColor=Color(0.95, 0.95, 0.9)
+            )
+        )
+
+        print("  ✅ Лист наценки настроен")
+    else:
+        print("  📄 Лист наценки уже существует")
+
+    return sheet
+
+def setup_logistics_price_sheet(spreadsheet):
+    """
+    Настраивает лист "Стоимость логистики" с тремя столбцами
+    """
+    print("\n📦 НАСТРОЙКА ЛИСТА СТОИМОСТИ ЛОГИСТИКИ")
+
+    # Получаем или создаем лист
+    sheet = get_or_create_sheet(spreadsheet, LOGISTICS_PRICE_CONFIG["sheet_name"], rows=100, cols=10)
+
+    # Проверяем, нужно ли настраивать структуру
+    all_values = execute_with_retry(sheet.get_all_values)
+
+    if len(all_values) < 5 or (len(all_values) > 0 and not any("Объём товара" in str(row) for row in all_values)):
+        print("  🆕 Настройка структуры листа стоимости логистики...")
+
+        # Очищаем лист
+        execute_with_exponential_backoff(sheet.clear)
+        time.sleep(1)
+
+        # Заголовок
+        execute_with_exponential_backoff(sheet.update, "A1", [["📊 ТАБЛИЦА СТОИМОСТИ ЛОГИСТИКИ ОЗОН"]])
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, "A1:C1",
+            CellFormat(
+                textFormat=TextFormat(bold=True, fontSize=12),
+                backgroundColor=Color(0.8, 0.9, 1)
+            )
+        )
+
+        # Заголовки столбцов
+        headers = [h['name'] for h in LOGISTICS_PRICE_CONFIG["headers"]]
+        execute_with_exponential_backoff(sheet.update, "A2", [headers])
+
+        # Форматирование заголовков
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, "A2:C2",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.85, 0.95, 0.85)
+            )
+        )
+
+        # Данные таблицы
+        execute_with_exponential_backoff(
+            sheet.update,
+            "A3",
+            LOGISTICS_PRICE_CONFIG["default_data"]
+        )
+
+        # Устанавливаем ширину колонок
+        for idx, header in enumerate(LOGISTICS_PRICE_CONFIG["headers"], start=1):
+            col_letter = get_column_letter(idx)
+            if 'width' in header:
+                execute_with_exponential_backoff(set_column_width, sheet, col_letter, header['width'])
+
+        # Примечание
+        note_row = 3 + len(LOGISTICS_PRICE_CONFIG["default_data"]) + 1
+        execute_with_exponential_backoff(
+            sheet.update,
+            f"A{note_row}",
+            [[LOGISTICS_PRICE_CONFIG["note"]]]
+        )
+
+        # Форматирование примечания
+        execute_with_exponential_backoff(
+            format_cell_range, sheet, f"A{note_row}:C{note_row}",
+            CellFormat(
+                textFormat=TextFormat(italic=True, fontSize=10),
+                backgroundColor=Color(0.95, 0.95, 0.9)
+            )
+        )
+
+        print("  ✅ Лист стоимости логистики настроен")
+    else:
+        print("  📄 Лист стоимости логистики уже существует")
+
+    return sheet
+
+
+def load_logistics_prices_from_sheet(sheet) -> Dict:
+    """
+    Загружает стоимость логистики из отдельного листа
+    Поддерживает форматы: "0-0,200 л" или числовые значения
+    Возвращает словарь: {(объем, порог_цены): цена}
+    """
+    logistics_prices = {
+        'under_300': [],  # Список правил для товаров до 300 руб.
+        'over_300': []  # Список правил для товаров свыше 300 руб.
+    }
+
+    try:
+        all_values = execute_with_retry(sheet.get_all_values)
+
+        # Ищем начало таблицы (после заголовков)
+        data_start_row = None
+        for idx, row in enumerate(all_values):
+            if row and len(row) > 0 and "Объём товара" in str(row[0]):
+                data_start_row = idx + 3  # Данные через 2 строки после заголовка
+                break
+
+        if data_start_row:
+            for row in all_values[data_start_row:]:
+                if len(row) >= 3 and row[0] and row[0].strip() and row[0] != "💡":
+                    try:
+                        volume_range = str(row[0]).strip()
+                        price_under_300 = float(str(row[1]).replace(',', '.').replace(' ', ''))
+                        price_over_300 = float(str(row[2]).replace(',', '.').replace(' ', ''))
+
+                        # Парсим диапазон объема
+                        if '-' in volume_range and 'л' in volume_range:
+                            # Формат: "0-0,200 л" или "0,201-0,4 л"
+                            range_part = volume_range.replace('л', '').strip()
+                            if '-' in range_part:
+                                parts = range_part.split('-')
+                                min_vol = float(parts[0].replace(',', '.'))
+                                max_vol = float(parts[1].replace(',', '.'))
+
+                                logistics_prices['under_300'].append({
+                                    'min': min_vol,
+                                    'max': max_vol,
+                                    'price': price_under_300
+                                })
+                                logistics_prices['over_300'].append({
+                                    'min': min_vol,
+                                    'max': max_vol,
+                                    'price': price_over_300
+                                })
+                        else:
+                            # Пробуем как число
+                            try:
+                                vol = float(volume_range.replace(',', '.'))
+                                logistics_prices['under_300'].append({
+                                    'min': vol,
+                                    'max': vol,
+                                    'price': price_under_300
+                                })
+                                logistics_prices['over_300'].append({
+                                    'min': vol,
+                                    'max': vol,
+                                    'price': price_over_300
+                                })
+                            except:
+                                print(f"  ⚠️ Не удалось распарсить объем: {volume_range}")
+
+                    except (ValueError, TypeError) as e:
+                        print(f"  ⚠️ Ошибка при загрузке строки {row}: {e}")
+                        continue
+
+        # Если данных нет, загружаем дефолтные
+        if not logistics_prices['under_300']:
+            print("  ⚠️ Данные не найдены, загружаем стандартные")
+            for vol_range, price_u, price_o in LOGISTICS_PRICE_CONFIG["default_data"]:
+                if '-' in vol_range and 'л' in vol_range:
+                    range_part = vol_range.replace('л', '').strip()
+                    parts = range_part.split('-')
+                    min_vol = float(parts[0].replace(',', '.'))
+                    max_vol = float(parts[1].replace(',', '.'))
+
+                    logistics_prices['under_300'].append({
+                        'min': min_vol,
+                        'max': max_vol,
+                        'price': price_u
+                    })
+                    logistics_prices['over_300'].append({
+                        'min': min_vol,
+                        'max': max_vol,
+                        'price': price_o
+                    })
+
+        print(f"  📦 Загружено {len(logistics_prices['under_300'])} правил логистики для товаров до 300 руб.")
+        print(f"  📦 Загружено {len(logistics_prices['over_300'])} правил логистики для товаров свыше 300 руб.")
+        return logistics_prices
+
+    except Exception as e:
+        print(f"  ⚠️ Ошибка загрузки стоимости логистики: {e}")
+        # Возвращаем дефолтные значения
+        for vol_range, price_u, price_o in LOGISTICS_PRICE_CONFIG["default_data"]:
+            if '-' in vol_range and 'л' in vol_range:
+                range_part = vol_range.replace('л', '').strip()
+                parts = range_part.split('-')
+                min_vol = float(parts[0].replace(',', '.'))
+                max_vol = float(parts[1].replace(',', '.'))
+
+                logistics_prices['under_300'].append({
+                    'min': min_vol,
+                    'max': max_vol,
+                    'price': price_u
+                })
+                logistics_prices['over_300'].append({
+                    'min': min_vol,
+                    'max': max_vol,
+                    'price': price_o
+                })
+        return logistics_prices
+
+
+def get_logistics_price_by_volume(volume_liters: float, product_price: float, logistics_prices: Dict) -> float:
+    """
+    Получает стоимость логистики по объему товара и его цене
+    volume_liters - объем товара в литрах
+    product_price - цена товара для покупателя
+    logistics_prices - словарь с правилами из листа
+    """
+    if not logistics_prices or volume_liters <= 0:
+        return 0
+
+    # Определяем порог цены
+    if product_price <= 300:
+        rules = logistics_prices.get('under_300', [])
+    else:
+        rules = logistics_prices.get('over_300', [])
+
+    if not rules:
+        return 0
+
+    # Ищем подходящее правило по диапазону
+    for rule in rules:
+        if rule['min'] <= volume_liters <= rule['max']:
+            return rule['price']
+
+    # Если объем меньше минимального, берем минимальный
+    if volume_liters < rules[0]['min']:
+        return rules[0]['price']
+
+    # Если объем больше максимального, берем максимальный
+    if volume_liters > rules[-1]['max']:
+        return rules[-1]['price']
+
+    return 0
 
 # ================= ФУНКЦИИ ДЛЯ ЛОГИСТИКИ =================
 
@@ -267,113 +624,147 @@ def setup_logistics_table(tech_sheet, start_row: int):
 def setup_technical_sheet(spreadsheet):
     """
     Настраивает Технический лист с обновленной структурой
+    Теперь без встроенной таблицы логистики и без форматирования строк после заголовков
     """
     print("\n📋 НАСТРОЙКА ТЕХНИЧЕСКОГО ЛИСТА")
 
     # Получаем или создаем лист
     tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"], rows=5000, cols=50)
 
-    # Очищаем лист
-    execute_with_exponential_backoff(tech_sheet.clear)
-    time.sleep(1)
+    # Проверяем, пустой ли лист или уже содержит структуру
+    all_values = execute_with_retry(tech_sheet.get_all_values)
 
-    # ===== БЛОК НАСТРОЕК (строки 1-5) =====
-    print("  ⚙️ Настройка блока параметров...")
+    # Если лист пустой или содержит менее 20 строк данных - настраиваем структуру
+    if len(all_values) < 20 or (len(all_values) > 0 and not any("ТОВАРЫ В ПРОДАЖЕ" in str(row) for row in all_values)):
+        print("  🆕 Настройка структуры Технического листа...")
 
-    # Заголовок блока настроек
-    execute_with_exponential_backoff(tech_sheet.update, "A1", [["⚙️ НАСТРОЙКИ КАЛЬКУЛЯТОРА"]])
-    execute_with_exponential_backoff(
-        format_cell_range, tech_sheet, "A1:C1",
-        CellFormat(
-            textFormat=TextFormat(bold=True, fontSize=12),
-            backgroundColor=Color(0.8, 0.9, 1)
+        # Очищаем лист
+        execute_with_exponential_backoff(tech_sheet.clear)
+        time.sleep(1)
+
+        # ===== БЛОК НАСТРОЕК (строки 1-5) =====
+        print("  ⚙️ Настройка блока параметров...")
+
+        # Заголовок блока настроек
+        execute_with_exponential_backoff(tech_sheet.update, "A1", [["⚙️ НАСТРОЙКИ КАЛЬКУЛЯТОРА"]])
+        execute_with_exponential_backoff(
+            format_cell_range, tech_sheet, "A1:C1",
+            CellFormat(
+                textFormat=TextFormat(bold=True, fontSize=12),
+                backgroundColor=Color(0.8, 0.9, 1)
+            )
         )
-    )
 
-    # Заголовки таблицы настроек
-    settings_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["settings_headers"]]
-    execute_with_exponential_backoff(tech_sheet.update, "A2", [settings_headers])
+        # Заголовки таблицы настроек
+        settings_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["settings_headers"]]
+        execute_with_exponential_backoff(tech_sheet.update, "A2", [settings_headers])
 
-    # Форматирование заголовков настроек
-    end_col = get_column_letter(len(settings_headers))
-    execute_with_exponential_backoff(
-        format_cell_range, tech_sheet, f"A2:{end_col}2",
-        CellFormat(
-            textFormat=TextFormat(bold=True),
-            backgroundColor=Color(0.85, 0.95, 0.85)
+        # Форматирование заголовков настроек
+        end_col = get_column_letter(len(settings_headers))
+        execute_with_exponential_backoff(
+            format_cell_range, tech_sheet, f"A2:{end_col}2",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.85, 0.95, 0.85)
+            )
         )
-    )
 
-    # Данные настроек
-    settings_data = [
-        ["Ставка УСН + НДС (%)", technical_settings['tax_rate'], "%"],
-        ["Эквайринг (%)", technical_settings['acquiring_rate'], "%"],
-    ]
+        # Данные настроек
+        settings_data = [
+            ["Ставка УСН + НДС (%)", technical_settings['tax_rate'], "%"],
+            ["Эквайринг (%)", technical_settings['acquiring_rate'], "%"],
+        ]
 
-    execute_with_exponential_backoff(tech_sheet.update, "A3", settings_data)
+        execute_with_exponential_backoff(tech_sheet.update, "A3", settings_data)
 
-    # Установка ширины колонок для настроек
-    for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["settings_headers"], start=1):
-        col_letter = get_column_letter(idx)
-        if 'width' in header:
-            execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
+        # Установка ширины колонок для настроек
+        for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["settings_headers"], start=1):
+            col_letter = get_column_letter(idx)
+            if 'width' in header:
+                execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
 
-    time.sleep(1)
+        time.sleep(1)
 
+        # ===== БЛОК ТОВАРОВ (с строки 8) =====
+        products_start_row = 8
 
-    # ===== ТАБЛИЦА ЛОГИСТИКИ (строки 12-20) =====
-    logistics_start_row = 6
-    setup_logistics_table(tech_sheet, logistics_start_row)
-    time.sleep(1)
+        print("  📦 Настройка блока товаров...")
 
-    # ===== БЛОК ТОВАРОВ (с строки 22) =====
-    products_start_row = 22
-
-    print("  📦 Настройка блока товаров...")
-
-    execute_with_exponential_backoff(tech_sheet.update, f"A{products_start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]])
-    execute_with_exponential_backoff(
-        format_cell_range, tech_sheet, f"A{products_start_row}:I{products_start_row}",
-        CellFormat(
-            textFormat=TextFormat(bold=True, fontSize=12),
-            backgroundColor=Color(0.8, 0.9, 1)
+        execute_with_exponential_backoff(tech_sheet.update, f"A{products_start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]])
+        execute_with_exponential_backoff(
+            format_cell_range, tech_sheet, f"A{products_start_row}:I{products_start_row}",
+            CellFormat(
+                textFormat=TextFormat(bold=True, fontSize=12),
+                backgroundColor=Color(0.8, 0.9, 1)
+            )
         )
-    )
 
-    # ОБНОВЛЕННЫЕ ЗАГОЛОВКИ (9 колонок)
-    products_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["products_headers"]]
-    execute_with_exponential_backoff(tech_sheet.update, f"A{products_start_row + 1}", [products_headers])
+        # Заголовки колонок
+        products_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["products_headers"]]
+        execute_with_exponential_backoff(tech_sheet.update, f"A{products_start_row + 1}", [products_headers])
 
-    end_col = get_column_letter(len(products_headers))
-    execute_with_exponential_backoff(
-        format_cell_range, tech_sheet, f"A{products_start_row + 1}:{end_col}{products_start_row + 1}",
-        CellFormat(
-            textFormat=TextFormat(bold=True),
-            backgroundColor=Color(0.85, 0.95, 0.85)
+        end_col = get_column_letter(len(products_headers))
+
+        # Форматируем только заголовки (без форматирования следующих строк)
+        execute_with_exponential_backoff(
+            format_cell_range, tech_sheet, f"A{products_start_row + 1}:{end_col}{products_start_row + 1}",
+            CellFormat(
+                textFormat=TextFormat(bold=True),
+                backgroundColor=Color(0.85, 0.95, 0.85)
+            )
         )
-    )
 
-    for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["products_headers"], start=1):
-        col_letter = get_column_letter(idx)
-        if 'width' in header:
-            execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
+        # Устанавливаем ширину колонок
+        for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["products_headers"], start=1):
+            col_letter = get_column_letter(idx)
+            if 'width' in header:
+                execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
 
-    # Замораживаем строки
-    execute_with_exponential_backoff(set_frozen, tech_sheet, rows=products_start_row + 1)
+        # Замораживаем строки
+        execute_with_exponential_backoff(set_frozen, tech_sheet, rows=products_start_row + 1)
 
-    print("  ✅ Технический лист настроен")
-    return tech_sheet, products_start_row + 2  # Возвращаем лист и строку начала данных
+        # Добавляем примечание о таблице логистики
+        note_row = products_start_row + 2
+        execute_with_exponential_backoff(
+            tech_sheet.update,
+            f"A{note_row}",
+            [["💡 Примечание: Стоимость логистики берется из листа 'Стоимость логистики'. Редактируйте таблицу там."]]
+        )
+        execute_with_exponential_backoff(
+            format_cell_range, tech_sheet, f"A{note_row}:I{note_row}",
+            CellFormat(
+                textFormat=TextFormat(italic=True, fontSize=9),
+                backgroundColor=Color(0.95, 0.95, 0.9)
+            )
+        )
+
+        print("  ✅ Технический лист настроен")
+        return tech_sheet, products_start_row + 2
+    else:
+        # Лист уже существует, находим строку начала данных товаров
+        print("  📄 Технический лист уже существует, обновляем только данные товаров...")
+
+        # Находим строку с заголовком "ТОВАРЫ В ПРОДАЖЕ"
+        products_start_row = 8  # По умолчанию
+        for idx, row in enumerate(all_values):
+            if row and len(row) > 0 and "ТОВАРЫ В ПРОДАЖЕ" in str(row[0]):
+                products_start_row = idx + 3  # Заголовки через 2 строки после названия блока
+                break
+
+        print(f"  📍 Строка начала данных товаров: {products_start_row}")
+        return tech_sheet, products_start_row
 
 
-def update_technical_sheet(tech_sheet, all_items_dict: Dict, products_start_row: int):
+def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row: int, logistics_price_sheet):
     """
-    Обновляет данные в Техническом листе с ОБНОВЛЕННЫМИ колонками
+    Обновляет данные в Техническом листе
+    Данные берутся из campaigns_data (advert_analytic.json)
+    Логистика берется из отдельного листа
     """
     print("\n📊 ОБНОВЛЕНИЕ ТЕХНИЧЕСКОГО ЛИСТА")
 
-    # Загружаем стоимость логистики
-    logistics_prices = load_logistics_prices(tech_sheet)
-    technical_settings['logistics_prices'] = logistics_prices
+    # Загружаем стоимость логистики из отдельного листа
+    logistics_prices = load_logistics_prices_from_sheet(logistics_price_sheet)
 
     # Получаем текущие настройки из листа (если они были изменены)
     try:
@@ -390,7 +781,7 @@ def update_technical_sheet(tech_sheet, all_items_dict: Dict, products_start_row:
     print(
         f"  ⚙️ Используемые настройки: налог={technical_settings['tax_rate']}%, эквайринг={technical_settings['acquiring_rate']}%")
 
-    # Очищаем старые данные товаров
+    # Очищаем старые данные товаров (начиная с products_start_row)
     try:
         all_values = execute_with_retry(tech_sheet.get_all_values)
         total_rows = len(all_values)
@@ -408,44 +799,48 @@ def update_technical_sheet(tech_sheet, all_items_dict: Dict, products_start_row:
     except Exception as e:
         print(f"  ⚠️ Ошибка при очистке: {e}")
 
-    # Подготавливаем ОБНОВЛЕННЫЕ данные по товарам (9 колонок)
+    # Подготавливаем данные по товарам (9 колонок)
     products_data = []
 
-    for item in all_items_dict.values():
-        offer_id = item.get("offer_id")
-        skus_list = item.get("skus", [])
-        sku = skus_list[0] if skus_list else "—"
+    # Собираем все уникальные offer_id из campaigns_data
+    for offer_id, campaigns_list in campaigns_data.items():
+        if not campaigns_list:
+            continue
 
-        # Получаем цены
-        price_before = clean_numeric_value(item.get("price_before", 0))
-        current_price = clean_numeric_value(item.get("price", 0))
+        # Берем первый объект из списка кампаний для этого offer_id
+        first_campaign = campaigns_list[0]
 
-        # Остатки товара
-        stock_balance = clean_int_value(item.get("stock_balance", 0))
+        # Извлекаем нужные данные
+        product_price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
+        product_price = clean_numeric_value(first_campaign.get('product_price', 0))
+        stock_balance = clean_int_value(first_campaign.get('stock_balance', 0))
+        commission_fbo = clean_numeric_value(first_campaign.get('commission_fbo', 0))
 
-        # Комиссия FBO (если есть в данных, иначе 0)
-        commission_fbo = clean_numeric_value(item.get("commission_fbo", 0))
+        # Получаем SKU
+        sku = first_campaign.get('sku', '—')
 
         # Объем товара (пока ставим 1, можно позже добавить в данные)
         product_volume = 1.0
 
-        # Рассчитываем стоимость логистики по объему
-        logistics_cost = get_logistics_price(product_volume, logistics_prices)
+        # Рассчитываем стоимость логистики по объему и цене
+        logistics_cost = get_logistics_price_by_volume(product_volume, product_price, logistics_prices)
 
         # Рассчитываем эквайринг (процент от цены до скидки)
-        acquiring_fee = round(price_before * (technical_settings['acquiring_rate'] / 100), 2)
+        acquiring_fee = round(product_price_before * (technical_settings['acquiring_rate'] / 100), 2)
 
         products_data.append([
             offer_id,  # Артикул
             sku,  # SKU
-            price_before,  # Цена до скидки
-            current_price,  # Цена для покупателя
+            product_price_before,  # Цена до скидки
+            product_price,  # Цена для покупателя
             acquiring_fee,  # Эквайринг (рассчитывается)
             stock_balance,  # Остатки
             commission_fbo,  # Комиссия FBO
-            product_volume,  # Объем товара (пока 1)
+            product_volume,  # Объем товара (л)
             logistics_cost  # Стоимость логистики
         ])
+
+        print(f"  📦 {offer_id}: цена={product_price}, объем={product_volume}л, логистика={logistics_cost} руб.")
 
     # Добавляем новые данные
     if products_data:
@@ -462,32 +857,44 @@ def update_technical_sheet(tech_sheet, all_items_dict: Dict, products_start_row:
         last_row = products_start_row + len(products_data) - 1
 
         # Форматирование обновленных колонок
-        # Колонка C (Цена до скидки) - жирный шрифт, фон фиолетовый
-        execute_with_retry(
-            format_cell_range, tech_sheet, f"C{products_start_row}:C{last_row}",
-            CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.95, 0.9, 1))
-        )
+        try:
+            # Колонка C (Цена до скидки) - жирный шрифт, фон фиолетовый
+            execute_with_retry(
+                format_cell_range, tech_sheet, f"C{products_start_row}:C{last_row}",
+                CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.95, 0.9, 1))
+            )
+        except Exception as e:
+            print(f"  ⚠️ Не удалось отформатировать колонку C: {e}")
 
-        # Колонка D (Цена для покупателя) - жирный шрифт, фон зеленый
-        execute_with_retry(
-            format_cell_range, tech_sheet, f"D{products_start_row}:D{last_row}",
-            CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.9, 1, 0.9))
-        )
+        try:
+            # Колонка D (Цена для покупателя) - жирный шрифт, фон зеленый
+            execute_with_retry(
+                format_cell_range, tech_sheet, f"D{products_start_row}:D{last_row}",
+                CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.9, 1, 0.9))
+            )
+        except Exception as e:
+            print(f"  ⚠️ Не удалось отформатировать колонку D: {e}")
 
-        # Колонка E (Эквайринг) - фон желтый
-        execute_with_retry(
-            format_cell_range, tech_sheet, f"E{products_start_row}:E{last_row}",
-            CellFormat(backgroundColor=Color(1, 0.95, 0.8))
-        )
+        try:
+            # Колонка E (Эквайринг) - фон желтый
+            execute_with_retry(
+                format_cell_range, tech_sheet, f"E{products_start_row}:E{last_row}",
+                CellFormat(backgroundColor=Color(1, 0.95, 0.8))
+            )
+        except Exception as e:
+            print(f"  ⚠️ Не удалось отформатировать колонку E: {e}")
 
-        # Колонка I (Стоимость логистики) - фон голубой
-        execute_with_retry(
-            format_cell_range, tech_sheet, f"I{products_start_row}:I{last_row}",
-            CellFormat(backgroundColor=Color(0.7, 0.85, 1))
-        )
+        try:
+            # Колонка I (Стоимость логистики) - фон голубой
+            execute_with_retry(
+                format_cell_range, tech_sheet, f"I{products_start_row}:I{last_row}",
+                CellFormat(backgroundColor=Color(0.7, 0.85, 1))
+            )
+        except Exception as e:
+            print(f"  ⚠️ Не удалось отформатировать колонку I: {e}")
 
         print("  💡 Примечание: Эквайринг рассчитывается автоматически")
-        print("  💡 Таблицу стоимости логистики можно редактировать выше")
+        print("  💡 Стоимость логистики берется из листа 'Стоимость логистики'")
 
     print("  ✅ Технический лист обновлен")
 
@@ -1159,17 +1566,35 @@ def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
 
         try:
             sheet = spreadsheet.worksheet(sheet_name)
+            # Очищаем лист
             sheet.clear()
         except gspread.exceptions.WorksheetNotFound:
+            # Создаем новый лист
             sheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=5)
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         full_error = f"[{timestamp}] {error_message}"
-        sheet.update("A1", full_error)
+
+        # Правильный способ записи - передаем список списков
+        sheet.update("A1", [[full_error]])
+
+        # Добавляем traceback если есть
+        import traceback
+        tb = traceback.format_exc()
+        if tb and tb != "NoneType: None\n":
+            sheet.update("A2", [[tb]])
 
         print(f"✅ Ошибка записана в лист {sheet_name}")
     except Exception as e:
         print(f"❌ Не удалось записать ошибку: {e}")
+        # Дополнительная попытка записи в файл
+        try:
+            with open(f"{sheet_name}_error.log", "a", encoding="utf-8") as f:
+                f.write(f"{timestamp} - {error_message}\n")
+                f.write(traceback.format_exc())
+                f.write("\n" + "=" * 50 + "\n")
+        except:
+            pass
 
 
 def write_parser_error_to_sheet(error_message: str):
@@ -1197,6 +1622,20 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         current_date_str = get_current_date_moscow()
         print(f"📅 Текущая дата: {current_date_str}")
 
+        # ================= НОВЫЙ ЛИСТ: СТОИМОСТЬ ЛОГИСТИКИ =================
+        print("\n" + "=" * 60)
+        print("📦 НАСТРОЙКА ЛИСТА СТОИМОСТИ ЛОГИСТИКИ")
+        print("=" * 60)
+
+        logistics_price_sheet = setup_logistics_price_sheet(spreadsheet)
+
+        # ================= НОВЫЙ ЛИСТ: НАЦЕНКА ЗА НЕЛОКАЛЬНУЮ ДОСТАВКУ =================
+        print("\n" + "=" * 60)
+        print("💰 НАСТРОЙКА ЛИСТА НАЦЕНКИ")
+        print("=" * 60)
+
+        markup_sheet = setup_markup_sheet(spreadsheet)
+
         # ================= ОБРАБОТКА DASHBOARD =================
         print("\n" + "=" * 60)
         print("📊 ОБРАБОТКА ЛИСТА DASHBOARD")
@@ -1218,15 +1657,15 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
 
-        # ================= НОВЫЙ БЛОК: ТЕХНИЧЕСКИЙ ЛИСТ (ОБНОВЛЕННЫЙ) =================
+        # ================= ТЕХНИЧЕСКИЙ ЛИСТ =================
         print("\n" + "=" * 60)
         print("🔧 ОБРАБОТКА ТЕХНИЧЕСКОГО ЛИСТА")
         print("=" * 60)
 
         # Настраиваем Технический лист с обновленной структурой
         tech_sheet, products_start_row = setup_technical_sheet(spreadsheet)
-        # Обновляем данные в Техническом листе
-        update_technical_sheet(tech_sheet, all_items_dict, products_start_row)
+        # Обновляем данные в Техническом листе с использованием листа логистики
+        update_technical_sheet(tech_sheet, campaigns_data, products_start_row, logistics_price_sheet)
 
         print("✅ ТЕХНИЧЕСКИЙ ЛИСТ успешно обновлен")
 
