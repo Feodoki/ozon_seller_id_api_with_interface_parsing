@@ -225,7 +225,6 @@ class InterfaceParser:
             });
         """, element)
 
-
     def auth_online(self):
         input(f"Авторизуйтесь")
         return False
@@ -316,7 +315,6 @@ class InterfaceParser:
                 except:
                     all_pages_with_active_status = []
 
-
                 self.random_sleep()
                 logger.info(f"   📄 Всего страниц - {len(all_pages_with_active_status)}")
 
@@ -396,7 +394,6 @@ class InterfaceParser:
         result_date = f"{now.day} {months[now.month - 1]}"
         return result_date
 
-
     def pars_table_advert(self, driver, row, all_td: list, camping_type):
         print(camping_type)
 
@@ -456,13 +453,18 @@ class InterfaceParser:
                 elif "Ваша цена" == th.text:
                     product_price_index = all_th.index(th)
 
-            print(f"concurent_bet_index: {concurent_bet_index}", f"my_bet_index: {my_bet_index}",  f"sr_click_index: {sr_click_index}", f"count_offers_index: {count_offers_index}", f"selled_index: {selled_index}", f"expense_index: {expense_index}", f"drr_index: {drr_index}", f"views_index: {views_index}", f"clicks_index: {clicks_index}", f"to_cart_index: {to_cart_index}", f"ctp_index: {ctp_index}", f"product_price_index: {product_price_index}", sep='\n', end='\n\n')
+            print(f"concurent_bet_index: {concurent_bet_index}", f"my_bet_index: {my_bet_index}",
+                  f"sr_click_index: {sr_click_index}", f"count_offers_index: {count_offers_index}",
+                  f"selled_index: {selled_index}", f"expense_index: {expense_index}", f"drr_index: {drr_index}",
+                  f"views_index: {views_index}", f"clicks_index: {clicks_index}", f"to_cart_index: {to_cart_index}",
+                  f"ctp_index: {ctp_index}", f"product_price_index: {product_price_index}", sep='\n', end='\n\n')
 
             if concurent_bet_index:
                 concurent_bet = all_td[concurent_bet_index].text.replace('₽', '').strip().replace('\n', '').strip()
             if my_bet_index:
                 my_bet = all_td[my_bet_index].find_element(By.XPATH,
-                                                  f".//input[(@data-testid='InputCount')]").get_attribute('value')
+                                                           f".//input[(@data-testid='InputCount')]").get_attribute(
+                    'value')
             if sr_click_index:
                 sr_click = all_td[sr_click_index].text.replace('\n', '').strip().replace('₽', '')
             if count_offers_index:
@@ -470,7 +472,8 @@ class InterfaceParser:
             if selled_index:
                 selled = all_td[selled_index].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
             if expense_index:
-                expense = all_td[expense_index].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
+                expense = all_td[expense_index].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                        '.').strip()
             if drr_index:
                 drr = all_td[drr_index].text.replace('\n', '').strip()
             if views_index:
@@ -484,7 +487,8 @@ class InterfaceParser:
             if product_price_index:
                 product_price = all_td[product_price_index].text.replace('₽', '').replace('\n', '').strip()
 
-            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
+            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks,
+                  f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
             return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
         except Exception as e:
             print(traceback.format_exc())
@@ -560,10 +564,9 @@ class InterfaceParser:
                     ctp = all_td[16].text.replace('\n', '').strip()
                     product_price = all_td[17].text.replace('₽', '').replace('\n', '').strip()
 
-
-            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
+            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks,
+                  f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
             return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
-
 
     def parser_advert_dict(self, advert_dict, max_retries: int = 3):
         driver = self.driver
@@ -628,7 +631,8 @@ class InterfaceParser:
                         offer_id = str(sku_split[1].replace('\n', '').strip())
 
                         print(f"Длинна all td - {len(all_td)}")
-                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(driver, row, all_td, camping_type)
+                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(
+                            driver, row, all_td, camping_type)
 
                         logger.info(
                             f"""
@@ -647,7 +651,7 @@ class InterfaceParser:
                                 Цена товара - {product_price}\n
                                 Расходы - {expense}\n
                                 Продажи - {selled}\n                 
-                                
+
                             """)
 
                         offer_dict = {
@@ -724,7 +728,8 @@ class InterfaceParser:
                         continue
 
                 try:
-                    all_pages_with_active_status = driver.find_element(By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")
+                    all_pages_with_active_status = driver.find_element(By.XPATH,
+                                                                       "//div[starts-with(@class,'_wrapper_lftsu')]")
                     self.scroll_to_element_center(all_pages_with_active_status)
                     self.random_sleep()
                     all_pages_with_active_status = all_pages_with_active_status.find_element(By.XPATH,
@@ -776,29 +781,38 @@ class InterfaceParser:
 
                                 bet_data = all_td[5].text.split('\n')
                                 if len(bet_data) == 2:
-                                    bet_percent = bet_data[0].replace('\n', '').strip().replace('%', '').strip().replace(
+                                    bet_percent = bet_data[0].replace('\n', '').strip().replace('%',
+                                                                                                '').strip().replace(
                                         '\u202f', '')
                                     bet_amount = bet_data[1].replace('\n', '').strip().replace('₽', '').strip().replace(
                                         '\u202f', '')
                                 else:
-                                    bet_percent = bet_data[0].replace('\n', '').strip().replace('%', '').strip().replace(
+                                    bet_percent = bet_data[0].replace('\n', '').strip().replace('%',
+                                                                                                '').strip().replace(
                                         '\u202f', '')
                                     bet_amount = bet_data[2].replace('\n', '').strip().replace('₽', '').strip().replace(
                                         '\u202f', '')
 
-                                product_price = all_td[7].text.replace('\n', '').strip().replace(' ₽', '').strip().replace(
+                                product_price = all_td[7].text.replace('\n', '').strip().replace(' ₽',
+                                                                                                 '').strip().replace(
                                     '₽', '').strip().replace('\u202f', '')
                                 index_view = all_td[8].text.replace('\n', '').strip().replace('\u202f', '')
 
                                 product_buy_pay = all_td[13].text.replace('\n', '').strip().replace('\u202f', '')
-                                product_buy_combo_model = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
+                                product_buy_combo_model = all_td[14].text.replace('\n', '').strip().replace('\u202f',
+                                                                                                            '')
 
-                                combo_sell = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+                                combo_sell = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                                '.').strip()
 
                                 drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
+                                if 'Выключено' in drr or 'Включено' in drr:
+                                    drr = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
 
-                                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
-                                expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',','.').strip()
+                                expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                            '.').strip()
+                                expense_combo = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
+                                                                                                                   '.').strip()
                                 offer_dict = {
                                     'offer_id': offer_id,
                                     'sku': sku,
@@ -863,7 +877,7 @@ class InterfaceParser:
                                                                                                                '.').strip()
 
                             selled = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
-                                                                                                            '.').strip()
+                                                                                                        '.').strip()
                             offer_dict = {
                                 'offer_id': offer_id,
                                 'sku': sku,
@@ -1038,9 +1052,8 @@ class InterfaceParser:
                     write_parser_error_to_sheet(error_msg)
                     return {}
 
-
                 try:
-                    all_pages_with_active_status = driver.find_elements(By.XPATH,"//ul")[-1]
+                    all_pages_with_active_status = driver.find_elements(By.XPATH, "//ul")[-1]
                     self.scroll_to_element_center(all_pages_with_active_status)
                     self.random_sleep()
                     all_pages_with_active_status = all_pages_with_active_status.find_elements(By.XPATH, ".//li")
@@ -1077,10 +1090,21 @@ class InterfaceParser:
                                         continue
 
                                     print(item_name.split('\n'))
-                                    item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                    item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n',
+                                                                                                              '').strip()
                                     print(all_td[5].text.split('\n'))
-                                    item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
-                                    item_price_before = all_td[4].text.split('\n')[0].replace('₽', '').strip().replace('\n', '').strip()
+                                    item_price = all_td[5].text
+                                    if '\n' in item_price:
+                                        item_price = item_price.split('\n')[1].replace('₽', '').strip().replace('\n','').strip()
+                                    else:
+                                        item_price = item_price.replace('₽', '').strip().replace('\n','').strip()
+
+
+                                    item_price_before = all_td[4].text
+                                    if '\n' in item_price_before:
+                                        item_price_before = item_price_before.split('\n')[0].replace('₽', '').strip().replace('\n', '').strip()
+                                    else:
+                                        item_price_before = item_price_before.replace('₽', '').strip().replace('\n', '').strip()
 
                                     self.scroll_to_element_center(all_td[19])
                                     time.sleep(2)
@@ -1092,7 +1116,10 @@ class InterfaceParser:
                                     commission_fbo = all_td[20].text.replace('₽', '').strip().replace('\n', '').strip()
                                     stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
 
-                                    print(item_offer_id, f"Цена после скидки - {item_price}", f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}", f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}", sep='\n', end='\n\n')
+                                    print(item_offer_id, f"Цена после скидки - {item_price}",
+                                          f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
+                                          f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
+                                          sep='\n', end='\n\n')
                                     if item_offer_id not in prices_dict.keys():
                                         prices_dict[item_offer_id] = {'price': item_price,
                                                                       'price_before': item_price_before,
@@ -1102,6 +1129,7 @@ class InterfaceParser:
                                                                       }
                                     break
                                 except:
+                                    print(traceback.format_exc())
                                     time.sleep(1)
                 else:
                     actual_table = driver.find_element(By.XPATH, "//tbody")
@@ -1117,9 +1145,11 @@ class InterfaceParser:
                                     continue
 
                                 print(item_name.split('\n'))
-                                item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n',
+                                                                                                          '').strip()
                                 print(all_td[5].text.split('\n'))
-                                item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                                item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n',
+                                                                                                            '').strip()
                                 print(item_offer_id, item_price)
                                 if item_offer_id not in prices_dict.keys():
                                     prices_dict[item_offer_id] = {'price': item_price}
@@ -1136,7 +1166,8 @@ class InterfaceParser:
         time.sleep(2)
 
         def open_menu_product():
-            menu_with_items_btn = driver.find_element(By.XPATH, "//span[text()='По категории, товару или кампании' or text()='По товарам: 1']")
+            menu_with_items_btn = driver.find_element(By.XPATH,
+                                                      "//span[text()='По категории, товару или кампании' or text()='По товарам: 1']")
             self.scroll_to_element_center(menu_with_items_btn)
             time.sleep(0.5)
             menu_with_items_btn.click()
@@ -1174,7 +1205,8 @@ class InterfaceParser:
                 btn_calendar.click()
                 logger.info("   ✅ Успешно нажали на кнопку календаря")
 
-                WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+                WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
                 time.sleep(0.5)
                 button = driver.find_element(By.XPATH, "//button[@type='button' and text()='Сегодня']")
                 button.click()
@@ -1206,7 +1238,7 @@ class InterfaceParser:
                 except:
                     count_pages = 1
 
-                for page in range(1, count_pages+1):
+                for page in range(1, count_pages + 1):
                     if count_pages != 1:
                         WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
                         wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
@@ -1269,7 +1301,8 @@ class InterfaceParser:
                             time.sleep(1)
                             data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
                             all_td = data.find_elements(By.XPATH, ".//td")
-                            money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
+                            money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽',
+                                                                                                                    '').strip()
                             drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
                             logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
 
@@ -1344,8 +1377,8 @@ class InterfaceParser:
 if __name__ == "__main__":
     parser = InterfaceParser()
 
-    parser.start_browser(headless=True)
-    #parser.get_actual_prices_offer_id()
+    parser.start_browser(headless=False)
+    # parser.get_actual_prices_offer_id()
 
     parser.auth()
     time.sleep(2)

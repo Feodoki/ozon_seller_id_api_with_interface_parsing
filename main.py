@@ -172,6 +172,13 @@ def my_script(api_keys):
         except Exception as e:
             print(traceback.format_exc())
             pass
+
+        try:
+            with open('money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
+                json.dump(money_spent_advert_dict, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            pass
+
         upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic, money_spent_advert_dict)
         logger.info("   ✅ Данные загружены в Google Sheets")
 
