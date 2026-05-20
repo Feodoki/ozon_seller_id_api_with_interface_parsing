@@ -31,7 +31,7 @@ last_run_time = 0
 lock = threading.Lock()
 
 INTERVAL = 1000
-headless_mode = True
+headless_mode = False
 
 interface_parser = InterfaceParser()
 browser_started = interface_parser.start_browser(headless=headless_mode)

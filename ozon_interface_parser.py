@@ -487,7 +487,8 @@ class InterfaceParser:
             if product_price_index:
                 product_price = all_td[product_price_index].text.replace('₽', '').replace('\n', '').strip()
 
-            print(my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks,
+            print(f"Моя ставка - {my_bet}", f"Конкурентная ставка - {concurent_bet}", f"Средняя стоимость клика - {sr_click}",
+                  f"Заказы - {count_offers}", to_cart, f"DRR - {drr}", ctp, views, clicks,
                   f"Цена товара - {product_price}", expense, sep='\n', end='\n\n')
             return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
         except Exception as e:
@@ -620,7 +621,7 @@ class InterfaceParser:
                         else:
                             break
 
-                    self.random_sleep(1)
+                    self.random_sleep(2)
 
                     all_row = table.find_elements(By.XPATH, f".//tr")
                     for row in all_row:
@@ -631,8 +632,7 @@ class InterfaceParser:
                         offer_id = str(sku_split[1].replace('\n', '').strip())
 
                         print(f"Длинна all td - {len(all_td)}")
-                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(
-                            driver, row, all_td, camping_type)
+                        my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(driver, row, all_td, camping_type)
 
                         logger.info(
                             f"""
@@ -755,26 +755,6 @@ class InterfaceParser:
                                 all_td = row.find_elements(By.XPATH, ".//td")
                                 sku_and_offer_id = all_td[2].text
                                 sku_split = sku_and_offer_id.split("\n")
-
-                                # try:
-                                #     theaders = driver.find_elements(By.XPATH, "//thead")
-                                #     all_th = theaders.find_elements(By.XPATH, ".//th")
-                                #
-                                #     for th in all_th:
-                                #         if 'SKU' in th.text:
-                                #             sku_index = all_th.index(th)
-                                #         elif 'Ставка' in th.text:
-                                #             bet_index = all_th.index(th)
-                                #         elif 'Ваша цена' in th.text:
-                                #             product_price_index = all_th.index(th)
-                                #         elif 'Индекс' in th.text:
-                                #             index_view_index = all_th.index(th)
-                                #         elif 'Заказы' in th.text and 'Оплата за заказ' in th.text:
-                                #             product_buy_pay_index = all_th.index(th)
-                                #         elif 'Заказы' in th.text and 'Комбо-модель' in th.text:
-                                #             product_buy_combo_model_index = all_th.index(th)
-                                # except:
-                                #     print(traceback.format_exc())
 
                                 sku = sku_split[0].strip().replace("\n", "").strip().replace('\u202f', '')
                                 offer_id = sku_split[1].strip().replace("\n", "").strip().replace('\u202f', '')
@@ -1174,10 +1154,10 @@ class InterfaceParser:
 
             time.sleep(1)
 
-            WebDriverWait(driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, "//div[text()='Товары']")))
+            WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//div[text()='Товары']")))
 
-            menu_next_step_btn = driver.find_element(By.XPATH, "//div[text()='Товары']")
+            tippy_content = driver.find_element(By.XPATH, "//div[@class='tippy-content']")
+            menu_next_step_btn = tippy_content.find_element(By.XPATH, ".//div[text()='Товары']")
             menu_next_step_btn.click()
 
             time.sleep(2)
@@ -1312,7 +1292,11 @@ class InterfaceParser:
                         except Exception as e:
                             print(traceback.format_exc())
 
-                print(money_spent_dict)
+                try:
+                    with open('money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
+                        json.dump(money_spent_dict, f, ensure_ascii=False, indent=4)
+                except Exception as e:
+                    pass
                 return money_spent_dict
             except:
                 logger.error(f"Ошибка при сборе DRR: {traceback.format_exc()}")
@@ -1378,7 +1362,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    # parser.get_actual_prices_offer_id()
+    parser.get_analytic_money_spent()
 
     parser.auth()
     time.sleep(2)
