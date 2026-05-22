@@ -204,6 +204,254 @@ MARKUP_CONFIG = {
     "note": "💡 Таблица для будущего использования. Наценка будет добавляться к стоимости логистики."
 }
 
+# ================= НОВАЯ КОНФИГУРАЦИЯ: ИСТОРИЯ DASHBOARD =================
+
+HISTORY_DASHBOARD_CONFIG = {
+    "sheet_name": "История DASHBOARD",
+    "headers": [
+        {"name": "Дата", "width": 120},
+        {"name": "Артикул товара", "width": 200},
+        {"name": "Сумма продаж за день (₽)", "width": 150},
+        {"name": "Количество продаж (шт)", "width": 130},
+        {"name": "ДРР (поиск/поиск и рекомендации) %", "width": 200},
+        {"name": "ДРР (оплата за заказ) %", "width": 180},
+        {"name": "ДРР (общий) %", "width": 130}
+    ],
+    "note": "📊 История ежедневных снимков DASHBOARD. Данные добавляются автоматически каждый день."
+}
+
+
+def migrate_existing_dashboard_to_history(spreadsheet):
+    """
+    Функция для однократного переноса существующих данных DASHBOARD в историю
+    Запустите вручную при необходимости
+    """
+    print("\n🔄 МИГРАЦИЯ СУЩЕСТВУЮЩИХ ДАННЫХ DASHBOARD В ИСТОРИЮ")
+
+    try:
+        dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
+        dashboard_data = execute_with_retry(dashboard.get_all_values)
+
+        if len(dashboard_data) <= 1:
+            print("  ⚠️ Нет данных в DASHBOARD для миграции")
+            return False
+
+        # Парсим дату из данных? (в DASHBOARD нет даты)
+        # Поэтому лучше использовать текущую дату или запросить у пользователя
+        current_date = get_current_date_moscow()
+        print(f"  📅 Используется дата: {current_date}")
+
+        # Подготавливаем данные (пропускаем заголовки)
+        data_rows = []
+        for row in dashboard_data[1:]:  # Пропускаем заголовки
+            if row and len(row) >= 6 and row[0] not in ["", "ИТОГО"]:
+                data_rows.append(row)
+
+        if data_rows:
+            result = save_dashboard_history(spreadsheet, data_rows, current_date)
+            if result:
+                print("  ✅ Миграция данных завершена успешно")
+                return True
+
+        return False
+
+    except Exception as e:
+        print(f"  ❌ Ошибка при миграции: {e}")
+        return False
+
+
+def save_dashboard_history(spreadsheet, dashboard_data: List[List], current_date: str):
+    """
+    Сохраняет текущие данные DASHBOARD в историю
+    Добавляет новую запись только если дата изменилась
+    Автоматически расширяет лист при необходимости
+    """
+    print("\n📜 СОХРАНЕНИЕ ИСТОРИИ DASHBOARD")
+
+    try:
+        # Получаем или создаем лист истории с большим запасом строк
+        # Используем 50 000 строк для истории (на 3-5 лет ежедневных записей)
+        history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=50000, cols=20)
+
+        # Проверяем, нужно ли настраивать заголовки
+        all_values = execute_with_retry(history_sheet.get_all_values)
+
+        if len(all_values) < 2 or (len(all_values) > 0 and all_values[0][0] != "Дата"):
+            print("  🆕 Настройка структуры листа истории...")
+            # Настраиваем заголовки
+            headers = [h['name'] for h in HISTORY_DASHBOARD_CONFIG["headers"]]
+            execute_with_exponential_backoff(history_sheet.update, "A1", [headers])
+
+            # Форматируем заголовки
+            end_col = get_column_letter(len(headers))
+            execute_with_exponential_backoff(
+                format_cell_range, history_sheet, f"A1:{end_col}1",
+                CellFormat(textFormat=TextFormat(bold=True, fontSize=11), backgroundColor=Color(0.85, 0.95, 0.85))
+            )
+
+            # Устанавливаем ширину столбцов
+            for idx, header in enumerate(HISTORY_DASHBOARD_CONFIG["headers"], start=1):
+                col_letter = get_column_letter(idx)
+                if 'width' in header:
+                    execute_with_exponential_backoff(set_column_width, history_sheet, col_letter, header['width'])
+
+            # Добавляем примечание
+            execute_with_exponential_backoff(history_sheet.update, f"A2", [[HISTORY_DASHBOARD_CONFIG["note"]]])
+            execute_with_exponential_backoff(
+                format_cell_range, history_sheet, f"A2:{end_col}2",
+                CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
+            )
+
+            execute_with_exponential_backoff(set_frozen, history_sheet, rows=2)
+            print("  ✅ Структура листа истории настроена")
+            next_row = 3  # Следующая строка для данных (после заголовков и примечания)
+        else:
+            # Определяем следующую свободную строку
+            next_row = len(all_values) + 1
+            # Пропускаем строку с примечанием, если она есть
+            if len(all_values) > 1 and all_values[1] and "📊" in str(all_values[1][0]):
+                next_row = max(next_row, 3)
+            print(f"  📄 Лист истории существует, следующая строка: {next_row}")
+
+        # Проверяем, нужно ли сохранять данные сегодня
+        # Получаем последнюю дату в истории
+        last_date_in_history = None
+        if len(all_values) > 2:
+            # Ищем последнюю непустую дату
+            for row in reversed(all_values[2:]):  # Пропускаем заголовки и примечание
+                if row and len(row) > 0 and row[0] and row[0] != current_date:
+                    last_date_in_history = row[0]
+                    break
+                elif row and len(row) > 0 and row[0] == current_date:
+                    print(f"  ⚠️ Данные за {current_date} уже сохранены в истории")
+                    return False
+
+        # Проверяем, изменилась ли дата с последней записи
+        if last_date_in_history == current_date:
+            print(f"  ⚠️ Данные за {current_date} уже сохранены, пропускаем")
+            return False
+
+        # Подготавливаем данные для сохранения
+        history_rows = []
+        for row in dashboard_data:
+            if not row or len(row) < 6:
+                continue
+            # Формируем строку: [Дата, Артикул, Сумма продаж, Кол-во продаж, ДРР поиск, ДРР CPO, ДРР общий]
+            history_row = [
+                current_date,
+                row[0],  # Артикул
+                row[1],  # Сумма продаж
+                row[2],  # Количество продаж
+                row[3],  # ДРР поиск
+                row[4],  # ДРР оплата за заказ
+                row[5]  # ДРР общий
+            ]
+            history_rows.append(history_row)
+
+        # Добавляем итоговую строку, если она есть (последняя строка в dashboard_data обычно с "ИТОГО")
+        if dashboard_data and len(dashboard_data) > 0:
+            last_row = dashboard_data[-1]
+            if last_row and len(last_row) > 0 and last_row[0] == "ИТОГО":
+                total_row = [
+                    current_date,
+                    "ИТОГО",
+                    last_row[1],  # Общая сумма продаж
+                    last_row[2],  # Общее количество продаж
+                    last_row[3],  # Средний ДРР поиск (можно оставить как есть)
+                    last_row[4],  # Средний ДРР CPO
+                    last_row[5]  # Средний ДРР общий
+                ]
+                history_rows.append(total_row)
+
+        # Сохраняем данные
+        if history_rows:
+            # Рассчитываем необходимый размер листа
+            required_rows = next_row + len(history_rows) + 10  # +10 для запаса
+            current_rows = len(all_values)
+
+            # Проверяем и расширяем лист если нужно
+            if required_rows > current_rows:
+                rows_to_add = required_rows - current_rows
+                print(f"  📏 Расширение листа: текущий размер {current_rows} строк, нужно {required_rows}")
+                print(f"  ➕ Добавление {rows_to_add} строк...")
+
+                try:
+                    # Пробуем добавить строки
+                    execute_with_exponential_backoff(history_sheet.add_rows, rows_to_add)
+                    print(f"  ✅ Добавлено {rows_to_add} строк. Новый размер: {current_rows + rows_to_add} строк")
+                    time.sleep(1)
+                except Exception as e:
+                    print(f"  ⚠️ Не удалось добавить строки через add_rows: {e}")
+                    # Альтернативный метод: пытаемся обновить ячейку в нужной строке
+                    try:
+                        last_cell = f"G{required_rows}"
+                        execute_with_exponential_backoff(history_sheet.update, last_cell, [[""]])
+                        print(f"  ✅ Лист автоматически расширен записью в {last_cell}")
+                        time.sleep(1)
+                    except Exception as e2:
+                        print(f"  ❌ Ошибка при расширении листа: {e2}")
+
+            print(f"  💾 Сохранение {len(history_rows)} строк в историю (дата: {current_date})")
+            print(f"  📍 Диапазон данных: A{next_row}:G{next_row + len(history_rows) - 1}")
+
+            # Обновляем данные одной операцией
+            range_start = f"A{next_row}"
+
+            # Дополнительная проверка: убеждаемся что лист достаточно большой
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                try:
+                    execute_with_retry(history_sheet.update, range_start, history_rows,
+                                       value_input_option='USER_ENTERED')
+                    break
+                except Exception as e:
+                    if "exceeds grid limits" in str(e).lower() or "grid" in str(e).lower():
+                        print(f"  ⚠️ Попытка {attempt + 1}: Превышен размер сетки, расширяем лист...")
+                        rows_needed = next_row + len(history_rows) + 50
+                        try:
+                            history_sheet.add_rows(rows_needed)
+                            print(f"  ✅ Добавлено {rows_needed} строк")
+                            time.sleep(2)
+                        except:
+                            # Если add_rows не работает, пробуем прямой update в последнюю ячейку
+                            try:
+                                last_cell = f"G{rows_needed}"
+                                history_sheet.update(last_cell, [[""]])
+                                print(f"  ✅ Лист расширен через запись в {last_cell}")
+                                time.sleep(2)
+                            except:
+                                pass
+                    else:
+                        raise e
+
+            # Форматируем числа
+            for col in ['C', 'D', 'E', 'F', 'G']:  # Столбцы с числами
+                try:
+                    execute_with_retry(
+                        format_cell_range, history_sheet, f"{col}{next_row}:{col}{next_row + len(history_rows) - 1}",
+                        CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
+                    )
+                except Exception as e:
+                    print(f"  ⚠️ Не удалось отформатировать столбец {col}: {e}")
+
+            # Фиксируем заголовки (замораживаем первые 2 строки)
+            try:
+                execute_with_exponential_backoff(set_frozen, history_sheet, rows=2)
+            except:
+                pass
+
+            print(f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date}")
+            print(f"  📊 Текущий размер листа: ~{next_row + len(history_rows) - 1} строк")
+            return True
+        else:
+            print("  ⚠️ Нет данных для сохранения в историю")
+            return False
+
+    except Exception as e:
+        print(f"  ❌ Ошибка при сохранении истории DASHBOARD: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 def setup_markup_sheet(spreadsheet):
     """Настраивает лист Наценка за нелокальную доставку"""
@@ -566,6 +814,10 @@ def get_or_create_sheet(spreadsheet, title: str, rows=1000, cols=30):
     try:
         return execute_with_exponential_backoff(spreadsheet.worksheet, title)
     except gspread.exceptions.WorksheetNotFound:
+        # Для истории DASHBOARD создаем с максимальным запасом строк
+        if title == "История DASHBOARD":
+            rows = 100000  # 100 тысяч строк - достаточно на много лет
+            print(f"  🆕 Создание листа {title} с {rows} строками (максимальный запас)")
         return execute_with_exponential_backoff(spreadsheet.add_worksheet, title=title, rows=rows, cols=cols)
 
 
@@ -739,6 +991,10 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
         format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
         execute_with_retry(format_cell_range, dashboard, f"A2:A{last_row}",
                            CellFormat(textFormat=TextFormat(bold=True)))
+
+    # Возвращаем данные для истории (без итоговой строки, которую добавили выше)
+    # Убираем последние две строки (пустая и ИТОГО)
+    return dashboard_data[:-2] if len(dashboard_data) >= 2 else dashboard_data
 
 
 # ================= ФУНКЦИИ ДЛЯ РАБОТЫ С ЛИСТАМИ ТОВАРОВ =================
@@ -997,6 +1253,12 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         else:
             clear_old_dashboard_data(dashboard, len(current_data))
         dashboard_data, _ = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
+
+        # Сохраняем данные в историю ПЕРЕД обновлением текущего DASHBOARD
+        # Используем текущую дату из current_date_str
+        save_dashboard_history(spreadsheet, dashboard_data, current_date_str)
+
+        # Обновляем текущий DASHBOARD
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
 

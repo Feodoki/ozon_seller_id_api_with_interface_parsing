@@ -1332,34 +1332,38 @@ class InterfaceParser:
                 for page in pages:
                     page_btn = page.find_element(By.XPATH, ".//button")
                     self.scroll_to_element_center(page_btn)
-                    self.random_sleep(1)
+                    self.random_sleep(2)
                     page_btn.click()
 
                     self.random_sleep(2)
                     all_items = driver.find_element(By.XPATH, ".//tbody").find_elements(By.XPATH, './/tr')
                     self.scroll_to_element_center(all_items[-1])
-                    self.random_sleep(1)
+                    self.random_sleep(2)
 
                     for item in all_items:
-                        item_tds = item.find_elements(By.XPATH, ".//td")
-                        if offer_id_index:
-                            offer_id = item_tds[offer_id_index].text.strip()
-                        else:
-                            offer_id = item_tds[3].text.strip()
+                        try:
+                            item_tds = item.find_elements(By.XPATH, ".//td")
+                            if offer_id_index:
+                                offer_id = item_tds[offer_id_index].text.strip()
+                            else:
+                                offer_id = item_tds[3].text.strip()
 
-                        if '\n' in offer_id:
-                            offer_id = offer_id.split('\n')[0].strip()
+                            if '\n' in offer_id:
+                                offer_id = offer_id.split('\n')[0].strip()
 
-                        if volume_index:
-                            item_volume = item_tds[volume_index].text.strip()
-                        else:
-                            item_volume = item_tds[14].text.strip()
+                            if volume_index:
+                                item_volume = item_tds[volume_index].text.strip()
+                            else:
+                                item_volume = item_tds[14].text.strip()
 
-                        item_volume_l = item_volume.split('\n')[0].strip()
-                        item_volume_kg = item_volume.split('\n')[1].strip()
+                            item_volume_l = item_volume.split('\n')[0].strip()
+                            item_volume_kg = item_volume.split('\n')[1].strip()
 
-                        print(offer_id, item_volume_l, item_volume_kg, sep='\n', end='\n\n')
-                        volume_dict[offer_id] = {'item_volume_l': item_volume_l, 'item_volume_kg': item_volume_kg}
+                            print(offer_id, item_volume_l, item_volume_kg, sep='\n', end='\n\n')
+                            volume_dict[offer_id] = {'item_volume_l': item_volume_l, 'item_volume_kg': item_volume_kg}
+                        except:
+                            print(traceback.format_exc())
+                            pass
 
                 return volume_dict
             except:
