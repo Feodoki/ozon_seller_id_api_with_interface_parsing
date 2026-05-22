@@ -1303,6 +1303,70 @@ class InterfaceParser:
 
         return {}
 
+
+    # Получение объема товара
+    def get_volume_product(self):
+        driver = self.driver
+        volume_dict = {}
+        for attempt in range(3):
+            try:
+                driver.get('https://seller.ozon.ru/app/products?filter=in_sale')
+
+                WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//thead")))
+                self.random_sleep(1)
+
+                offer_id_index = False
+                volume_index = False
+                headers = driver.find_element(By.XPATH, ".//thead").find_element(By.XPATH, './/tr').find_elements(By.XPATH, './/th')
+                for th in headers:
+                    if 'Артикул' == th.text.strip():
+                        offer_id_index = headers.index(th)
+                    elif 'Объем товара, л' in th.text:
+                        volume_index = headers.index(th)
+
+                logger.info(f'Offer id index = {offer_id_index}\nVolume index = {volume_index}\n\n')
+
+                pagination = driver.find_element(By.XPATH, "//div[@id='pagination']")
+                pages = pagination.find_element(By.XPATH, ".//ul").find_elements(By.XPATH, './/li')
+
+                for page in pages:
+                    page_btn = page.find_element(By.XPATH, ".//button")
+                    self.scroll_to_element_center(page_btn)
+                    self.random_sleep(1)
+                    page_btn.click()
+
+                    self.random_sleep(2)
+                    all_items = driver.find_element(By.XPATH, ".//tbody").find_elements(By.XPATH, './/tr')
+                    self.scroll_to_element_center(all_items[-1])
+                    self.random_sleep(1)
+
+                    for item in all_items:
+                        item_tds = item.find_elements(By.XPATH, ".//td")
+                        if offer_id_index:
+                            offer_id = item_tds[offer_id_index].text.strip()
+                        else:
+                            offer_id = item_tds[3].text.strip()
+
+                        if '\n' in offer_id:
+                            offer_id = offer_id.split('\n')[0].strip()
+
+                        if volume_index:
+                            item_volume = item_tds[volume_index].text.strip()
+                        else:
+                            item_volume = item_tds[14].text.strip()
+
+                        item_volume_l = item_volume.split('\n')[0].strip()
+                        item_volume_kg = item_volume.split('\n')[1].strip()
+
+                        print(offer_id, item_volume_l, item_volume_kg, sep='\n', end='\n\n')
+                        volume_dict[offer_id] = {'item_volume_l': item_volume_l, 'item_volume_kg': item_volume_kg}
+
+                return volume_dict
+            except:
+                logger.error(f"Ошибка при получении объема товара: {traceback.format_exc()}")
+                self.random_sleep(1)
+                continue
+
     def get_all_advert_analytic(self, max_retries: int = 3):
         """Получение всей рекламной аналитики с обработкой ошибок"""
         if not self.check_auth_in_ozon():
@@ -1319,8 +1383,21 @@ class InterfaceParser:
                 logger.info(f"   ✅ Рекламная аналитика успешно собрана для {len(res_dict)} товаров")
 
                 try:
-                    price_dict = self.get_actual_prices_offer_id()
+                    volume_dict = self.get_volume_product()
+                    for offer_id in volume_dict:
+                        item_volume_l = volume_dict[offer_id]['item_volume_l']
+                        item_volume_kg = volume_dict[offer_id]['item_volume_kg']
+                        if offer_id in res_dict:
+                            for item_dict in res_dict[offer_id]:
+                                item_dict['item_volume_l'] = item_volume_l
+                                item_dict['item_volume_kg'] = item_volume_kg
 
+                except Exception as e:
+                    logger.warning(f"Ошибка сопоставления Объема товара - {str(e)}")
+                    pass
+
+                try:
+                    price_dict = self.get_actual_prices_offer_id()
                     # Исправление: обрабатываем список товаров для каждого offer_id
                     for offer_id in price_dict:
                         actual_price = price_dict[offer_id]['price']
@@ -1346,7 +1423,6 @@ class InterfaceParser:
                     logger.error(f'   ❌ Ошибка сопоставления актуальных цен - {str(e)}')
                     import traceback
                     logger.error(traceback.format_exc())
-                    # Возвращаем данные даже без цен, чтобы не терять информацию
                     return res_dict
             else:
                 logger.warning("   ⚠️ Не удалось получить аналитику CPC")
@@ -1362,7 +1438,6 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    parser.get_analytic_money_spent()
 
     parser.auth()
     time.sleep(2)
