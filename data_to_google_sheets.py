@@ -90,7 +90,8 @@ ANALYTICS_CONFIG = {
         {"name": "Посещения карточки товара", "width": 75},
         {"name": "Конверсия из поиска и каталога в карточку", "width": 75},
         {"name": "Конверсия из поиска и каталога в корзину", "width": 75},
-        {"name": "Конверсия в корзину общая", "width": 75}
+        {"name": "Конверсия в корзину общая", "width": 75},
+        {"name": "Общий ДРР (%)", "width": 75}
     ],
     "start_column": "A",
     "block_title": "АНАЛИТИКА",
@@ -748,30 +749,47 @@ def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
     updates.append(("A1", [["Артикул", offer_id]]))
     updates.append(("A2", [["SKU", ", ".join(skus_list)]]))
     updates.append(("A4", [[""]]))
+
     col_letter = ANALYTICS_CONFIG['start_column']
     updates.append((f"{col_letter}5", [[ANALYTICS_CONFIG['block_title']]]))
+
     headers_list = [h['name'] for h in ANALYTICS_CONFIG['headers']]
     end_col = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + len(headers_list) - 1)
     updates.append((f"{ANALYTICS_CONFIG['start_column']}6:{end_col}6", [headers_list]))
+
+    # Настройка ширины для нового столбца (столбец J, если аналитика начинается с A)
+    # Вычисляем номер столбца для ДРР (9-й столбец в списке headers, начиная с 0 = столбец J)
+    drr_col_letter = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + 9)
+    updates.append((f"SET_COLUMN_WIDTH_{drr_col_letter}", None))  # Маркер для установки ширины
+
     for block_config in CAMPAIGN_CONFIGS.values():
         col_letter = block_config['start_column']
         updates.append((f"{col_letter}5", [[block_config['title']]]))
         headers_list = [h['name'] for h in block_config['headers']]
         end_col = get_column_letter(get_column_index(block_config['start_column']) + len(headers_list) - 1)
         updates.append((f"{block_config['start_column']}6:{end_col}6", [headers_list]))
+
     for range_name, values in updates:
-        execute_with_exponential_backoff(sheet.update, range_name, values)
-        time.sleep(0.3)
+        if values is not None:
+            execute_with_exponential_backoff(sheet.update, range_name, values)
+            time.sleep(0.3)
+
+    # Устанавливаем ширину для столбца ДРР
+    drr_col_letter = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + 9)
+    execute_with_exponential_backoff(set_column_width, sheet, drr_col_letter, 100)
+
     execute_with_exponential_backoff(
         format_cell_range, sheet, f"{ANALYTICS_CONFIG['start_column']}5",
         CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=ANALYTICS_CONFIG['block_color'])
     )
+
     for block_config in CAMPAIGN_CONFIGS.values():
         col_letter = block_config['start_column']
         execute_with_exponential_backoff(
             format_cell_range, sheet, f"{col_letter}5",
             CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=block_config['color'])
         )
+
     execute_with_exponential_backoff(set_frozen, sheet, rows=6)
     time.sleep(1)
 
@@ -847,8 +865,18 @@ def update_position_data(item: Dict, positions_data: Optional[Dict]) -> float:
     return clean_numeric_value(item.get("avg_position_category", 0))
 
 
-def prepare_product_row(item: Dict, campaigns_data: Dict, current_date_str: str) -> List:
+def prepare_product_row(item: Dict, campaigns_data: Dict, drr_all_dict: Dict, current_date_str: str) -> List:
     offer_id = item.get("offer_id")
+
+    # Получаем общий ДРР из словаря (как в DASHBOARD)
+    drr_total = 0.0
+    if drr_all_dict and offer_id in drr_all_dict:
+        drr_data = drr_all_dict[offer_id]
+        if isinstance(drr_data, dict):
+            drr_total = clean_numeric_value(drr_data.get('drr', 0))
+        else:
+            drr_total = clean_numeric_value(drr_data)
+
     analytics_row = [
         current_date_str,
         clean_numeric_value(item.get("total_revenue", 0)),
@@ -858,15 +886,19 @@ def prepare_product_row(item: Dict, campaigns_data: Dict, current_date_str: str)
         clean_int_value(item.get("total_hits_view_pdp", 0)),
         clean_numeric_value(item.get("avg_conversion_search_to_pdp", 0)),
         clean_numeric_value(item.get("avg_conv_tocart_search", 0)),
-        clean_numeric_value(item.get("avg_conv_tocart", 0))
+        clean_numeric_value(item.get("avg_conv_tocart", 0)),
+        drr_total  # Общий ДРР
     ]
+
     offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
     search_campaigns = [c for c in offer_campaigns if c.get('camping_type') == 'Поиск']
     rec_campaigns = [c for c in offer_campaigns if c.get('camping_type') == 'Поиск и рекомендации']
     cpo_campaigns = [c for c in offer_campaigns if c.get('camping_type') == 'Оплата за заказ']
+
     search_data = format_campaign_data(search_campaigns, 'search')
     rec_data = format_campaign_data(rec_campaigns, 'recommendations')
     cpo_data = format_campaign_data(cpo_campaigns, 'cpo')
+
     return analytics_row + [""] + search_data + [""] + rec_data + [""] + cpo_data
 
 
@@ -998,7 +1030,7 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
                 time.sleep(2)
             if need_setup:
                 setup_product_sheet_structure(sheet, offer_id, skus_list)
-            full_row = prepare_product_row(item, campaigns_data, current_date_str)
+            full_row = prepare_product_row(item, campaigns_data, drr_all_dict, current_date_str)
             update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
             if (idx + 1) % 5 == 0:
                 print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
