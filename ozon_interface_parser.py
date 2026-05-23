@@ -1057,6 +1057,14 @@ class InterfaceParser:
                         self.scroll_to_element_center(input_element)
                         time.sleep(3)
 
+                        for _ in range(6):
+                            try:
+                                elem = driver.find_elements(By.XPATH, "//ul")[-1]
+                                self.scroll_to_element_center(elem)
+                                self.random_sleep(1)
+                            except:
+                                pass
+
                         actual_table = driver.find_element(By.XPATH, "//tbody")
                         all_tr = actual_table.find_elements(By.XPATH, ".//tr")
                         for row in all_tr:
@@ -1064,7 +1072,8 @@ class InterfaceParser:
                                 try:
                                     all_td = row.find_elements(By.XPATH, ".//td")
                                     self.scroll_to_element_center(all_td[1])
-                                    time.sleep(1)
+                                    all_td = row.find_elements(By.XPATH, ".//td")
+                                    time.sleep(2.5)
                                     item_name = all_td[2].text
                                     if 'Название и артикул' in item_name:
                                         continue
@@ -1074,11 +1083,24 @@ class InterfaceParser:
                                                                                                               '').strip()
                                     print(all_td[5].text.split('\n'))
                                     item_price = all_td[5].text
+                                    print(f'Item price - {item_price}')
                                     if '\n' in item_price:
                                         item_price = item_price.split('\n')[1].replace('₽', '').strip().replace('\n','').strip()
                                     else:
                                         item_price = item_price.replace('₽', '').strip().replace('\n','').strip()
 
+                                    if item_price == '':
+                                        time.sleep(3)
+                                        all_td = row.find_elements(By.XPATH, ".//td")
+                                        self.scroll_to_element_center(all_td[5])
+                                        time.sleep(3)
+                                        item_price = all_td[5].text
+                                        print(f'Item price - {item_price}')
+                                        if '\n' in item_price:
+                                            item_price = item_price.split('\n')[1].replace('₽', '').strip().replace(
+                                                '\n', '').strip()
+                                        else:
+                                            item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
 
                                     item_price_before = all_td[4].text
                                     if '\n' in item_price_before:
@@ -1119,7 +1141,8 @@ class InterfaceParser:
                             try:
                                 all_td = row.find_elements(By.XPATH, ".//td")
                                 self.scroll_to_element_center(all_td[1])
-                                time.sleep(1)
+                                all_td = row.find_elements(By.XPATH, ".//td")
+                                time.sleep(2.5)
                                 item_name = all_td[2].text
                                 if 'Название и артикул' in item_name:
                                     continue
@@ -1128,13 +1151,60 @@ class InterfaceParser:
                                 item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n',
                                                                                                           '').strip()
                                 print(all_td[5].text.split('\n'))
-                                item_price = all_td[5].text.split('\n')[1].replace('₽', '').strip().replace('\n',
+                                item_price = all_td[5].text
+                                print(f'Item price - {item_price}')
+                                if '\n' in item_price:
+                                    item_price = item_price.split('\n')[1].replace('₽', '').strip().replace('\n',
                                                                                                             '').strip()
-                                print(item_offer_id, item_price)
+                                else:
+                                    item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                                if item_price == '':
+                                    time.sleep(3)
+                                    all_td = row.find_elements(By.XPATH, ".//td")
+                                    self.scroll_to_element_center(all_td[5])
+                                    time.sleep(3)
+                                    item_price = all_td[5].text
+                                    print(f'Item price - {item_price}')
+                                    if '\n' in item_price:
+                                        item_price = item_price.split('\n')[1].replace('₽', '').strip().replace(
+                                            '\n', '').strip()
+                                    else:
+                                        item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                                item_price_before = all_td[4].text
+                                if '\n' in item_price_before:
+                                    item_price_before = item_price_before.split('\n')[0].replace('₽',
+                                                                                                 '').strip().replace(
+                                        '\n', '').strip()
+                                else:
+                                    item_price_before = item_price_before.replace('₽', '').strip().replace('\n',
+                                                                                                           '').strip()
+
+                                self.scroll_to_element_center(all_td[19])
+                                time.sleep(2)
+                                cost_price = all_td[19].text
+                                if '\n' in cost_price:
+                                    cost_price = cost_price.split('\n')[0]
+                                cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                                commission_fbo = all_td[20].text.replace('₽', '').strip().replace('\n', '').strip()
+                                stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
+
+                                print(item_offer_id, f"Цена после скидки - {item_price}",
+                                      f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
+                                      f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
+                                      sep='\n', end='\n\n')
                                 if item_offer_id not in prices_dict.keys():
-                                    prices_dict[item_offer_id] = {'price': item_price}
+                                    prices_dict[item_offer_id] = {'price': item_price,
+                                                                  'price_before': item_price_before,
+                                                                  'cost_price': cost_price,
+                                                                  'commission_fbo': commission_fbo,
+                                                                  'stock_balance': stock_balance,
+                                                                  }
                                 break
                             except:
+                                print(traceback.format_exc())
                                 time.sleep(1)
                 return prices_dict
             except:

@@ -260,18 +260,23 @@ def migrate_existing_dashboard_to_history(spreadsheet):
         return False
 
 
-def save_dashboard_history(spreadsheet, dashboard_data: List[List], current_date: str):
+def save_dashboard_history(spreadsheet, dashboard_sheet, current_date: str):
     """
     Сохраняет текущие данные DASHBOARD в историю
-    Добавляет новую запись только если дата изменилась
-    Автоматически расширяет лист при необходимости
+    Берет данные напрямую из листа DASHBOARD
     """
     print("\n📜 СОХРАНЕНИЕ ИСТОРИИ DASHBOARD")
 
     try:
-        # Получаем или создаем лист истории с большим запасом строк
-        # Используем 50 000 строк для истории (на 3-5 лет ежедневных записей)
-        history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=50000, cols=20)
+        # Получаем данные из листа DASHBOARD
+        dashboard_data = execute_with_retry(dashboard_sheet.get_all_values)
+
+        if len(dashboard_data) <= 1:
+            print("  ⚠️ Нет данных в DASHBOARD для сохранения")
+            return False
+
+        # Получаем или создаем лист истории
+        history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=100000, cols=20)
 
         # Проверяем, нужно ли настраивать заголовки
         all_values = execute_with_retry(history_sheet.get_all_values)
@@ -304,148 +309,85 @@ def save_dashboard_history(spreadsheet, dashboard_data: List[List], current_date
 
             execute_with_exponential_backoff(set_frozen, history_sheet, rows=2)
             print("  ✅ Структура листа истории настроена")
-            next_row = 3  # Следующая строка для данных (после заголовков и примечания)
+            next_row = 3
         else:
             # Определяем следующую свободную строку
             next_row = len(all_values) + 1
-            # Пропускаем строку с примечанием, если она есть
             if len(all_values) > 1 and all_values[1] and "📊" in str(all_values[1][0]):
                 next_row = max(next_row, 3)
             print(f"  📄 Лист истории существует, следующая строка: {next_row}")
 
-        # Проверяем, нужно ли сохранять данные сегодня
-        # Получаем последнюю дату в истории
-        last_date_in_history = None
-        if len(all_values) > 2:
-            # Ищем последнюю непустую дату
-            for row in reversed(all_values[2:]):  # Пропускаем заголовки и примечание
-                if row and len(row) > 0 and row[0] and row[0] != current_date:
-                    last_date_in_history = row[0]
-                    break
-                elif row and len(row) > 0 and row[0] == current_date:
-                    print(f"  ⚠️ Данные за {current_date} уже сохранены в истории")
-                    return False
+        # Проверяем, сохраняли ли уже данные за сегодня
+        # Пропускаем заголовки (строка 1) и примечание (строка 2)
+        start_check_row = 3
+        for row_idx in range(start_check_row, len(all_values)):
+            if len(all_values[row_idx]) > 0 and all_values[row_idx][0] == current_date:
+                print(f"  ⚠️ Данные за {current_date} уже сохранены в истории (строка {row_idx + 1})")
+                return False
 
-        # Проверяем, изменилась ли дата с последней записи
-        if last_date_in_history == current_date:
-            print(f"  ⚠️ Данные за {current_date} уже сохранены, пропускаем")
-            return False
-
-        # Подготавливаем данные для сохранения
+        # Подготавливаем данные для сохранения из DASHBOARD
+        # Пропускаем заголовок (строка 0)
         history_rows = []
-        for row in dashboard_data:
+
+        for row in dashboard_data[1:]:  # Пропускаем заголовки
             if not row or len(row) < 6:
                 continue
-            # Формируем строку: [Дата, Артикул, Сумма продаж, Кол-во продаж, ДРР поиск, ДРР CPO, ДРР общий]
+
+            # Проверяем, что это не пустая строка и не итоговая (можно сохранять и итоговую)
+            if row[0] == "" or row[0] == "ИТОГО":
+                # Сохраняем итоговую строку как есть
+                pass
+
+            # Формируем строку истории: [Дата, Артикул, Сумма продаж, Кол-во продаж, ДРР поиск, ДРР CPO, ДРР общий]
             history_row = [
-                current_date,
-                row[0],  # Артикул
-                row[1],  # Сумма продаж
+                current_date,  # Дата
+                row[0],  # Артикул товара
+                row[1],  # Сумма продаж за день
                 row[2],  # Количество продаж
-                row[3],  # ДРР поиск
-                row[4],  # ДРР оплата за заказ
-                row[5]  # ДРР общий
+                row[3],  # ДРР (поиск/поиск и рекомендации) %
+                row[4],  # ДРР (оплата за заказ) %  ← Берем из DASHBOARD
+                row[5]  # ДРР (общий) %            ← Берем из DASHBOARD
             ]
             history_rows.append(history_row)
 
-        # Добавляем итоговую строку, если она есть (последняя строка в dashboard_data обычно с "ИТОГО")
-        if dashboard_data and len(dashboard_data) > 0:
-            last_row = dashboard_data[-1]
-            if last_row and len(last_row) > 0 and last_row[0] == "ИТОГО":
-                total_row = [
-                    current_date,
-                    "ИТОГО",
-                    last_row[1],  # Общая сумма продаж
-                    last_row[2],  # Общее количество продаж
-                    last_row[3],  # Средний ДРР поиск (можно оставить как есть)
-                    last_row[4],  # Средний ДРР CPO
-                    last_row[5]  # Средний ДРР общий
-                ]
-                history_rows.append(total_row)
+        if not history_rows:
+            print("  ⚠️ Нет данных для сохранения в историю")
+            return False
 
         # Сохраняем данные
-        if history_rows:
-            # Рассчитываем необходимый размер листа
-            required_rows = next_row + len(history_rows) + 10  # +10 для запаса
-            current_rows = len(all_values)
+        print(f"  💾 Сохранение {len(history_rows)} строк в историю (дата: {current_date})")
 
-            # Проверяем и расширяем лист если нужно
-            if required_rows > current_rows:
-                rows_to_add = required_rows - current_rows
-                print(f"  📏 Расширение листа: текущий размер {current_rows} строк, нужно {required_rows}")
-                print(f"  ➕ Добавление {rows_to_add} строк...")
+        # Проверяем и расширяем лист при необходимости
+        required_rows = next_row + len(history_rows) + 10
+        current_rows = len(all_values)
 
-                try:
-                    # Пробуем добавить строки
-                    execute_with_exponential_backoff(history_sheet.add_rows, rows_to_add)
-                    print(f"  ✅ Добавлено {rows_to_add} строк. Новый размер: {current_rows + rows_to_add} строк")
-                    time.sleep(1)
-                except Exception as e:
-                    print(f"  ⚠️ Не удалось добавить строки через add_rows: {e}")
-                    # Альтернативный метод: пытаемся обновить ячейку в нужной строке
-                    try:
-                        last_cell = f"G{required_rows}"
-                        execute_with_exponential_backoff(history_sheet.update, last_cell, [[""]])
-                        print(f"  ✅ Лист автоматически расширен записью в {last_cell}")
-                        time.sleep(1)
-                    except Exception as e2:
-                        print(f"  ❌ Ошибка при расширении листа: {e2}")
-
-            print(f"  💾 Сохранение {len(history_rows)} строк в историю (дата: {current_date})")
-            print(f"  📍 Диапазон данных: A{next_row}:G{next_row + len(history_rows) - 1}")
-
-            # Обновляем данные одной операцией
-            range_start = f"A{next_row}"
-
-            # Дополнительная проверка: убеждаемся что лист достаточно большой
-            max_attempts = 3
-            for attempt in range(max_attempts):
-                try:
-                    execute_with_retry(history_sheet.update, range_start, history_rows,
-                                       value_input_option='USER_ENTERED')
-                    break
-                except Exception as e:
-                    if "exceeds grid limits" in str(e).lower() or "grid" in str(e).lower():
-                        print(f"  ⚠️ Попытка {attempt + 1}: Превышен размер сетки, расширяем лист...")
-                        rows_needed = next_row + len(history_rows) + 50
-                        try:
-                            history_sheet.add_rows(rows_needed)
-                            print(f"  ✅ Добавлено {rows_needed} строк")
-                            time.sleep(2)
-                        except:
-                            # Если add_rows не работает, пробуем прямой update в последнюю ячейку
-                            try:
-                                last_cell = f"G{rows_needed}"
-                                history_sheet.update(last_cell, [[""]])
-                                print(f"  ✅ Лист расширен через запись в {last_cell}")
-                                time.sleep(2)
-                            except:
-                                pass
-                    else:
-                        raise e
-
-            # Форматируем числа
-            for col in ['C', 'D', 'E', 'F', 'G']:  # Столбцы с числами
-                try:
-                    execute_with_retry(
-                        format_cell_range, history_sheet, f"{col}{next_row}:{col}{next_row + len(history_rows) - 1}",
-                        CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
-                    )
-                except Exception as e:
-                    print(f"  ⚠️ Не удалось отформатировать столбец {col}: {e}")
-
-            # Фиксируем заголовки (замораживаем первые 2 строки)
+        if required_rows > current_rows:
+            rows_to_add = required_rows - current_rows
+            print(f"  📏 Расширение листа: добавляем {rows_to_add} строк")
             try:
-                execute_with_exponential_backoff(set_frozen, history_sheet, rows=2)
+                execute_with_exponential_backoff(history_sheet.add_rows, rows_to_add)
+                print(f"  ✅ Добавлено {rows_to_add} строк")
+                time.sleep(1)
+            except Exception as e:
+                print(f"  ⚠️ Не удалось добавить строки: {e}")
+
+        # Записываем данные
+        range_start = f"A{next_row}"
+        execute_with_retry(history_sheet.update, range_start, history_rows, value_input_option='USER_ENTERED')
+
+        # Форматируем числовые столбцы
+        end_row = next_row + len(history_rows) - 1
+        for col in ['C', 'D', 'E', 'F', 'G']:
+            try:
+                execute_with_retry(
+                    format_cell_range, history_sheet, f"{col}{next_row}:{col}{end_row}",
+                    CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
+                )
             except:
                 pass
 
-            print(f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date}")
-            print(f"  📊 Текущий размер листа: ~{next_row + len(history_rows) - 1} строк")
-            return True
-        else:
-            print("  ⚠️ Нет данных для сохранения в историю")
-            return False
+        print(f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date}")
+        return True
 
     except Exception as e:
         print(f"  ❌ Ошибка при сохранении истории DASHBOARD: {e}")
@@ -943,31 +885,54 @@ def log_dashboard_item(offer_id: str, revenue: float, expenses_search: float,
 
 def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
                            drr_all_dict: Dict) -> Tuple[List[List], Dict]:
+    """
+    Подготавливает данные для DASHBOARD и возвращает:
+    - список строк для отображения
+    - словарь с ДРР для каждого товара (для использования в других листах)
+    """
     dashboard_rows = []
+    drr_for_products = {}  # Словарь для хранения ДРР по каждому товару
     totals = {
         'total_orders': 0, 'total_expenses_search': 0, 'total_selled_search': 0,
         'total_revenue_all': 0, 'total_money_spent_from_dict': 0
     }
+
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
         total_revenue_item = clean_numeric_value(item.get("total_revenue", 0))
         total_ordered_units = clean_int_value(item.get("total_ordered_units", 0))
+
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
         expenses_search, selled_search, _, _ = extract_campaign_expenses(offer_campaigns)
-        drr_from_dict, money_spent_from_dict = extract_drr_data(drr_all_dict, offer_id)
+
+        # Получаем ДРР из словаря (для оплаты за заказ)
+        drr_cpo, money_spent_from_dict = extract_drr_data(drr_all_dict, offer_id)
+
         drr_search = calculate_drr(expenses_search, selled_search)
-        drr_cpo = drr_from_dict
         drr_total = calculate_drr(money_spent_from_dict, total_revenue_item)
+
+        # Сохраняем ДРР для этого товара (для использования в аналитике артикулов)
+        drr_for_products[offer_id] = {
+            'drr_search': drr_search,
+            'drr_cpo': drr_cpo,
+            'drr_total': drr_total,
+            'money_spent': money_spent_from_dict,
+            'revenue': total_revenue_item
+        }
+
         log_dashboard_item(offer_id, total_revenue_item, expenses_search, selled_search,
-                           drr_from_dict, money_spent_from_dict, drr_search, drr_cpo, drr_total)
+                           drr_cpo, money_spent_from_dict, drr_search, drr_cpo, drr_total)
+
         dashboard_rows.append([offer_id, total_revenue_item, total_ordered_units, drr_search, drr_cpo, drr_total])
+
         totals['total_orders'] += total_ordered_units
         totals['total_expenses_search'] += expenses_search
         totals['total_selled_search'] += selled_search
         totals['total_revenue_all'] += total_revenue_item
         totals['total_money_spent_from_dict'] += money_spent_from_dict
+
     dashboard_rows.sort(key=lambda x: x[2], reverse=True)
-    return dashboard_rows, totals
+    return dashboard_rows, drr_for_products
 
 
 def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
@@ -1234,7 +1199,7 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         current_date_str = get_current_date_moscow()
         print(f"📅 Текущая дата: {current_date_str}")
 
-        # Новые листы
+        # Настройка новых листов
         print("\n" + "=" * 60)
         print("📦 НАСТРОЙКА НОВЫХ ЛИСТОВ")
         print("=" * 60)
@@ -1252,15 +1217,16 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
             setup_sheet_headers(dashboard, DASHBOARD_CONFIG, start_row=1)
         else:
             clear_old_dashboard_data(dashboard, len(current_data))
-        dashboard_data, _ = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
 
-        # Сохраняем данные в историю ПЕРЕД обновлением текущего DASHBOARD
-        # Используем текущую дату из current_date_str
-        save_dashboard_history(spreadsheet, dashboard_data, current_date_str)
+        # Подготавливаем данные и получаем словарь с ДРР для товаров
+        dashboard_data, drr_for_products = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
 
-        # Обновляем текущий DASHBOARD
+        # Обновляем DASHBOARD
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
+
+        # Сохраняем историю DASHBOARD
+        save_dashboard_history(spreadsheet, dashboard, current_date_str)
 
         # ТЕХНИЧЕСКИЙ ЛИСТ
         print("\n" + "=" * 60)
@@ -1292,8 +1258,11 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
                 time.sleep(2)
             if need_setup:
                 setup_product_sheet_structure(sheet, offer_id, skus_list)
-            full_row = prepare_product_row(item, campaigns_data, drr_all_dict, current_date_str)
+
+            # Используем drr_for_products для получения корректных значений ДРР
+            full_row = prepare_product_row(item, campaigns_data, drr_for_products, current_date_str)
             update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
+
             if (idx + 1) % 5 == 0:
                 print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
                 time.sleep(5)
