@@ -3,6 +3,7 @@ import time
 import random
 import logging
 import traceback
+import inspect
 
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
@@ -34,6 +35,7 @@ class InterfaceParser:
 
     def clean_profile_cache(self):
         """Очищает кэш и временные файлы профиля, сохраняя авторизацию"""
+        logger.info(f"Init func - {inspect.currentframe()}")
         try:
             # Файлы и папки, которые можно безопасно удалить
             items_to_remove = [
@@ -78,6 +80,7 @@ class InterfaceParser:
             return False
 
     def _get_options(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         options = uc.ChromeOptions()
 
         # Дополнительные настройки (по желанию)
@@ -127,6 +130,7 @@ class InterfaceParser:
         return options
 
     def start_browser(self, headless: bool = False, max_retries: int = 3, clean_cache: bool = True):
+        logger.info(f"Init func - {inspect.currentframe()}")
         """Запуск браузера с повторными попытками"""
 
         # Очищаем кэш перед запуском (опционально)
@@ -167,6 +171,7 @@ class InterfaceParser:
         return False
 
     def open_page(self, url: str = "https://www.google.com"):
+        logger.info(f"Init func - {inspect.currentframe()}")
         if not self.driver:
             raise Exception("Сначала запустите браузер через start_browser()")
 
@@ -174,6 +179,7 @@ class InterfaceParser:
         print(f"Открыта страница: {url}")
 
     def wait(self, seconds: int = 999999):
+        logger.info(f"Init func - {inspect.currentframe()}")
         print(f"Ожидание {seconds} секунд...")
         try:
             time.sleep(seconds)
@@ -181,6 +187,7 @@ class InterfaceParser:
             print("Ожидание прервано")
 
     def close(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         if self.driver:
             try:
                 self.driver.close()
@@ -190,10 +197,12 @@ class InterfaceParser:
             print("Браузер закрыт")
 
     def random_sleep(self, count: int = 1):
+        logger.info(f"Init func - {inspect.currentframe()}")
         for _ in range(count):
             time.sleep(random.uniform(self.random_sleep_from, self.random_sleep_to))
 
     def random_scroll(self, min_pause=0.2, max_pause=0.5, steps=2):
+        logger.info(f"Init func - {inspect.currentframe()}")
         """
         Плавный рандомный скролл вниз/вверх
         """
@@ -217,6 +226,7 @@ class InterfaceParser:
                 time.sleep(random.uniform(0.2, 0.8))
 
     def scroll_to_element_center(self, element):
+        logger.info(f"Init func - {inspect.currentframe()}")
         self.driver.execute_script("""
             arguments[0].scrollIntoView({
                 behavior: 'smooth',
@@ -226,10 +236,12 @@ class InterfaceParser:
         """, element)
 
     def auth_online(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         input(f"Авторизуйтесь")
         return False
 
     def check_auth_in_ozon(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         driver = self.driver
         self.random_sleep()
         try:
@@ -249,11 +261,13 @@ class InterfaceParser:
             return True
 
     def auth(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         driver = self.driver
         driver.get('https://seller.ozon.ru/app/advertisement/product/cpc')
         input("Нажмите Enter после авторизации и выбора магазина")
 
     def get_advert_analytic_pay_to_click(self, max_retries: int = 3):
+        logger.info(f"Init func - {inspect.currentframe()}")
         """Получение аналитики оплаты за клик с повторными попытками"""
         driver = self.driver
         analytic_advert_dict = {}
@@ -386,6 +400,7 @@ class InterfaceParser:
         return {}
 
     def get_ozon_date_today(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         months = [
             "янв", "фев", "мар", "апр", "май", "июн",
             "июл", "авг", "сен", "окт", "ноя", "дек"
@@ -395,6 +410,7 @@ class InterfaceParser:
         return result_date
 
     def pars_table_advert(self, driver, row, all_td: list, camping_type):
+        logger.info(f"Init func - {inspect.currentframe()}")
         print(camping_type)
 
         concurent_bet = '-'
@@ -570,6 +586,7 @@ class InterfaceParser:
             return my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled
 
     def parser_advert_dict(self, advert_dict, max_retries: int = 3):
+        logger.info(f"Init func - {inspect.currentframe()}")
         driver = self.driver
         result_advert_dict = {}
 
@@ -692,6 +709,7 @@ class InterfaceParser:
         return result_advert_dict
 
     def get_advert_analytics_pay_to_buy(self, analytic_advert_dict, max_retries: int = 3):
+        logger.info(f"Init func - {inspect.currentframe()}")
         """Получение аналитики оплаты за заказ с повторными попытками"""
         analytic_advert_dict = analytic_advert_dict.copy() if analytic_advert_dict else {}
         driver = self.driver
@@ -901,6 +919,7 @@ class InterfaceParser:
         return analytic_advert_dict if analytic_advert_dict else {}
 
     def get_position_product_from_sku(self, max_retries: int = 3):
+        logger.info(f"Init func - {inspect.currentframe()}")
         """Получение позиций товаров с повторными попытками"""
         driver = self.driver
         position_dict = {}
@@ -1014,6 +1033,7 @@ class InterfaceParser:
         return {}
 
     def get_actual_prices_offer_id(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         driver = self.driver
         prices_dict = {}
         for attempt in range(3):
@@ -1212,10 +1232,12 @@ class InterfaceParser:
                 continue
 
     def get_analytic_money_spent(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         driver = self.driver
         time.sleep(2)
 
         def open_menu_product():
+            logger.info(f"Init func - {inspect.currentframe()}")
             menu_with_items_btn = driver.find_element(By.XPATH,
                                                       "//span[text()='По категории, товару или кампании' or text()='По товарам: 1']")
             self.scroll_to_element_center(menu_with_items_btn)
@@ -1233,6 +1255,7 @@ class InterfaceParser:
             time.sleep(2)
 
         def clear_old_data():
+            logger.info(f"Init func - {inspect.currentframe()}")
             try:
                 open_menu_product()
                 WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Сбросить']")))
@@ -1351,11 +1374,17 @@ class InterfaceParser:
                             time.sleep(1)
                             data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
                             all_td = data.find_elements(By.XPATH, ".//td")
-                            money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽',
-                                                                                                                    '').strip()
+                            money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
                             drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
-                            logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
 
+                            if '\n' in money_spent:
+                                money_spent = money_spent.split('\n')[0]
+
+                            if '\n' in drr:
+                                drr = drr.split('\n')[0]
+
+                            logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
+                            print(f"Get data - {item_offer_id} Расход = {money_spent}")
                             money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
 
                             clear_old_data()
@@ -1376,6 +1405,7 @@ class InterfaceParser:
 
     # Получение объема товара
     def get_volume_product(self):
+        logger.info(f"Init func - {inspect.currentframe()}")
         driver = self.driver
         volume_dict = {}
         for attempt in range(3):
@@ -1442,6 +1472,7 @@ class InterfaceParser:
                 continue
 
     def get_all_advert_analytic(self, max_retries: int = 3):
+        logger.info(f"Init func - {inspect.currentframe()}")
         """Получение всей рекламной аналитики с обработкой ошибок"""
         if not self.check_auth_in_ozon():
             error_msg = "Авторизация не пройдена, невозможно получить рекламную аналитику"
@@ -1512,7 +1543,9 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
+    #parser.get_analytic_money_spent()
+    #input('test')
 
-    parser.auth()
+    #parser.auth()
     time.sleep(2)
     parser.close()
