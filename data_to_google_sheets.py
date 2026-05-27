@@ -271,10 +271,7 @@ def setup_drr_total_sheet(spreadsheet):
 def update_drr_total_sheet(spreadsheet, history_sheet):
     """
     Обновляет лист ДРР ОБЩИЙ на основе данных из истории DASHBOARD
-    Структура:
-    - Первый столбец: Артикулы
-    - Последующие столбцы: Даты (по возрастанию)
-    - На пересечении: общий ДРР для артикула в конкретную дату
+    Берет значение "ДРР (общий) %" (столбец F в DASHBOARD, индекс 5)
     """
     print("\n📊 ОБНОВЛЕНИЕ ЛИСТА ДРР ОБЩИЙ")
 
@@ -286,7 +283,7 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
             print("  ⚠️ Нет данных в истории DASHBOARD для создания сводки")
             return False
 
-        # Собираем данные: {артикул: {дата: ДРР}}
+        # Собираем данные: {артикул: {дата: ДРР_ОБЩИЙ}}
         drr_data = {}
         all_dates = set()
         all_products = set()
@@ -301,15 +298,15 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
                 continue
 
             date = row[0].strip()  # Дата
-            product = row[1].strip()  # Артикул
-
-            # Получаем общий ДРР (столбец G, индекс 6)
-            drr_value = clean_numeric_value(row[6]) if len(row) > 6 else 0.0
+            product = row[1].strip()  # Артикул товара
+            # ДРР общий - это столбец G (индекс 6) в истории
+            # В истории структура: Дата | Артикул | Сумма продаж | Кол-во | ДРР поиск | ДРР CPO | ДРР общий
+            drr_total = clean_numeric_value(row[6]) if len(row) > 6 else 0.0
 
             if product and product != "" and product != "ИТОГО":
                 if product not in drr_data:
                     drr_data[product] = {}
-                drr_data[product][date] = drr_value
+                drr_data[product][date] = drr_total
                 all_dates.add(date)
                 all_products.add(product)
 
@@ -322,7 +319,6 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
             try:
                 return datetime.strptime(date_str, "%d.%m.%Y")
             except ValueError:
-                # Если дата некорректная, возвращаем минимальную дату
                 print(f"  ⚠️ Некорректная дата: {date_str}, пропускаем")
                 return None
 
@@ -333,7 +329,6 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
             if parsed_date:
                 valid_dates.append((parsed_date, date))
 
-        # Сортируем по объекту даты
         valid_dates.sort(key=lambda x: x[0])
         sorted_dates = [date_str for _, date_str in valid_dates]
 
@@ -359,7 +354,7 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
                 print(f"  ⚠️ Ошибка при очистке: {e}")
         time.sleep(1)
 
-        # Формируем заголовки дат (с 3 строки, начиная с столбца B)
+        # Записываем заголовки дат (строка 3, начиная с столбца B)
         if sorted_dates:
             headers_row = [sorted_dates]
             execute_with_retry(drr_sheet.update, "B3", headers_row, value_input_option='USER_ENTERED')
@@ -384,11 +379,9 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
             row_data = [product]
             for date in sorted_dates:
                 drr_value = drr_data.get(product, {}).get(date, 0.0)
-                # Форматируем ДРР: если целое число, показываем без десятичных, иначе с 2 знаками
+                # Если значение 0 - оставляем пустым
                 if drr_value == 0:
                     row_data.append("")
-                elif isinstance(drr_value, float) and drr_value.is_integer():
-                    row_data.append(int(drr_value))
                 else:
                     row_data.append(round(drr_value, 2))
 
@@ -407,13 +400,13 @@ def update_drr_total_sheet(spreadsheet, history_sheet):
                 col_letter = get_column_letter(col_idx + 2)
                 execute_with_retry(
                     format_cell_range, drr_sheet, f"{col_letter}4:{col_letter}{current_row - 1}",
-                    CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'}, horizontalAlignment='CENTER')
+                    CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                               horizontalAlignment='CENTER')
                 )
 
         print(f"  ✅ Лист ДРР ОБЩИЙ обновлен:")
         print(f"     - Артикулов: {len(sorted_products)}")
         print(f"     - Дат: {len(sorted_dates)}")
-        print(f"     - Всего значений: {sum(len(dates) for dates in drr_data.values())}")
 
         return True
 
