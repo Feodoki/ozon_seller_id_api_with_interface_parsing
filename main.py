@@ -156,6 +156,13 @@ def my_script(api_keys):
         #print(all_items_dict, advert_analytic, position_analytic, sep='\n')
         logger.info("📌 Шаг 7: Загрузка данных в Google Sheets...")
         try:
+            with open('tech_dict.json', 'w', encoding='utf-8') as f:
+                json.dump(tech_stats, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(traceback.format_exc())
+            pass
+
+        try:
             with open('all_items_dict.json', 'w', encoding='utf-8') as f:
                 json.dump(all_items_dict, f, ensure_ascii=False, indent=4)
         except Exception as e:
