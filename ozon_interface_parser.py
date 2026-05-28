@@ -1135,13 +1135,33 @@ class InterfaceParser:
                                         cost_price = cost_price.split('\n')[0]
                                     cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
 
-                                    commission_fbo = all_td[20].text.replace('₽', '').strip().replace('\n', '').strip()
+                                    try:
+                                        self.scroll_to_element_center(all_td[20])
+                                        time.sleep(1)
+                                        all_td[20].click()
+                                        self.random_sleep(2)
+                                        tippy_content_text = ''
+                                        for att in range(3):
+                                            tippy_content_text = driver.find_element(By.XPATH,
+                                                                                     ".//div[@class='tippy-content']").text
+                                            if 'Вознаграждение Ozon' in tippy_content_text:
+                                                break
+                                            time.sleep(1)
+                                        commission_fbo = tippy_content_text.split('Вознаграждение Ozon')[1].split('%')[
+                                            0].strip()
+                                        time.sleep(0.2)
+                                        all_td[20].click()
+                                    except:
+                                        logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
+                                        commission_fbo = 38
+
                                     stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
 
                                     print(item_offer_id, f"Цена после скидки - {item_price}",
                                           f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
                                           f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
                                           sep='\n', end='\n\n')
+
                                     if item_offer_id not in prices_dict.keys():
                                         prices_dict[item_offer_id] = {'price': item_price,
                                                                       'price_before': item_price_before,
@@ -1208,13 +1228,32 @@ class InterfaceParser:
                                     cost_price = cost_price.split('\n')[0]
                                 cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
 
-                                commission_fbo = all_td[20].text.replace('₽', '').strip().replace('\n', '').strip()
+                                try:
+                                    self.scroll_to_element_center(all_td[20])
+                                    time.sleep(1)
+                                    all_td[20].click()
+                                    self.random_sleep(2)
+                                    tippy_content_text = ''
+                                    for att in range(3):
+                                        tippy_content_text = driver.find_element(By.XPATH,
+                                                                                 ".//div[@class='tippy-content']").text
+                                        if 'Вознаграждение Ozon' in tippy_content_text:
+                                            break
+                                        time.sleep(1)
+                                    commission_fbo = tippy_content_text.split('Вознаграждение Ozon')[1].split('%')[0].strip()
+                                    time.sleep(0.2)
+                                    all_td[20].click()
+                                except:
+                                    logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
+                                    commission_fbo = 38
+
                                 stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
 
                                 print(item_offer_id, f"Цена после скидки - {item_price}",
                                       f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
                                       f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
                                       sep='\n', end='\n\n')
+
                                 if item_offer_id not in prices_dict.keys():
                                     prices_dict[item_offer_id] = {'price': item_price,
                                                                   'price_before': item_price_before,
@@ -1564,7 +1603,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_local_sales_percent()
+    #parser.get_actual_prices_offer_id()
     #input('test')
 
     #parser.auth()
