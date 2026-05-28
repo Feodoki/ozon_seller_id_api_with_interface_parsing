@@ -1459,7 +1459,9 @@ def write_parser_error_to_sheet(error_message: str):
 
 def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict] = None,
                             positions_data: Optional[Dict] = None,
-                            drr_all_dict: Optional[Dict] = None):
+                            drr_all_dict: Optional[Dict] = None,
+                            tech_list_dict: Optional[Dict] = None,
+    ):
     """
     Основная функция загрузки данных в Google Sheets
     """
@@ -1571,7 +1573,7 @@ def test():
         l_dict = json.load(f)
     with open('money_spent_advert_dict.json', 'r', encoding='utf-8') as f:
         money_spent_dict = json.load(f)
-    upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict)
+    upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict, {})
 
 
 def test_with_custom_date(custom_date: str = None):
@@ -1600,13 +1602,13 @@ def test_with_custom_date(custom_date: str = None):
         globals()['get_current_date_moscow'] = lambda: custom_date
 
         # Загружаем данные с тестовой датой
-        upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict)
+        upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict, {})
 
         # Восстанавливаем оригинальную функцию
         globals()['get_current_date_moscow'] = original_get_date
     else:
         # Обычный режим с текущей датой
-        upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict)
+        upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict, {})
 
 
 if __name__ == "__main__":

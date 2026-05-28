@@ -109,6 +109,7 @@ def my_script(api_keys):
     advert_analytic = {}
     position_analytic = {}
     money_spent_advert_dict = {}
+    tech_stats = {}
 
     try:
         logger.info("📌 Шаг 1: Инициализация OzonSellerParse...")
@@ -131,7 +132,8 @@ def my_script(api_keys):
             logger.info("   ✅ InterfaceParser инициализирован")
 
             logger.info("📌 Шаг 4: Получение рекламной аналитики...")
-            advert_analytic = interface_parser.get_all_advert_analytic()
+            advert_analytic, tech_stats = interface_parser.get_all_advert_analytic()
+
             if advert_analytic:
                 logger.info(f"   ✅ Получена рекламная аналитика для {len(advert_analytic)} товаров")
             else:
@@ -179,7 +181,7 @@ def my_script(api_keys):
         except Exception as e:
             pass
 
-        upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic, money_spent_advert_dict)
+        upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic, money_spent_advert_dict, tech_stats)
         logger.info("   ✅ Данные загружены в Google Sheets")
 
         end_time = datetime.now()

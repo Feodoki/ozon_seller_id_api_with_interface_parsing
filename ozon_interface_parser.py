@@ -1471,6 +1471,19 @@ class InterfaceParser:
                 self.random_sleep(1)
                 continue
 
+    def get_local_sales_percent(self):
+        driver = self.driver
+        for attempt in range(3):
+            try:
+                driver.get('https://seller.ozon.ru/app/analytics/sales-geography/local-packaging')
+                WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//div[(@data-onboarding-target='LocalSalesWidgetIndex')]")))
+                self.random_sleep()
+                local_sales_percent = driver.find_element(By.XPATH, "//div[(@data-onboarding-target='LocalSalesWidgetIndex')]").text.replace('%', '').strip().replace('\n', '')
+                print(local_sales_percent)
+                return local_sales_percent
+            except:
+                logger.error(f"Ошибка при получении Процента локальных продаж: {traceback.format_exc()}")
+
     def get_all_advert_analytic(self, max_retries: int = 3):
         logger.info(f"Init func - {inspect.currentframe()}")
         """Получение всей рекламной аналитики с обработкой ошибок"""
@@ -1479,6 +1492,14 @@ class InterfaceParser:
             logger.error(f"   ❌ {error_msg}")
             write_parser_error_to_sheet(error_msg)
             return {}
+
+        tech_stats = {}
+
+        try:
+            local_sales_percent = self.get_local_sales_percent()
+            tech_stats['local_sales_percent'] = local_sales_percent
+        except Exception as e:
+            logger.error(f"Ошибка получении данных для Тех листа: {str(e)}")
 
         try:
             logger.info("   📊 Начинаем сбор рекламной аналитики...")
@@ -1522,7 +1543,7 @@ class InterfaceParser:
                             logger.warning(f"   ⚠️ offer_id {offer_id} не найден в рекламной аналитике")
 
                     logger.info(f"   ✅ Актуальные цены добавлены для {len(price_dict)} товаров")
-                    return res_dict
+                    return res_dict, tech_stats
 
                 except Exception as e:
                     logger.error(f'   ❌ Ошибка сопоставления актуальных цен - {str(e)}')
@@ -1543,7 +1564,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_analytic_money_spent()
+    #parser.get_local_sales_percent()
     #input('test')
 
     #parser.auth()
