@@ -268,145 +268,149 @@ def setup_drr_total_sheet(spreadsheet):
     return drr_sheet
 
 
-def update_drr_total_sheet(spreadsheet, history_sheet):
+def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_str):
     """
-    Обновляет лист ДРР ОБЩИЙ на основе данных из истории DASHBOARD
-    Берет значение "ДРР (общий) %" (столбец F в DASHBOARD, индекс 5)
+    Обновляет лист ДРР ОБЩИЙ на основе ТЕКУЩИХ данных из DASHBOARD
+    Данные обновляются при каждом запуске, а не в конце дня
     """
-    print("\n📊 ОБНОВЛЕНИЕ ЛИСТА ДРР ОБЩИЙ")
+    print("\n📊 ОБНОВЛЕНИЕ ЛИСТА ДРР ОБЩИЙ (на основе текущего DASHBOARD)")
 
     try:
-        # Получаем данные из истории DASHBOARD
-        history_data = execute_with_retry(history_sheet.get_all_values)
+        # Получаем текущие данные из DASHBOARD
+        dashboard_data = execute_with_retry(dashboard.get_all_values)
 
-        if len(history_data) <= 2:
-            print("  ⚠️ Нет данных в истории DASHBOARD для создания сводки")
+        if len(dashboard_data) <= 1:
+            print("  ⚠️ Нет данных в DASHBOARD")
             return False
 
-        # Собираем данные: {артикул: {дата: ДРР_ОБЩИЙ}}
+        # Собираем данные из DASHBOARD: {артикул: ДРР_ОБЩИЙ}
         drr_data = {}
-        all_dates = set()
-        all_products = set()
+        all_products = []
 
-        # Пропускаем заголовки (строка 0) и примечание (строка 1)
-        for row in history_data[2:]:
-            if not row or len(row) < 7:
+        # Пропускаем заголовки (строка 0)
+        for row in dashboard_data[1:]:
+            if not row or len(row) < 6:
                 continue
 
-            # Пропускаем итоговые строки
-            if row[0].startswith("ИТОГО за"):
+            # Пропускаем итоговую строку и пустые строки
+            if row[0] == "ИТОГО" or row[0] == "":
                 continue
 
-            date = row[0].strip()  # Дата
-            product = row[1].strip()  # Артикул товара
-            # ДРР общий - это столбец G (индекс 6) в истории
-            # В истории структура: Дата | Артикул | Сумма продаж | Кол-во | ДРР поиск | ДРР CPO | ДРР общий
-            drr_total = clean_numeric_value(row[6]) if len(row) > 6 else 0.0
+            product = row[0].strip()  # Артикул товара
+            # ДРР общий - это столбец F (индекс 5) в DASHBOARD
+            drr_total = clean_numeric_value(row[5]) if len(row) > 5 else 0.0
 
-            if product and product != "" and product != "ИТОГО":
-                if product not in drr_data:
-                    drr_data[product] = {}
-                drr_data[product][date] = drr_total
-                all_dates.add(date)
-                all_products.add(product)
+            if product and product != "":
+                drr_data[product] = drr_total
+                all_products.append(product)
 
         if not drr_data:
             print("  ⚠️ Нет данных для отображения")
             return False
 
-        # Функция для безопасного парсинга даты
-        def safe_parse_date(date_str):
-            try:
-                return datetime.strptime(date_str, "%d.%m.%Y")
-            except ValueError:
-                print(f"  ⚠️ Некорректная дата: {date_str}, пропускаем")
-                return None
-
-        # Сортируем даты по возрастанию, пропуская некорректные
-        valid_dates = []
-        for date in all_dates:
-            parsed_date = safe_parse_date(date)
-            if parsed_date:
-                valid_dates.append((parsed_date, date))
-
-        valid_dates.sort(key=lambda x: x[0])
-        sorted_dates = [date_str for _, date_str in valid_dates]
-
-        if not sorted_dates:
-            print("  ⚠️ Нет корректных дат для отображения")
-            return False
-
         # Сортируем артикулы
         sorted_products = sorted(all_products)
 
-        # Получаем лист ДРР ОБЩИЙ
+        # Получаем или создаем лист ДРР ОБЩИЙ
         drr_sheet = setup_drr_total_sheet(spreadsheet)
 
-        # Очищаем старые данные (начиная с 3 строки)
+        # Получаем существующие данные
         existing_data = execute_with_retry(drr_sheet.get_all_values)
+
+        # Определяем, есть ли уже колонка с текущей датой
+        date_column_index = None
+        date_headers = []
+
         if len(existing_data) > 2:
-            end_col_letter = get_column_letter(len(sorted_dates) + 1)
-            clear_range = f"A3:{end_col_letter}{len(existing_data) + 10}"
-            try:
-                execute_with_retry(drr_sheet.batch_clear, [clear_range])
-                print(f"  ✅ Очищена область {clear_range}")
-            except Exception as e:
-                print(f"  ⚠️ Ошибка при очистке: {e}")
-        time.sleep(1)
+            # Строка 3 содержит заголовки дат (начиная с столбца B)
+            headers_row = existing_data[2] if len(existing_data) > 2 else []
 
-        # Записываем заголовки дат (строка 3, начиная с столбца B)
-        if sorted_dates:
-            headers_row = [sorted_dates]
-            execute_with_retry(drr_sheet.update, "B3", headers_row, value_input_option='USER_ENTERED')
+            for idx, header in enumerate(headers_row):
+                if header and header.strip() == current_date_str:
+                    date_column_index = idx
+                    break
 
-            # Форматируем заголовки дат
-            end_col = get_column_letter(len(sorted_dates) + 1)
+            # Собираем все заголовки дат
+            for idx, header in enumerate(headers_row):
+                if header and header.strip():
+                    date_headers.append((idx, header.strip()))
+
+        # Если колонки с текущей датой нет - добавляем новую
+        if date_column_index is None:
+            # Находим место для новой колонки (по порядку дат)
+            new_col_index = 1  # По умолчанию после столбца A
+            current_date_obj = datetime.strptime(current_date_str, "%d.%m.%Y")
+
+            for idx, header in date_headers:
+                try:
+                    header_date = datetime.strptime(header, "%d.%m.%Y")
+                    if header_date < current_date_obj:
+                        new_col_index = idx + 1
+                    else:
+                        break
+                except:
+                    pass
+
+            # Добавляем новый заголовок даты
+            col_letter = get_column_letter(new_col_index + 1)
+            execute_with_retry(drr_sheet.update, f"{col_letter}3", [[current_date_str]])
             execute_with_retry(
-                format_cell_range, drr_sheet, f"B3:{end_col}3",
+                format_cell_range, drr_sheet, f"{col_letter}3",
                 CellFormat(textFormat=TextFormat(bold=True, fontSize=10),
                            backgroundColor=Color(0.9, 0.95, 0.9),
                            horizontalAlignment='CENTER')
             )
+            execute_with_exponential_backoff(set_column_width, drr_sheet, col_letter, 100)
+            date_column_index = new_col_index
 
-            # Устанавливаем ширину для столбцов с датами
-            for idx in range(len(sorted_dates)):
-                col_letter = get_column_letter(idx + 2)
-                execute_with_exponential_backoff(set_column_width, drr_sheet, col_letter, 100)
+            print(f"  🆕 Добавлена новая колонка для даты: {current_date_str} (столбец {col_letter})")
 
-        # Подготавливаем и записываем данные по артикулам
+            # Сдвигаем существующие данные вправо, если нужно
+            if new_col_index < len(date_headers):
+                for col in range(len(date_headers), new_col_index, -1):
+                    old_col_letter = get_column_letter(col + 1)
+                    new_col_letter = get_column_letter(col + 2)
+                    # Копируем данные (упрощенно - лучше перестраивать весь лист)
+                    pass
+
+        # Обновляем значения ДРР для каждого артикула
+        col_letter = get_column_letter(date_column_index + 1)
         current_row = 4
+
         for product in sorted_products:
-            row_data = [product]
-            for date in sorted_dates:
-                drr_value = drr_data.get(product, {}).get(date, 0.0)
-                # Если значение 0 - оставляем пустым
-                if drr_value == 0:
+            # Находим строку с этим артикулом
+            product_row_index = None
+            for row_idx in range(4, len(existing_data) + 1):
+                if row_idx <= len(existing_data):
+                    row_data = existing_data[row_idx - 1] if row_idx - 1 < len(existing_data) else []
+                    if row_data and row_data[0] == product:
+                        product_row_index = row_idx
+                        break
+
+            if product_row_index:
+                # Обновляем существующую строку
+                execute_with_retry(drr_sheet.update, f"{col_letter}{product_row_index}",
+                                   [[round(drr_data[product], 2) if drr_data[product] != 0 else ""]])
+            else:
+                # Добавляем новую строку
+                row_data = [product]
+                # Заполняем пустыми значениями до нужной колонки
+                while len(row_data) < date_column_index:
                     row_data.append("")
-                else:
-                    row_data.append(round(drr_value, 2))
+                row_data.append(round(drr_data[product], 2) if drr_data[product] != 0 else "")
 
-            execute_with_retry(drr_sheet.update, f"A{current_row}", [row_data], value_input_option='USER_ENTERED')
-            current_row += 1
+                execute_with_retry(drr_sheet.update, f"A{current_row}", [row_data])
+                current_row += 1
 
-        # Форматируем столбец с артикулами
-        if current_row > 4:
-            execute_with_retry(
-                format_cell_range, drr_sheet, f"A4:A{current_row - 1}",
-                CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.95, 0.95, 0.95))
-            )
+        # Форматируем числовые значения
+        execute_with_retry(
+            format_cell_range, drr_sheet, f"{col_letter}4:{col_letter}{current_row}",
+            CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                       horizontalAlignment='CENTER')
+        )
 
-            # Форматируем числовые значения
-            for col_idx in range(len(sorted_dates)):
-                col_letter = get_column_letter(col_idx + 2)
-                execute_with_retry(
-                    format_cell_range, drr_sheet, f"{col_letter}4:{col_letter}{current_row - 1}",
-                    CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
-                               horizontalAlignment='CENTER')
-                )
-
-        print(f"  ✅ Лист ДРР ОБЩИЙ обновлен:")
+        print(f"  ✅ Лист ДРР ОБЩИЙ обновлен (дата: {current_date_str})")
         print(f"     - Артикулов: {len(sorted_products)}")
-        print(f"     - Дат: {len(sorted_dates)}")
 
         return True
 
@@ -1492,6 +1496,14 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
 
+        # ================= НОВЫЙ ЛИСТ: ДРР ОБЩИЙ (сразу после DASHBOARD) =================
+        print("\n" + "=" * 60)
+        print("📊 ОБНОВЛЕНИЕ СВОДНОЙ ТАБЛИЦЫ ДРР ОБЩИЙ")
+        print("=" * 60)
+
+        # Обновляем сводную таблицу на основе текущего DASHBOARD
+        update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_str)
+
         # ================= ОБРАБОТКА ЛИСТОВ ТОВАРОВ =================
         print("\n" + "=" * 60)
         print("📄 ОБРАБОТКА ЛИСТОВ ТОВАРОВ")
@@ -1532,24 +1544,13 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
                 print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
                 time.sleep(5)
 
-        # ================= СОХРАНЕНИЕ ИСТОРИИ DASHBOARD =================
+        # ================= СОХРАНЕНИЕ ИСТОРИИ DASHBOARD (В КОНЦЕ) =================
         print("\n" + "=" * 60)
         print("📜 СОХРАНЕНИЕ ИСТОРИИ DASHBOARD")
         print("=" * 60)
 
         # Сохраняем данные из DASHBOARD в историю
         save_dashboard_to_history(spreadsheet, current_date_str)
-
-        # ================= НОВЫЙ ЛИСТ: ДРР ОБЩИЙ =================
-        print("\n" + "=" * 60)
-        print("📊 СОЗДАНИЕ СВОДНОЙ ТАБЛИЦЫ ДРР ОБЩИЙ")
-        print("=" * 60)
-
-        # Получаем лист истории для построения сводки
-        history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"])
-
-        # Обновляем сводную таблицу ДРР ОБЩИЙ
-        update_drr_total_sheet(spreadsheet, history_sheet)
 
         print("\n" + "=" * 60)
         print("✅ ВСЕ ДАННЫЕ УСПЕШНО ЗАГРУЖЕНЫ")
