@@ -1297,11 +1297,18 @@ class InterfaceParser:
             logger.info(f"Init func - {inspect.currentframe()}")
             try:
                 open_menu_product()
-                WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Сбросить']")))
-                btn_reset = driver.find_element(By.XPATH, "//button[text()='Сбросить']")
+                WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//div[starts-with(@class, '_unselectBlock')]")))
+                time.sleep(2)
+                btn_reset = driver.find_element(By.XPATH, "//div[starts-with(@class, '_unselectBlock')]").find_element(By.XPATH, ".//button[@type='submit']")
                 btn_reset.click()
             except:
-                print(traceback.format_exc())
+                try:
+                    WebDriverWait(driver, 3).until(
+                        EC.element_to_be_clickable((By.XPATH, "//button[text()='Сбросить']")))
+                    btn_reset = driver.find_element(By.XPATH, "//button[text()='Сбросить']")
+                    btn_reset.click()
+                except:
+                    print(traceback.format_exc())
 
         for attempt in range(3):
             money_spent_dict = {}
@@ -1603,8 +1610,8 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_actual_prices_offer_id()
-    #input('test')
+    parser.get_analytic_money_spent()
+    input('test')
 
     #parser.auth()
     time.sleep(2)
