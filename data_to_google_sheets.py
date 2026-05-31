@@ -1,5 +1,4 @@
 import gspread
-from gspread.utils import rowcol_to_a1
 from gspread_formatting import (
     CellFormat,
     Color,
@@ -7,8 +6,6 @@ from gspread_formatting import (
     format_cell_range,
     set_frozen,
     set_column_width,
-    Border,
-    Borders
 )
 from google.oauth2.service_account import Credentials
 from config import spread_id
@@ -18,6 +15,9 @@ from datetime import datetime
 import pytz
 from typing import Dict, List, Any, Optional, Tuple
 import os
+
+QUOTA_RETRY_DELAY = 30
+MAX_QUOTA_RETRIES = 20
 
 # ================= НОВЫЙ МОДУЛЬ: TECHNICAL SHEET =================
 
@@ -235,13 +235,267 @@ DRR_TOTAL_CONFIG = {
 
 CHP_COMMON_CONFIG = {
     "sheet_name": "ЧП_товары_общая",
-    "headers": ["Артикул", "Общая сумма ЧП", "31.04", "30.04", "29.04", "28.04"]
+    "headers": ["Артикул", "Общая сумма ЧП"],
+    "formulas": {
+        "total_chp": "=SUM(C2:2)"
+    }
 }
 
 CHP_DRR_CONFIG = {
     "sheet_name": "ЧП_товары_ДРР",
-    "headers": ["Артикул", "Общая сумма ЧП", "31.04", "30.04", "29.04", "28.04"]
+    "headers": ["Артикул", "Общая сумма ЧП"],
+    "formulas": {
+        "total_chp": "=SUM(C2:2)"
+    }
 }
+
+
+def update_total_chp_formula(sheet, start_date_col: int):
+    """Обновляет формулу "Общая сумма ЧП" для всех строк"""
+    try:
+        all_data = sheet.get_all_values()
+        if len(all_data) <= 1:
+            return
+
+        start_col_letter = get_column_letter(start_date_col)
+        end_col_letter = get_column_letter(100)  # До колонки CV (100)
+
+        # Получаем количество строк с данными
+        num_rows = len(all_data)
+
+        # Подготавливаем формулы для каждой строки
+        formulas = []
+        for row_idx in range(2, num_rows + 1):
+            # Формула для конкретной строки
+            formula = f"=СУММ({start_col_letter}{row_idx}:{end_col_letter}{row_idx})"
+            formulas.append([formula])
+
+        if formulas:
+            # Записываем формулы в столбец B начиная со строки 2
+            range_to_fill = f"B2:B{num_rows}"
+            for attempt in range(MAX_QUOTA_RETRIES):
+                try:
+                    sheet.update(range_to_fill, formulas, value_input_option='USER_ENTERED')
+                    break
+                except Exception as e:
+                    error_str = str(e)
+                    if '429' in error_str or 'Quota exceeded' in error_str:
+                        wait_time = QUOTA_RETRY_DELAY
+                        print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                        time.sleep(wait_time)
+                    else:
+                        raise
+            print(f"  📊 Обновлена формула общей суммы ЧП для {len(formulas)} строк")
+
+    except Exception as e:
+        print(f"  ⚠️ Ошибка при обновлении формулы: {e}")
+
+
+def add_date_column_to_chp_sheet(sheet, date_str: str) -> int:
+    """Добавляет колонку с датой в лист ЧП"""
+
+    for attempt in range(MAX_QUOTA_RETRIES):
+        try:
+            headers = sheet.row_values(1)
+
+            for idx, header in enumerate(headers):
+                if header == date_str:
+                    print(f"  📅 Дата {date_str} уже существует (колонка {get_column_letter(idx + 1)})")
+                    return idx + 1
+
+            insert_col_index = 3
+            first_date_col = None
+
+            for idx, header in enumerate(headers):
+                if idx >= 2:
+                    try:
+                        datetime.strptime(header, "%d.%m.%Y")
+                        first_date_col = idx + 1
+                        break
+                    except:
+                        pass
+
+            if first_date_col:
+                insert_col_index = first_date_col
+
+            col_letter = get_column_letter(insert_col_index)
+
+            # Исправленный вызов insert_cols
+            # В новой версии gspread нужно указывать количество колонок
+            try:
+                sheet.insert_cols(insert_col_index, 1)
+            except TypeError:
+                # Если не работает, пробуем альтернативный способ
+                try:
+                    sheet.insert_cols(insert_col_index)
+                except:
+                    # Альтернативный способ через batch_update
+                    body = {
+                        "requests": [{
+                            "insertRange": {
+                                "range": {
+                                    "sheetId": sheet.id,
+                                    "startColumnIndex": insert_col_index - 1,
+                                    "endColumnIndex": insert_col_index,
+                                    "startRowIndex": 0,
+                                    "endRowIndex": sheet.row_count
+                                },
+                                "shiftDimension": "COLUMNS"
+                            }
+                        }]
+                    }
+                    sheet.spreadsheet.batch_update(body)
+
+            time.sleep(1)
+
+            # Записываем заголовок даты
+            sheet.update(f"{col_letter}1", [[date_str]], value_input_option='USER_ENTERED')
+
+            # Форматируем заголовок даты
+            format_cell_range(
+                sheet, f"{col_letter}1",
+                CellFormat(
+                    textFormat=TextFormat(bold=True, fontSize=10),
+                    backgroundColor=Color(0.9, 0.95, 0.9),
+                    horizontalAlignment='CENTER'
+                )
+            )
+
+            # Устанавливаем ширину колонки
+            set_column_width(sheet, col_letter, 100)
+
+            print(f"  📅 Добавлена колонка с датой {date_str} (столбец {col_letter})")
+
+            update_total_chp_formula(sheet, insert_col_index)
+
+            return insert_col_index
+
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                wait_time = QUOTA_RETRY_DELAY
+                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"  ❌ Ошибка: {e}")
+                raise
+
+    raise Exception(f"Не удалось добавить колонку с датой {date_str} после {MAX_QUOTA_RETRIES} попыток")
+
+
+def get_or_create_chp_sheet(spreadsheet, config: Dict) -> gspread.Worksheet:
+    """Создает или получает лист ЧП с правильной структурой"""
+    sheet_title = config["sheet_name"]
+
+    try:
+        sheet = spreadsheet.worksheet(sheet_title)
+        print(f"  📄 Лист {sheet_title} уже существует")
+        return sheet
+    except gspread.exceptions.WorksheetNotFound:
+        print(f"  🆕 Создание нового листа {sheet_title}...")
+        sheet = spreadsheet.add_worksheet(title=sheet_title, rows=10000, cols=100)
+        time.sleep(2)
+
+        sheet.update("A1", [["Артикул"]])
+        sheet.update("B1", [["Общая сумма ЧП"]])
+
+        format_cell_range(
+            sheet, "A1:B1",
+            CellFormat(
+                textFormat=TextFormat(bold=True, fontSize=11),
+                backgroundColor=Color(0.85, 0.95, 0.85)
+            )
+        )
+
+        set_column_width(sheet, "A", 200)
+        set_column_width(sheet, "B", 150)
+        set_frozen(sheet, rows=1)
+
+        print(f"  ✅ Лист {sheet_title} создан")
+        return sheet
+
+
+def get_markup_percent(spreadsheet) -> float:
+    """Получает средний процент наценки из листа "Наценка за нелокальную доставку" """
+    try:
+        markup_sheet = get_or_create_sheet(spreadsheet, MARKUP_CONFIG["sheet_name"])
+        return load_markup_from_sheet(markup_sheet)
+    except Exception as e:
+        print(f"  ⚠️ Ошибка при получении наценки: {e}")
+        return 8.0
+
+
+def load_markup_from_sheet(sheet) -> float:
+    """Загружает наценки из листа "Наценка за нелокальную доставку" и возвращает среднее значение"""
+    try:
+        all_values = execute_with_retry(sheet.get_all_values)
+
+        markups = []
+
+        # Ищем строки с данными (начиная с 3 строки, где есть "Кластер")
+        for row in all_values[2:]:  # Пропускаем первые 2 строки (заголовки)
+            if row and len(row) >= 2:
+                first_cell = str(row[0]).strip() if row[0] else ""
+                if "Кластер" in first_cell:
+                    try:
+                        markup_value = str(row[1]).strip().replace(',', '.').replace('%', '')
+                        if markup_value and markup_value != '':
+                            markup = float(markup_value)
+                            markups.append(markup)
+                    except (ValueError, TypeError):
+                        continue
+
+        if markups:
+            avg_markup = sum(markups) / len(markups)
+            print(f"  📊 Загружено {len(markups)} кластеров, средняя наценка: {avg_markup}%")
+            return avg_markup
+
+        # Если данных нет, возвращаем значение по умолчанию 8%
+        print("  ⚠️ Данные о наценке не найдены, используется значение по умолчанию: 8%")
+        return 8.0
+
+    except Exception as e:
+        print(f"  ⚠️ Ошибка при загрузке наценки: {e}, используется значение по умолчанию: 8%")
+        return 8.0
+
+
+def execute_with_quota_retry(func, *args, max_retries=15, **kwargs):
+    """Выполняет функцию с повторными попытками при превышении квоты (429)"""
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                wait_time = 30
+                print(f"  ⏳ Превышена квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+                if attempt < max_retries - 1:
+                    continue
+                else:
+                    raise
+            else:
+                raise
+    raise Exception(f"Не удалось выполнить операцию после {max_retries} попыток")
+
+
+def batch_update_sheet(sheet, data: List[List], start_cell: str = "A1"):
+    """Массовое обновление данных в листе одной операцией"""
+    if not data:
+        return
+
+    try:
+        end_row = start_cell[0] + str(int(start_cell[1:]) + len(data) - 1)
+        end_col = get_column_letter(len(data[0]))
+        range_name = f"{start_cell}:{end_col}{int(start_cell[1:]) + len(data) - 1}"
+
+        execute_with_quota_retry(sheet.update, range_name, data, value_input_option='USER_ENTERED')
+        print(f"  ✅ Записано {len(data)} строк данных в {range_name}")
+        time.sleep(1)
+    except Exception as e:
+        print(f"  ❌ Ошибка при массовой записи: {e}")
+        raise
 
 
 def setup_drr_total_sheet(spreadsheet):
@@ -250,23 +504,19 @@ def setup_drr_total_sheet(spreadsheet):
     drr_sheet = get_or_create_sheet(spreadsheet, DRR_TOTAL_CONFIG["sheet_name"], rows=10000, cols=100)
     all_values = execute_with_retry(drr_sheet.get_all_values)
 
-    # Проверяем, нужно ли настраивать структуру
     if len(all_values) < 2 or (len(all_values) > 0 and all_values[0][0] != "Артикул"):
         print("  🆕 Настройка структуры листа ДРР ОБЩИЙ...")
         execute_with_exponential_backoff(drr_sheet.clear)
         time.sleep(1)
 
-        # Заголовок
         execute_with_exponential_backoff(drr_sheet.update, "A1", [[DRR_TOTAL_CONFIG["headers"][0]["name"]]])
         execute_with_exponential_backoff(
             format_cell_range, drr_sheet, "A1",
             CellFormat(textFormat=TextFormat(bold=True, fontSize=11), backgroundColor=Color(0.85, 0.95, 0.85))
         )
 
-        # Устанавливаем ширину столбца Артикул
         execute_with_exponential_backoff(set_column_width, drr_sheet, "A", DRR_TOTAL_CONFIG["headers"][0]["width"])
 
-        # Добавляем примечание
         execute_with_exponential_backoff(drr_sheet.update, "A2", [[DRR_TOTAL_CONFIG["note"]]])
         execute_with_exponential_backoff(
             format_cell_range, drr_sheet, "A2",
@@ -282,35 +532,27 @@ def setup_drr_total_sheet(spreadsheet):
 
 
 def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_str):
-    """
-    Обновляет лист ДРР ОБЩИЙ на основе ТЕКУЩИХ данных из DASHBOARD
-    Данные обновляются при каждом запуске, а не в конце дня
-    """
+    """Обновляет лист ДРР ОБЩИЙ на основе ТЕКУЩИХ данных из DASHBOARD"""
     print("\n📊 ОБНОВЛЕНИЕ ЛИСТА ДРР ОБЩИЙ (на основе текущего DASHBOARD)")
 
     try:
-        # Получаем текущие данные из DASHBOARD
         dashboard_data = execute_with_retry(dashboard.get_all_values)
 
         if len(dashboard_data) <= 1:
             print("  ⚠️ Нет данных в DASHBOARD")
             return False
 
-        # Собираем данные из DASHBOARD: {артикул: ДРР_ОБЩИЙ}
         drr_data = {}
         all_products = []
 
-        # Пропускаем заголовки (строка 0)
         for row in dashboard_data[1:]:
             if not row or len(row) < 6:
                 continue
 
-            # Пропускаем итоговую строку и пустые строки
             if row[0] == "ИТОГО" or row[0] == "":
                 continue
 
-            product = row[0].strip()  # Артикул товара
-            # ДРР общий - это столбец F (индекс 5) в DASHBOARD
+            product = row[0].strip()
             drr_total = clean_numeric_value(row[5]) if len(row) > 5 else 0.0
 
             if product and product != "":
@@ -321,21 +563,14 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
             print("  ⚠️ Нет данных для отображения")
             return False
 
-        # Сортируем артикулы
         sorted_products = sorted(all_products)
-
-        # Получаем или создаем лист ДРР ОБЩИЙ
         drr_sheet = setup_drr_total_sheet(spreadsheet)
-
-        # Получаем существующие данные
         existing_data = execute_with_retry(drr_sheet.get_all_values)
 
-        # Определяем, есть ли уже колонка с текущей датой
         date_column_index = None
         date_headers = []
 
         if len(existing_data) > 2:
-            # Строка 3 содержит заголовки дат (начиная с столбца B)
             headers_row = existing_data[2] if len(existing_data) > 2 else []
 
             for idx, header in enumerate(headers_row):
@@ -343,15 +578,12 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                     date_column_index = idx
                     break
 
-            # Собираем все заголовки дат
             for idx, header in enumerate(headers_row):
                 if header and header.strip():
                     date_headers.append((idx, header.strip()))
 
-        # Если колонки с текущей датой нет - добавляем новую
         if date_column_index is None:
-            # Находим место для новой колонки (по порядку дат)
-            new_col_index = 1  # По умолчанию после столбца A
+            new_col_index = 1
             current_date_obj = datetime.strptime(current_date_str, "%d.%m.%Y")
 
             for idx, header in date_headers:
@@ -364,7 +596,6 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                 except:
                     pass
 
-            # Добавляем новый заголовок даты
             col_letter = get_column_letter(new_col_index + 1)
             execute_with_retry(drr_sheet.update, f"{col_letter}3", [[current_date_str]])
             execute_with_retry(
@@ -378,20 +609,10 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
 
             print(f"  🆕 Добавлена новая колонка для даты: {current_date_str} (столбец {col_letter})")
 
-            # Сдвигаем существующие данные вправо, если нужно
-            if new_col_index < len(date_headers):
-                for col in range(len(date_headers), new_col_index, -1):
-                    old_col_letter = get_column_letter(col + 1)
-                    new_col_letter = get_column_letter(col + 2)
-                    # Копируем данные (упрощенно - лучше перестраивать весь лист)
-                    pass
-
-        # Обновляем значения ДРР для каждого артикула
         col_letter = get_column_letter(date_column_index + 1)
         current_row = 4
 
         for product in sorted_products:
-            # Находим строку с этим артикулом
             product_row_index = None
             for row_idx in range(4, len(existing_data) + 1):
                 if row_idx <= len(existing_data):
@@ -401,13 +622,10 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                         break
 
             if product_row_index:
-                # Обновляем существующую строку
                 execute_with_retry(drr_sheet.update, f"{col_letter}{product_row_index}",
                                    [[round(drr_data[product], 2) if drr_data[product] != 0 else ""]])
             else:
-                # Добавляем новую строку
                 row_data = [product]
-                # Заполняем пустыми значениями до нужной колонки
                 while len(row_data) < date_column_index:
                     row_data.append("")
                 row_data.append(round(drr_data[product], 2) if drr_data[product] != 0 else "")
@@ -415,7 +633,6 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                 execute_with_retry(drr_sheet.update, f"A{current_row}", [row_data])
                 current_row += 1
 
-        # Форматируем числовые значения
         execute_with_retry(
             format_cell_range, drr_sheet, f"{col_letter}4:{col_letter}{current_row}",
             CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
@@ -437,87 +654,129 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
 def setup_markup_sheet(spreadsheet):
     """Настраивает лист Наценка за нелокальную доставку"""
     print("\n💰 НАСТРОЙКА ЛИСТА НАЦЕНКИ ЗА НЕЛОКАЛЬНУЮ ДОСТАВКУ")
-    sheet = get_or_create_sheet(spreadsheet, MARKUP_CONFIG["sheet_name"], rows=100, cols=5)
-    all_values = execute_with_retry(sheet.get_all_values)
 
-    if len(all_values) < 5 or (len(all_values) > 0 and not any("Кластер доставки" in str(row) for row in all_values)):
-        print("  🆕 Настройка структуры листа наценки...")
-        execute_with_exponential_backoff(sheet.clear)
-        time.sleep(1)
+    sheet_title = MARKUP_CONFIG["sheet_name"]
 
-        execute_with_exponential_backoff(sheet.update, "A1", [["💰 НАЦЕНКА ЗА НЕЛОКАЛЬНУЮ ДОСТАВКУ"]])
-        execute_with_exponential_backoff(
-            format_cell_range, sheet, "A1:B1",
+    try:
+        sheet = spreadsheet.worksheet(sheet_title)
+        print("  📄 Лист наценки уже существует")
+
+        # Проверяем, есть ли данные, если нет - добавляем
+        all_values = sheet.get_all_values()
+        has_data = False
+        for row in all_values:
+            if row and len(row) >= 2 and "Кластер" in str(row[0]):
+                has_data = True
+                break
+
+        if not has_data and len(all_values) < 3:
+            print("  📝 Добавляем данные по умолчанию...")
+            sheet.update("A3", [["Кластер 1", 8]])
+            format_cell_range(
+                sheet, "A3:B3",
+                CellFormat(textFormat=TextFormat(bold=False), backgroundColor=Color(0.95, 0.95, 0.9))
+            )
+
+        return sheet
+
+    except gspread.exceptions.WorksheetNotFound:
+        print("  🆕 Создание листа наценки...")
+
+        sheet = spreadsheet.add_worksheet(title=sheet_title, rows=100, cols=5)
+        time.sleep(2)
+
+        # Заголовок
+        sheet.update("A1", [["💰 НАЦЕНКА ЗА НЕЛОКАЛЬНУЮ ДОСТАВКУ"]])
+        format_cell_range(
+            sheet, "A1:B1",
             CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
         )
 
-        headers = [h['name'] for h in MARKUP_CONFIG["headers"]]
-        execute_with_exponential_backoff(sheet.update, "A2", [headers])
-        execute_with_exponential_backoff(
-            format_cell_range, sheet, "A2:B2",
+        # Заголовки колонок
+        headers = ["Кластер доставки", "Наценка за нелокальную продажу от вашей цены товара, %"]
+        sheet.update("A2", [headers])
+        format_cell_range(
+            sheet, "A2:B2",
             CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
         )
 
-        execute_with_exponential_backoff(sheet.update, "A3", MARKUP_CONFIG["default_data"])
+        # Данные по умолчанию - одна запись со значением 8
+        sheet.update("A3", [["Кластер 1", 8]])
+        format_cell_range(
+            sheet, "A3:B3",
+            CellFormat(textFormat=TextFormat(bold=False), backgroundColor=Color(0.95, 0.95, 0.9))
+        )
 
-        for idx, header in enumerate(MARKUP_CONFIG["headers"], start=1):
-            col_letter = get_column_letter(idx)
-            if 'width' in header:
-                execute_with_exponential_backoff(set_column_width, sheet, col_letter, header['width'])
-
-        note_row = 3 + len(MARKUP_CONFIG["default_data"]) + 1
-        execute_with_exponential_backoff(sheet.update, f"A{note_row}", [[MARKUP_CONFIG["note"]]])
-        execute_with_exponential_backoff(
-            format_cell_range, sheet, f"A{note_row}:B{note_row}",
+        # Примечание
+        note_row = 5
+        sheet.update(f"A{note_row}",
+                     [["💡 Добавляйте новые кластеры в следующие строки. Наценка будет усредняться автоматически."]])
+        format_cell_range(
+            sheet, f"A{note_row}:B{note_row}",
             CellFormat(textFormat=TextFormat(italic=True, fontSize=10), backgroundColor=Color(0.95, 0.95, 0.9))
         )
-        print("  ✅ Лист наценки настроен")
-    else:
-        print("  📄 Лист наценки уже существует")
-    return sheet
+
+        # Устанавливаем ширину колонок
+        set_column_width(sheet, "A", 250)
+        set_column_width(sheet, "B", 400)
+
+        print("  ✅ Лист наценки создан и настроен (значение по умолчанию: 8%)")
+        return sheet
 
 
 def setup_logistics_price_sheet(spreadsheet):
     """Настраивает лист Стоимость логистики с тремя столбцами"""
     print("\n📦 НАСТРОЙКА ЛИСТА СТОИМОСТИ ЛОГИСТИКИ")
-    sheet = get_or_create_sheet(spreadsheet, LOGISTICS_PRICE_CONFIG["sheet_name"], rows=100, cols=10)
-    all_values = execute_with_retry(sheet.get_all_values)
 
-    if len(all_values) < 5 or (len(all_values) > 0 and not any("Объём товара" in str(row) for row in all_values)):
-        print("  🆕 Настройка структуры листа стоимости логистики...")
-        execute_with_exponential_backoff(sheet.clear)
-        time.sleep(1)
+    sheet_title = LOGISTICS_PRICE_CONFIG["sheet_name"]
 
-        execute_with_exponential_backoff(sheet.update, "A1", [["📊 ТАБЛИЦА СТОИМОСТИ ЛОГИСТИКИ ОЗОН"]])
-        execute_with_exponential_backoff(
-            format_cell_range, sheet, "A1:C1",
-            CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
-        )
+    try:
+        try:
+            sheet = spreadsheet.worksheet(sheet_title)
+            print("  📄 Лист стоимости логистики уже существует")
+            return sheet
+        except gspread.exceptions.WorksheetNotFound:
+            print("  🆕 Создание листа стоимости логистики...")
 
-        headers = [h['name'] for h in LOGISTICS_PRICE_CONFIG["headers"]]
-        execute_with_exponential_backoff(sheet.update, "A2", [headers])
-        execute_with_exponential_backoff(
-            format_cell_range, sheet, "A2:C2",
-            CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
-        )
+            sheet = spreadsheet.add_worksheet(title=sheet_title, rows=100, cols=10)
+            time.sleep(2)
 
-        execute_with_exponential_backoff(sheet.update, "A3", LOGISTICS_PRICE_CONFIG["default_data"])
+            sheet.update("A1", [["📊 ТАБЛИЦА СТОИМОСТИ ЛОГИСТИКИ ОЗОН"]])
+            headers = [h['name'] for h in LOGISTICS_PRICE_CONFIG["headers"]]
+            sheet.update("A2", [headers])
+            sheet.update("A3", LOGISTICS_PRICE_CONFIG["default_data"])
 
-        for idx, header in enumerate(LOGISTICS_PRICE_CONFIG["headers"], start=1):
-            col_letter = get_column_letter(idx)
-            if 'width' in header:
-                execute_with_exponential_backoff(set_column_width, sheet, col_letter, header['width'])
+            note_row = 3 + len(LOGISTICS_PRICE_CONFIG["default_data"]) + 1
+            sheet.update(f"A{note_row}", [[LOGISTICS_PRICE_CONFIG["note"]]])
 
-        note_row = 3 + len(LOGISTICS_PRICE_CONFIG["default_data"]) + 1
-        execute_with_exponential_backoff(sheet.update, f"A{note_row}", [[LOGISTICS_PRICE_CONFIG["note"]]])
-        execute_with_exponential_backoff(
-            format_cell_range, sheet, f"A{note_row}:C{note_row}",
-            CellFormat(textFormat=TextFormat(italic=True, fontSize=10), backgroundColor=Color(0.95, 0.95, 0.9))
-        )
-        print("  ✅ Лист стоимости логистики настроен")
-    else:
-        print("  📄 Лист стоимости логистики уже существует")
-    return sheet
+            time.sleep(1)
+
+            format_cell_range(
+                sheet, "A1:C1",
+                CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
+            )
+
+            format_cell_range(
+                sheet, "A2:C2",
+                CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
+            )
+
+            format_cell_range(
+                sheet, f"A{note_row}:C{note_row}",
+                CellFormat(textFormat=TextFormat(italic=True, fontSize=10), backgroundColor=Color(0.95, 0.95, 0.9))
+            )
+
+            for idx, header in enumerate(LOGISTICS_PRICE_CONFIG["headers"], start=1):
+                col_letter = get_column_letter(idx)
+                if 'width' in header:
+                    set_column_width(sheet, col_letter, header['width'])
+
+            print("  ✅ Лист стоимости логистики создан и настроен")
+            return sheet
+
+    except Exception as e:
+        print(f"  ❌ Ошибка при настройке листа логистики: {e}")
+        raise
 
 
 def load_logistics_prices_from_sheet(sheet) -> Dict:
@@ -586,86 +845,299 @@ def get_logistics_price_by_volume(volume_liters: float, product_price: float, lo
 
 
 def setup_technical_sheet(spreadsheet):
-    """Настраивает Технический лист"""
+    """Настраивает Технический лист (создает если нет)"""
     print("\n📋 НАСТРОЙКА ТЕХНИЧЕСКОГО ЛИСТА")
-    tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"], rows=5000, cols=50)
-    all_values = execute_with_retry(tech_sheet.get_all_values)
 
-    if len(all_values) < 20 or (len(all_values) > 0 and not any("ТОВАРЫ В ПРОДАЖЕ" in str(row) for row in all_values)):
-        print("  🆕 Настройка структуры Технического листа...")
-        execute_with_exponential_backoff(tech_sheet.clear)
+    sheet_title = TECHNICAL_SHEET_CONFIG["sheet_name"]
+
+    try:
+        tech_sheet = spreadsheet.worksheet(sheet_title)
+        print("  📄 Технический лист уже существует")
+
+        all_values = tech_sheet.get_all_values()
+        products_start_row = 8
+        for idx, row in enumerate(all_values):
+            if row and len(row) > 0 and "ТОВАРЫ В ПРОДАЖЕ" in str(row[0]):
+                products_start_row = idx + 3
+                break
+
+        print(f"  📍 Строка начала данных товаров: {products_start_row}")
+        return tech_sheet, products_start_row
+
+    except gspread.exceptions.WorksheetNotFound:
+        print("  🆕 Технический лист не найден, создаем новый...")
+
+        # БЕЗОПАСНОЕ создание листа
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet = spreadsheet.add_worksheet(title=sheet_title, rows=5000, cols=50)
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(
+                        f"  ⏳ Квота API при создании листа. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                    if attempt == MAX_QUOTA_RETRIES - 1:
+                        raise
+                else:
+                    raise
+
+        time.sleep(2)
+
+        # Очистка листа с повторными попытками
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.clear()
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(
+                        f"  ⏳ Квота API при очистке. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
         time.sleep(1)
 
         # Блок настроек
-        execute_with_exponential_backoff(tech_sheet.update, "A1", [["⚙️ НАСТРОЙКИ КАЛЬКУЛЯТОРА"]])
-        execute_with_exponential_backoff(
-            format_cell_range, tech_sheet, "A1:C1",
-            CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
-        )
+        print("  🔍 Настройка блока настроек...")
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.update("A1", [["⚙️ НАСТРОЙКИ КАЛЬКУЛЯТОРА"]], value_input_option='USER_ENTERED')
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                format_cell_range(
+                    tech_sheet, "A1:C1",
+                    CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
+                )
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
 
         settings_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["settings_headers"]]
-        execute_with_exponential_backoff(tech_sheet.update, "A2", [settings_headers])
-        execute_with_exponential_backoff(
-            format_cell_range, tech_sheet, "A2:C2",
-            CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
-        )
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.update("A2", [settings_headers], value_input_option='USER_ENTERED')
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                format_cell_range(
+                    tech_sheet, "A2:C2",
+                    CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
+                )
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
 
         settings_data = [
             ["Ставка УСН + НДС (%)", technical_settings['tax_rate'], "%"],
             ["Эквайринг (%)", technical_settings['acquiring_rate'], "%"],
             ["Локальные продажи (%)", "87", "%"]
         ]
-        execute_with_exponential_backoff(tech_sheet.update, "A3", settings_data)
 
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.update("A3", settings_data, value_input_option='USER_ENTERED')
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        # Установка ширины колонок настроек
         for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["settings_headers"], start=1):
             col_letter = get_column_letter(idx)
             if 'width' in header:
-                execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
+                for attempt in range(MAX_QUOTA_RETRIES):
+                    try:
+                        set_column_width(tech_sheet, col_letter, header['width'])
+                        break
+                    except Exception as e:
+                        error_str = str(e)
+                        if '429' in error_str or 'Quota exceeded' in error_str:
+                            wait_time = QUOTA_RETRY_DELAY
+                            print(
+                                f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                            time.sleep(wait_time)
+                        else:
+                            raise
+
         time.sleep(1)
 
         # Блок товаров
         products_start_row = 8
-        execute_with_exponential_backoff(tech_sheet.update, f"A{products_start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]])
-        execute_with_exponential_backoff(
-            format_cell_range, tech_sheet, f"A{products_start_row}:I{products_start_row}",
-            CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
-        )
+        print("  🔍 Настройка блока товаров...")
 
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.update(f"A{products_start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]], value_input_option='USER_ENTERED')
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                format_cell_range(
+                    tech_sheet, f"A{products_start_row}:I{products_start_row}",
+                    CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
+                )
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        # ЗАГОЛОВКИ ТАБЛИЦЫ ТОВАРОВ (строка products_start_row + 1)
         products_headers = [h['name'] for h in TECHNICAL_SHEET_CONFIG["products_headers"]]
-        execute_with_exponential_backoff(tech_sheet.update, f"A{products_start_row + 1}", [products_headers])
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.update(f"A{products_start_row + 1}", [products_headers], value_input_option='USER_ENTERED')
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
 
         end_col = get_column_letter(len(products_headers))
-        execute_with_exponential_backoff(
-            format_cell_range, tech_sheet, f"A{products_start_row + 1}:{end_col}{products_start_row + 1}",
-            CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
-        )
 
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                format_cell_range(
+                    tech_sheet, f"A{products_start_row + 1}:{end_col}{products_start_row + 1}",
+                    CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
+                )
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        # Установка ширины колонок товаров
         for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["products_headers"], start=1):
             col_letter = get_column_letter(idx)
             if 'width' in header:
-                execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, header['width'])
+                for attempt in range(MAX_QUOTA_RETRIES):
+                    try:
+                        set_column_width(tech_sheet, col_letter, header['width'])
+                        break
+                    except Exception as e:
+                        error_str = str(e)
+                        if '429' in error_str or 'Quota exceeded' in error_str:
+                            wait_time = QUOTA_RETRY_DELAY
+                            print(
+                                f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                            time.sleep(wait_time)
+                        else:
+                            raise
 
-        execute_with_exponential_backoff(set_frozen, tech_sheet, rows=products_start_row + 1)
-
-        note_row = products_start_row + 2
-        execute_with_exponential_backoff(tech_sheet.update, f"A{note_row}",
-                                         [["💡 Примечание: Стоимость логистики берется из листа 'Стоимость логистики'. Редактируйте таблицу там."]])
-        execute_with_exponential_backoff(
-            format_cell_range, tech_sheet, f"A{note_row}:I{note_row}",
-            CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
-        )
-
-        print("  ✅ Технический лист настроен")
-        return tech_sheet, products_start_row + 2
-    else:
-        print("  📄 Технический лист уже существует, обновляем только данные товаров...")
-        products_start_row = 8
-        for idx, row in enumerate(all_values):
-            if row and len(row) > 0 and "ТОВАРЫ В ПРОДАЖЕ" in str(row[0]):
-                products_start_row = idx + 3
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                set_frozen(tech_sheet, rows=products_start_row + 1)
                 break
-        print(f"  📍 Строка начала данных товаров: {products_start_row}")
-        return tech_sheet, products_start_row
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        # Примечание
+        note_row = products_start_row + 2
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                tech_sheet.update(f"A{note_row}", [
+                    ["💡 Примечание: Стоимость логистики берется из листа 'Стоимость логистики'. Редактируйте таблицу там."]
+                ], value_input_option='USER_ENTERED')
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                format_cell_range(
+                    tech_sheet, f"A{note_row}:I{note_row}",
+                    CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
+                )
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        print("  ✅ Технический лист создан и настроен")
+        return tech_sheet, products_start_row + 2
 
 
 def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row: int, logistics_price_sheet):
@@ -684,10 +1156,8 @@ def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row:
     except Exception as e:
         print(f"  ⚠️ Ошибка чтения настроек: {e}")
 
-    print(
-        f"  ⚙️ Используемые настройки: налог={technical_settings['tax_rate']}%, эквайринг={technical_settings['acquiring_rate']}%")
+    print(f"  ⚙️ Используемые настройки: налог={technical_settings['tax_rate']}%, эквайринг={technical_settings['acquiring_rate']}%")
 
-    # Очищаем старые данные
     try:
         all_values = execute_with_retry(tech_sheet.get_all_values)
         total_rows = len(all_values)
@@ -700,7 +1170,6 @@ def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row:
     except Exception as e:
         print(f"  ⚠️ Ошибка при очистке: {e}")
 
-    # Подготавливаем данные
     products_data = []
     for offer_id, campaigns_list in campaigns_data.items():
         if not campaigns_list:
@@ -711,7 +1180,7 @@ def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row:
         stock_balance = clean_int_value(first_campaign.get('stock_balance', 0))
         commission_fbo = clean_numeric_value(first_campaign.get('commission_fbo', 0))
         sku = first_campaign.get('sku', '—')
-        product_volume = 1.0
+        product_volume = clean_numeric_value(first_campaign.get('item_volume_l', 0))
         logistics_cost = get_logistics_price_by_volume(product_volume, product_price, logistics_prices)
         acquiring_fee = round(product_price_before * (technical_settings['acquiring_rate'] / 100), 2)
         products_data.append(
@@ -744,23 +1213,42 @@ def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row:
 
 def get_commission_rate(commission_str: str) -> float:
     """
-    Парсит комиссию FBO из строки вида "1 588–2 179 43%–59%"
-    Возвращает среднюю комиссию в процентах
+    Парсит комиссию FBO из строки вида:
+    - "39" (просто число)
+    - "1 588–2 179 43%–59%" (диапазон)
+    Возвращает комиссию в процентах
     """
     if not commission_str or commission_str == '—':
         return 0
 
     try:
         import re
-        percent_match = re.search(r'(\d+)%[–-](\d+)%', commission_str)
+
+        # Очищаем строку
+        cleaned = str(commission_str).strip()
+
+        # Пробуем получить просто число (убираем пробелы и знак %)
+        number_cleaned = cleaned.replace(' ', '').replace('%', '')
+
+        # Если это просто число (например "39")
+        if number_cleaned.isdigit():
+            return float(number_cleaned)
+
+        # Если есть диапазон процентов вида "43%–59%"
+        percent_match = re.search(r'(\d+)%[–-](\d+)%', cleaned)
         if percent_match:
             min_percent = float(percent_match.group(1))
             max_percent = float(percent_match.group(2))
             return round((min_percent + max_percent) / 2, 2)
 
-        numbers = re.findall(r'\d+', commission_str)
+        # Если есть числа через дефис
+        numbers = re.findall(r'\d+', cleaned)
         if numbers and len(numbers) >= 2:
             return round((float(numbers[-2]) + float(numbers[-1])) / 2, 2)
+
+        # Если есть одно число
+        if numbers:
+            return float(numbers[0])
 
         return 0
     except Exception as e:
@@ -769,38 +1257,36 @@ def get_commission_rate(commission_str: str) -> float:
 
 
 def calculate_logistics_cost(volume_l: float, price_before: float, logistics_prices: Dict,
-                             non_local_ratio: float, avg_markup: float = 0.08) -> float:
-    """
-    Рассчитывает стоимость логистики по формуле:
-    L = Ставка_доставки(объем) + 0.08 * non_local_ratio * цена_до_скидки
-    """
-    if volume_l <= 0:
+                             local_sales_percent: float, markup_percent: float) -> float:
+    """Рассчитывает стоимость логистики"""
+    if volume_l <= 0 or price_before <= 0:
         return 0
 
-    base_rate = 56
+    non_local_ratio = (100 - local_sales_percent) / 1000
+    avg_markup = markup_percent / 100
+
     rules = logistics_prices.get('over_300', [])
+    base_rate = 56
 
-    for rule in rules:
-        if rule['min'] <= volume_l <= rule['max']:
-            base_rate = rule['price']
-            break
+    if rules:
+        for rule in rules:
+            if rule['min'] <= volume_l <= rule['max']:
+                base_rate = rule['price']
+                break
 
-    if rules and volume_l < rules[0]['min']:
-        base_rate = rules[0]['price']
-
-    if rules and volume_l > rules[-1]['max']:
-        base_rate = rules[-1]['price']
+        if volume_l < rules[0]['min']:
+            base_rate = rules[0]['price']
+        elif volume_l > rules[-1]['max']:
+            base_rate = rules[-1]['price']
 
     markup = avg_markup * non_local_ratio * price_before
+    total_logistics = base_rate + markup
 
-    return round(base_rate + markup, 2)
+    return round(total_logistics, 2)
 
 
 def calculate_spp(price_before: float, price_for_buyer: float) -> float:
-    """
-    Рассчитывает СПП (скидка постоянного покупателя):
-    СПП = (1 - цена_для_покупателя / цена_до_скидки) * 100
-    """
+    """Рассчитывает СПП (скидка постоянного покупателя)"""
     if price_before <= 0:
         return 0
     spp = (1 - (price_for_buyer / price_before)) * 100
@@ -808,25 +1294,62 @@ def calculate_spp(price_before: float, price_for_buyer: float) -> float:
 
 
 def calculate_tax(price_for_buyer: float, tax_rate: float) -> float:
-    """Рассчитывает налог: цена_для_покупателя * ставка_налога / 100"""
+    """Рассчитывает налог"""
     return round(price_for_buyer * (tax_rate / 100), 2)
 
 
 def calculate_acquiring(price_before: float, acquiring_rate: float) -> float:
-    """Рассчитывает эквайринг: цена_до_скидки * ставка_эквайринга / 100"""
+    """Рассчитывает эквайринг"""
     return round(price_before * (acquiring_rate / 100), 2)
 
 
 def calculate_chp(price_before: float, commission_percent: float, logistics: float,
-                  tax: float, cost_price: float, acquiring: float, drr: float) -> float:
+                  tax: float, cost_price: float, acquiring: float, drr_percent: float,
+                  offer_id: str = None, verbose: bool = False) -> float:
     """
-    Рассчитывает чистую прибыль (ЧП):
-    ЧП = цена_до_скидки - (цена_до_скидки * комиссия/100) - логистика - налог - себестоимость - эквайринг - (цена_до_скидки * ДРР/100)
-    """
-    commission_amount = price_before * (commission_percent / 100)
-    drr_amount = price_before * (drr / 100)
+    Рассчитывает чистую прибыль (ЧП) с детальным логированием
 
+    Формула:
+    ЧП = X – (X * Y/100) – L – N – S – E – (X * ДРР_общ/100)
+
+    где:
+    X = price_before (цена до скидки)
+    Y = commission_percent (комиссия FBO в процентах)
+    L = logistics (стоимость логистики)
+    N = tax (налог)
+    S = cost_price (себестоимость)
+    E = acquiring (эквайринг)
+    ДРР_общ = drr_percent (общий ДРР в процентах)
+    """
+    # Комиссия FBO в рублях: X * (Y / 100)
+    commission_amount = price_before * (commission_percent / 100)
+
+    # ДРР в рублях: X * (ДРР_общ / 100)
+    drr_amount = price_before * (drr_percent / 100)
+
+    # ЧП = X - комиссия - логистика - налог - себестоимость - эквайринг - ДРР
     chp = price_before - commission_amount - logistics - tax - cost_price - acquiring - drr_amount
+
+    # Детальный вывод для отладки
+    if verbose or offer_id:
+        print(f"\n  🔍 ДЕТАЛЬНЫЙ РАСЧЕТ ЧП для {offer_id if offer_id else 'товара'}:")
+        print(f"     ┌─────────────────────────────────────────────────────────────")
+        print(f"     │ X (Цена до скидки):                    {price_before:>12.2f} руб")
+        print(f"     │")
+        print(f"     │ ВЫЧИТАЕМ:")
+        print(f"     │   Y (Комиссия FBO) {commission_percent:>5}%:          - {commission_amount:>12.2f} руб")
+        print(f"     │   L (Логистика):                         - {logistics:>12.2f} руб")
+        print(f"     │   N (Налог):                             - {tax:>12.2f} руб")
+        print(f"     │   S (Себестоимость):                     - {cost_price:>12.2f} руб")
+        print(f"     │   E (Эквайринг):                         - {acquiring:>12.2f} руб")
+        print(f"     │   ДРР_общ ({drr_percent:>5}%):            - {drr_amount:>12.2f} руб")
+        print(f"     ├─────────────────────────────────────────────────────────────")
+        print(
+            f"     │ ИТОГО ВЫЧЕТЫ:                           - {commission_amount + logistics + tax + cost_price + acquiring + drr_amount:>12.2f} руб")
+        print(f"     │")
+        print(f"     │ ЧП = X - ВЫЧЕТЫ:                        = {chp:>12.2f} руб")
+        print(f"     └─────────────────────────────────────────────────────────────")
+
     return round(chp, 2)
 
 
@@ -834,20 +1357,22 @@ def setup_chp_common_sheet(spreadsheet):
     """Настраивает страницу ЧП_товары_общая"""
     print("\n💰 НАСТРОЙКА ЛИСТА ЧП_товары_общая")
 
-    try:
-        # Проверяем, существует ли лист
-        try:
-            sheet = spreadsheet.worksheet(CHP_COMMON_CONFIG["sheet_name"])
-            print(f"  📄 Лист {CHP_COMMON_CONFIG['sheet_name']} уже существует")
+    sheet_title = CHP_COMMON_CONFIG["sheet_name"]
 
-            # Проверяем структуру
-            all_values = sheet.get_all_values()
-            if len(all_values) > 0 and all_values[0] != CHP_COMMON_CONFIG["headers"]:
-                print("  🆕 Обновляем структуру листа...")
-                # Очищаем и пересоздаем
-                sheet.clear()
-                time.sleep(1)
-                sheet.update("A1", [CHP_COMMON_CONFIG["headers"]])
+    # БЕЗОПАСНОЕ получение или создание листа
+    for attempt in range(MAX_QUOTA_RETRIES):
+        try:
+            try:
+                sheet = spreadsheet.worksheet(sheet_title)
+                print(f"  📄 Лист {sheet_title} уже существует")
+                return sheet
+            except gspread.exceptions.WorksheetNotFound:
+                print(f"  🆕 Создание нового листа {sheet_title}...")
+                sheet = spreadsheet.add_worksheet(title=sheet_title, rows=10000, cols=50)
+                time.sleep(2)
+
+                # Записываем заголовки
+                sheet.update("A1", [CHP_COMMON_CONFIG["headers"]], value_input_option='USER_ENTERED')
 
                 # Форматируем заголовки
                 format_cell_range(
@@ -861,65 +1386,43 @@ def setup_chp_common_sheet(spreadsheet):
                     set_column_width(sheet, col_letter, 150 if idx == 0 else 120)
 
                 set_frozen(sheet, rows=1)
-                print("  ✅ Структура листа обновлена")
+                print("  ✅ Лист ЧП_товары_общая создан и настроен")
+                return sheet
 
-            return sheet
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                wait_time = QUOTA_RETRY_DELAY
+                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"  ❌ Ошибка при настройке ЧП_товары_общая: {e}")
+                raise
 
-        except gspread.exceptions.WorksheetNotFound:
-            print(f"  🆕 Создание нового листа {CHP_COMMON_CONFIG['sheet_name']}...")
-            # Создаем новый лист
-            sheet = spreadsheet.add_worksheet(
-                title=CHP_COMMON_CONFIG["sheet_name"],
-                rows=10000,
-                cols=50
-            )
-            time.sleep(2)
-
-            # Записываем заголовки
-            sheet.update("A1", [CHP_COMMON_CONFIG["headers"]])
-
-            # Форматируем
-            format_cell_range(
-                sheet, "A1:F1",
-                CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
-                           backgroundColor=Color(0.85, 0.95, 0.85))
-            )
-
-            # Устанавливаем ширину столбцов
-            for idx, header in enumerate(CHP_COMMON_CONFIG["headers"], start=1):
-                col_letter = get_column_letter(idx)
-                set_column_width(sheet, col_letter, 150 if idx == 0 else 120)
-
-            set_frozen(sheet, rows=1)
-            print("  ✅ Лист ЧП_товары_общая создан и настроен")
-
-            return sheet
-
-    except Exception as e:
-        print(f"  ❌ КОНКРЕТНАЯ ОШИБКА при настройке ЧП_товары_общая: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise
+    raise Exception(f"Не удалось создать лист {sheet_title} после {MAX_QUOTA_RETRIES} попыток")
 
 
 def setup_chp_drr_sheet(spreadsheet):
     """Настраивает страницу ЧП_товары_ДРР"""
     print("\n💰 НАСТРОЙКА ЛИСТА ЧП_товары_ДРР")
 
-    try:
-        # Проверяем, существует ли лист
-        try:
-            sheet = spreadsheet.worksheet(CHP_DRR_CONFIG["sheet_name"])
-            print(f"  📄 Лист {CHP_DRR_CONFIG['sheet_name']} уже существует")
+    sheet_title = CHP_DRR_CONFIG["sheet_name"]
 
-            # Проверяем структуру
-            all_values = sheet.get_all_values()
-            if len(all_values) > 0 and all_values[0] != CHP_DRR_CONFIG["headers"]:
-                print("  🆕 Обновляем структуру листа...")
-                # Очищаем и пересоздаем
-                sheet.clear()
-                time.sleep(1)
-                sheet.update("A1", [CHP_DRR_CONFIG["headers"]])
+    # БЕЗОПАСНОЕ получение или создание листа
+    for attempt in range(MAX_QUOTA_RETRIES):
+        try:
+            try:
+                sheet = spreadsheet.worksheet(sheet_title)
+                print(f"  📄 Лист {sheet_title} уже существует")
+                return sheet
+            except gspread.exceptions.WorksheetNotFound:
+                print(f"  🆕 Создание нового листа {sheet_title}...")
+                sheet = spreadsheet.add_worksheet(title=sheet_title, rows=10000, cols=50)
+                time.sleep(2)
+
+                # Записываем заголовки
+                sheet.update("A1", [CHP_DRR_CONFIG["headers"]], value_input_option='USER_ENTERED')
 
                 # Форматируем заголовки
                 format_cell_range(
@@ -933,121 +1436,54 @@ def setup_chp_drr_sheet(spreadsheet):
                     set_column_width(sheet, col_letter, 150 if idx == 0 else 120)
 
                 set_frozen(sheet, rows=1)
-                print("  ✅ Структура листа обновлена")
+                print("  ✅ Лист ЧП_товары_ДРР создан и настроен")
+                return sheet
 
-            return sheet
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                wait_time = QUOTA_RETRY_DELAY
+                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"  ❌ Ошибка при настройке ЧП_товары_ДРР: {e}")
+                raise
 
-        except gspread.exceptions.WorksheetNotFound:
-            print(f"  🆕 Создание нового листа {CHP_DRR_CONFIG['sheet_name']}...")
-            # Создаем новый лист
-            sheet = spreadsheet.add_worksheet(
-                title=CHP_DRR_CONFIG["sheet_name"],
-                rows=10000,
-                cols=50
-            )
-            time.sleep(2)
+    raise Exception(f"Не удалось создать лист {sheet_title} после {MAX_QUOTA_RETRIES} попыток")
 
-            # Записываем заголовки
-            sheet.update("A1", [CHP_DRR_CONFIG["headers"]])
-
-            # Форматируем
-            format_cell_range(
-                sheet, "A1:F1",
-                CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
-                           backgroundColor=Color(0.85, 0.95, 0.85))
-            )
-
-            # Устанавливаем ширину столбцов
-            for idx, header in enumerate(CHP_DRR_CONFIG["headers"], start=1):
-                col_letter = get_column_letter(idx)
-                set_column_width(sheet, col_letter, 150 if idx == 0 else 120)
-
-            set_frozen(sheet, rows=1)
-            print("  ✅ Лист ЧП_товары_ДРР создан и настроен")
-
-            return sheet
-
-    except Exception as e:
-        print(f"  ❌ КОНКРЕТНАЯ ОШИБКА при настройке ЧП_товары_ДРР: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise
-
-
-def debug_sheet_creation(spreadsheet):
-    """Отладочная функция для проверки создания листов"""
-    print("\n🐛 ОТЛАДКА СОЗДАНИЯ ЛИСТОВ")
-
-    try:
-        # Проверяем все существующие листы
-        worksheets = spreadsheet.worksheets()
-        print(f"  📋 Существующие листы ({len(worksheets)}):")
-        for ws in worksheets:
-            print(f"     - {ws.title}")
-
-        # Проверяем создание тестового листа
-        test_title = "TEST_DELETE_ME"
-        try:
-            test_sheet = spreadsheet.worksheet(test_title)
-            print(f"  ⚠️ Тестовый лист уже существует, удаляем...")
-            spreadsheet.del_worksheet(test_sheet)
-            time.sleep(1)
-        except:
-            pass
-
-        print(f"  🆕 Создаем тестовый лист {test_title}...")
-        test_sheet = spreadsheet.add_worksheet(title=test_title, rows=100, cols=10)
-        test_sheet.update("A1", [["Тест"]])
-        print(f"  ✅ Тестовый лист создан")
-
-        time.sleep(1)
-        print(f"  🗑️ Удаляем тестовый лист...")
-        spreadsheet.del_worksheet(test_sheet)
-        print(f"  ✅ Тестовый лист удален")
-
-        print("  ✅ Создание листов работает нормально")
-
-    except Exception as e:
-        print(f"  ❌ Ошибка при тестировании: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
 
 def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_start_row: int,
-                                    logistics_price_sheet, current_date_str: str, tech_dict: Dict = None):
-    """
-    Расширенное обновление Технического листа с добавлением столбцов:
-    - Эквайринг (руб)
-    - Стоимость логистики (руб)
-    - СПП (%)
-    - Налог (руб)
-    """
+                                    logistics_price_sheet, current_date_str: str, tech_dict: Dict = None,
+                                    spreadsheet=None):
+    """Расширенное обновление Технического листа - ОДНИМ ЗАПРОСОМ"""
     print("\n📊 РАСШИРЕННОЕ ОБНОВЛЕНИЕ ТЕХНИЧЕСКОГО ЛИСТА")
 
-    # Загружаем таблицу логистики
     logistics_prices = load_logistics_prices_from_sheet(logistics_price_sheet)
 
-    # Читаем настройки из листа и tech_dict
+    if spreadsheet:
+        markup_percent = get_markup_percent(spreadsheet)
+        print(f"  📊 Средняя наценка из листа: {markup_percent}%")
+    else:
+        markup_percent = 8.0
+        print(f"  ⚠️ Spreadsheet не передан, используем наценку по умолчанию: {markup_percent}%")
+
     try:
-        # Ставка налога (ячейка B3)
         tax_rate_cell = tech_sheet.acell('B3').value
         if tax_rate_cell and str(tax_rate_cell) not in ['—', '']:
             tax_rate = float(tax_rate_cell)
         else:
             tax_rate = 6.0
 
-        # Эквайринг (ячейка B4)
         acquiring_rate_cell = tech_sheet.acell('B4').value
         if acquiring_rate_cell and str(acquiring_rate_cell) not in ['—', '']:
             acquiring_rate = float(acquiring_rate_cell)
         else:
             acquiring_rate = 1.0
 
-        # Процент локальных продаж - сначала из tech_dict, потом из ячейки B5
         if tech_dict and 'local_sales_percent' in tech_dict:
             local_sales_percent = float(tech_dict['local_sales_percent'])
             print(f"  📍 Процент локальных продаж из tech_dict: {local_sales_percent}%")
-            # Обновляем ячейку B5 в листе
-            execute_with_retry(tech_sheet.update, "B5", [[local_sales_percent]])
         else:
             local_percent_cell = tech_sheet.acell('B5').value
             if local_percent_cell and str(local_percent_cell) not in ['—', '']:
@@ -1056,125 +1492,132 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
                 local_sales_percent = 87.0
             print(f"  📍 Процент локальных продаж из ячейки B5: {local_sales_percent}%")
 
-        print(
-            f"  ⚙️ Настройки: налог={tax_rate}%, эквайринг={acquiring_rate}%, локальные продажи={local_sales_percent}%")
+        print(f"  ⚙️ Настройки: налог={tax_rate}%, эквайринг={acquiring_rate}%, локальные продажи={local_sales_percent}%, наценка={markup_percent}%")
     except Exception as e:
         print(f"  ⚠️ Ошибка чтения настроек: {e}")
         tax_rate = 6.0
         acquiring_rate = 1.0
         local_sales_percent = 87.0
 
-    # Добавляем новые заголовки, если их нет
-    existing_headers = execute_with_retry(tech_sheet.get_all_values)
-    new_headers = ["Эквайринг (₽)", "Стоимость логистики (₽)", "СПП (%)", "Налог (₽)"]
-
-    if len(existing_headers) > 0 and len(existing_headers[0]) >= 9:
-        headers_row = existing_headers[8] if len(existing_headers) > 8 else []
-        need_add_headers = not any("Эквайринг" in str(h) for h in headers_row)
-
-        if need_add_headers:
-            col_offset = len(TECHNICAL_SHEET_CONFIG["products_headers"]) + 1
-            for idx, header in enumerate(new_headers):
-                col_letter = get_column_letter(col_offset + idx)
-                execute_with_retry(tech_sheet.update, f"{col_letter}9", [[header]])
-                execute_with_retry(
-                    format_cell_range, tech_sheet, f"{col_letter}9",
-                    CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
-                )
-                execute_with_exponential_backoff(set_column_width, tech_sheet, col_letter, 130)
-
-    # Собираем данные для обновления
-    non_local_ratio = (100 - local_sales_percent) / 100
-
-    # Получаем все товары из campaigns_data
-    for row_idx, (offer_id, campaigns_list) in enumerate(campaigns_data.items()):
-        if not campaigns_list:
-            continue
-
-        excel_row = products_start_row + row_idx
-
-        # Берем первый кампании для получения основных данных
-        first_campaign = campaigns_list[0]
-
-        price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
-        price_for_buyer = clean_numeric_value(first_campaign.get('product_price', 0))
-        cost_price = clean_numeric_value(first_campaign.get('cost_price', 0))
-        volume_l = clean_numeric_value(first_campaign.get('item_volume_l', 0))
-        commission_str = str(first_campaign.get('commission_fbo', '0'))
-
-        # Рассчитываем значения
-        commission_percent = get_commission_rate(commission_str)
-        acquiring = calculate_acquiring(price_before, acquiring_rate)
-        logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices, non_local_ratio)
-        spp = calculate_spp(price_before, price_for_buyer)
-        tax = calculate_tax(price_for_buyer, tax_rate)
-
-        # Записываем в соответствующие столбцы
-        col_offset = len(TECHNICAL_SHEET_CONFIG["products_headers"]) + 1
-
-        # Эквайринг (столбец J)
-        execute_with_retry(tech_sheet.update, f"{get_column_letter(col_offset)}{excel_row}", [[acquiring]])
-        # Логистика (столбец K)
-        execute_with_retry(tech_sheet.update, f"{get_column_letter(col_offset + 1)}{excel_row}", [[logistics]])
-        # СПП (столбец L)
-        execute_with_retry(tech_sheet.update, f"{get_column_letter(col_offset + 2)}{excel_row}", [[spp]])
-        # Налог (столбец M)
-        execute_with_retry(tech_sheet.update, f"{get_column_letter(col_offset + 3)}{excel_row}", [[tax]])
-
-        print(
-            f"  📦 {offer_id}: цена={price_before:.2f}, комиссия={commission_percent}%, логистика={logistics:.2f}, СПП={spp:.2f}%, налог={tax:.2f}")
-
-    print("  ✅ Технический лист расширенно обновлен")
-
-
-def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet, current_date_str: str,
-                      tech_dict: Dict = None):
-    """
-    Обновляет страницы ЧП_товары_общая и ЧП_товары_ДРР
-    """
-    print("\n💰 ОБНОВЛЕНИЕ ЛИСТОВ ЧП")
-
-    # Получаем настройки из Технического листа и tech_dict
-    try:
-        tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"])
-
-        tax_rate_cell = tech_sheet.acell('B3').value
-        tax_rate = float(tax_rate_cell) if tax_rate_cell and str(tax_rate_cell) not in ['—', ''] else 6.0
-
-        acquiring_rate_cell = tech_sheet.acell('B4').value
-        acquiring_rate = float(acquiring_rate_cell) if acquiring_rate_cell and str(acquiring_rate_cell) not in ['—',
-                                                                                                                ''] else 1.0
-
-        if tech_dict and 'local_sales_percent' in tech_dict:
-            local_sales_percent = float(tech_dict['local_sales_percent'])
-        else:
-            local_percent_cell = tech_sheet.acell('B5').value
-            local_sales_percent = float(local_percent_cell) if local_percent_cell and str(local_percent_cell) not in [
-                '—', ''] else 87.0
-    except Exception as e:
-        print(f"  ⚠️ Не удалось прочитать настройки из Тех.листа: {e}")
-        tax_rate = 6.0
-        acquiring_rate = 1.0
-        local_sales_percent = 87.0
-
-    # Загружаем таблицу логистики
-    logistics_prices = load_logistics_prices_from_sheet(logistics_price_sheet)
-
-    non_local_ratio = (100 - local_sales_percent) / 100
-
-    # Получаем или создаем листы
-    chp_common_sheet = setup_chp_common_sheet(spreadsheet)
-    chp_drr_sheet = setup_chp_drr_sheet(spreadsheet)
-
-    # Подготавливаем данные для листов
-    common_data = []
-    drr_data = []
+    all_products_data = []
 
     for offer_id, campaigns_list in campaigns_data.items():
         if not campaigns_list:
             continue
 
-        # Получаем данные из первого кампании
+        first_campaign = campaigns_list[0]
+
+        price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
+        price_for_buyer = clean_numeric_value(first_campaign.get('product_price', 0))
+        cost_price = clean_numeric_value(first_campaign.get('cost_price', 0))
+        volume_l = clean_numeric_value(first_campaign.get('item_volume_l', 0))
+        commission_str = str(first_campaign.get('commission_fbo', '0'))
+        sku = first_campaign.get('sku', '—')
+        stock_balance = clean_int_value(first_campaign.get('stock_balance', 0))
+
+        commission_percent = get_commission_rate(commission_str)
+        acquiring = calculate_acquiring(price_before, acquiring_rate)
+        logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices,
+                                             local_sales_percent, markup_percent)
+        spp = calculate_spp(price_before, price_for_buyer)
+        tax = calculate_tax(price_for_buyer, tax_rate)
+
+        all_products_data.append([
+            offer_id, sku, price_before, price_for_buyer, acquiring,
+            stock_balance, commission_percent, volume_l, logistics
+        ])
+
+        print(f"  📦 {offer_id}: цена={price_before:.2f}, логистика={logistics:.2f}, СПП={spp:.2f}%, налог={tax:.2f}")
+
+    if all_products_data:
+        print(f"\n  📝 Запись {len(all_products_data)} товаров одним запросом...")
+
+        start_row = products_start_row
+        end_col = get_column_letter(len(TECHNICAL_SHEET_CONFIG["products_headers"]))
+        range_name = f"A{start_row}:{end_col}{start_row + len(all_products_data) - 1}"
+
+        execute_with_retry(
+            tech_sheet.update,
+            range_name,
+            all_products_data,
+            value_input_option='USER_ENTERED'
+        )
+
+        print(f"  ✅ Добавлено {len(all_products_data)} товаров одним запросом")
+
+        last_row = products_start_row + len(all_products_data) - 1
+
+        for col, color, bold in [('C', Color(0.95, 0.9, 1), True),
+                                 ('D', Color(0.9, 1, 0.9), True),
+                                 ('E', Color(1, 0.95, 0.8), False),
+                                 ('I', Color(0.7, 0.85, 1), False)]:
+            try:
+                fmt = CellFormat(backgroundColor=color)
+                if bold:
+                    fmt.textFormat = TextFormat(bold=True)
+                execute_with_retry(
+                    format_cell_range,
+                    tech_sheet,
+                    f"{col}{products_start_row}:{col}{last_row}",
+                    fmt
+                )
+                time.sleep(0.5)
+            except:
+                pass
+
+        print("  💡 Примечание: Эквайринг рассчитывается автоматически")
+        print("  💡 Стоимость логистики берется из листа 'Стоимость логистики'")
+
+    print("  ✅ Технический лист расширенно обновлен")
+
+
+def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
+                      current_date_str: str, tech_dict: Dict = None,
+                      drr_for_products: Dict = None):
+    """Обновляет страницы ЧП_товары_общая и ЧП_товары_ДРР"""
+    print("\n💰 ОБНОВЛЕНИЕ ЛИСТОВ ЧП")
+
+    try:
+        tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"])
+
+        tax_rate_cell = tech_sheet.acell('B3').value
+        tax_rate = float(tax_rate_cell) if tax_rate_cell and str(tax_rate_cell) not in ['—', ''] else 6.0
+
+        acquiring_rate_cell = tech_sheet.acell('B4').value
+        acquiring_rate = float(acquiring_rate_cell) if acquiring_rate_cell and str(acquiring_rate_cell) not in ['—', ''] else 1.0
+
+        if tech_dict and 'local_sales_percent' in tech_dict:
+            local_sales_percent = float(tech_dict['local_sales_percent'])
+        else:
+            local_percent_cell = tech_sheet.acell('B5').value
+            local_sales_percent = float(local_percent_cell) if local_percent_cell and str(local_percent_cell) not in ['—', ''] else 87.0
+
+        markup_percent = get_markup_percent(spreadsheet)
+
+    except Exception as e:
+        print(f"  ⚠️ Не удалось прочитать настройки: {e}")
+        tax_rate = 6.0
+        acquiring_rate = 1.0
+        local_sales_percent = 87.0
+        markup_percent = 8.0
+
+    logistics_prices = load_logistics_prices_from_sheet(logistics_price_sheet)
+
+    chp_common_sheet = setup_chp_common_sheet(spreadsheet)
+    chp_drr_sheet = setup_chp_drr_sheet(spreadsheet)
+
+    date_col = add_date_column_to_chp_sheet(chp_common_sheet, current_date_str)
+    add_date_column_to_chp_sheet(chp_drr_sheet, current_date_str)
+
+    col_letter = get_column_letter(date_col)
+
+    common_updates = []
+    drr_updates = []
+
+    for offer_id, campaigns_list in campaigns_data.items():
+        if not campaigns_list:
+            continue
+
         first_campaign = campaigns_list[0]
 
         price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
@@ -1183,104 +1626,174 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet, 
         volume_l = clean_numeric_value(first_campaign.get('item_volume_l', 0))
         commission_str = str(first_campaign.get('commission_fbo', '0'))
 
-        # Рассчитываем базовые значения
         commission_percent = get_commission_rate(commission_str)
         acquiring = calculate_acquiring(price_before, acquiring_rate)
-        logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices, non_local_ratio)
+        logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices,
+                                             local_sales_percent, markup_percent)
         tax = calculate_tax(price_for_buyer, tax_rate)
 
-        # Получаем ДРР для товара
-        drr_total = 0
-        drr_search_total = 0
+        drr_total = 0.0
+        drr_cpo = 0.0
 
-        for campaign in campaigns_list:
-            drr_val = campaign.get('drr', '0%')
-            if drr_val and drr_val != '—':
-                drr_clean = clean_numeric_value(str(drr_val).replace('%', ''))
-                camping_type = campaign.get('camping_type', '')
-                if camping_type == 'Оплата за заказ':
-                    drr_total = max(drr_total, drr_clean)
+        if drr_for_products and offer_id in drr_for_products:
+            drr_data = drr_for_products[offer_id]
+            if isinstance(drr_data, dict):
+                drr_total = drr_data.get('drr_total', 0.0)
+                drr_cpo = drr_data.get('drr_cpo', 0.0)
+            else:
+                drr_total = drr_data
+
+        if drr_total == 0 and drr_cpo == 0:
+            for campaign in campaigns_list:
+                drr_val = campaign.get('drr', '0%')
+                if drr_val and drr_val != '—':
+                    drr_clean = clean_numeric_value(str(drr_val).replace('%', ''))
+                    camping_type = campaign.get('camping_type', '')
+                    if camping_type == 'Оплата за заказ':
+                        drr_cpo = max(drr_cpo, drr_clean)
+                        drr_total = max(drr_total, drr_clean)
+                    else:
+                        drr_total = max(drr_total, drr_clean)
+
+        print(f"\n  📋 ИСХОДНЫЕ ДАННЫЕ ДЛЯ {offer_id}:")
+        print(f"     price_before (X): {price_before}")
+        print(f"     price_for_buyer: {price_for_buyer}")
+        print(f"     commission_percent (Y): {commission_percent}")
+        print(f"     logistics (L): {logistics}")
+        print(f"     tax (N): {tax}")
+        print(f"     cost_price (S): {cost_price}")
+        print(f"     acquiring (E): {acquiring}")
+        print(f"     drr_total (ДРР_общ): {drr_total}")
+        print(f"     drr_cpo: {drr_cpo}")
+        chp_common = calculate_chp(price_before, commission_percent, logistics, tax,
+                                   cost_price, acquiring, drr_total, offer_id, verbose=True)
+        chp_drr = calculate_chp(price_before, commission_percent, logistics, tax,
+                                cost_price, acquiring, drr_cpo, offer_id, verbose=True)
+
+        common_updates.append((offer_id, chp_common))
+        drr_updates.append((offer_id, chp_drr))
+
+        print(f"  📊 {offer_id}: ДРР общий={drr_total:.2f}%, ЧП_общая={chp_common:.2f} руб | "
+              f"ДРР CPO={drr_cpo:.2f}%, ЧП_ДРР={chp_drr:.2f} руб")
+
+    # БЕЗОПАСНАЯ ЗАПИСЬ ДАННЫХ С ПОВТОРНЫМИ ПОПЫТКАМИ
+    if common_updates:
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                existing_products = {}
+                all_rows = chp_common_sheet.get_all_values()
+
+                for row_idx, row in enumerate(all_rows[1:], start=2):
+                    if row and len(row) > 0 and row[0]:
+                        existing_products[row[0]] = row_idx
+
+                for offer_id, chp_value in common_updates:
+                    if offer_id in existing_products:
+                        row_idx = existing_products[offer_id]
+                        chp_common_sheet.update(f"{col_letter}{row_idx}", [[chp_value]], value_input_option='USER_ENTERED')
+                    else:
+                        new_row = [offer_id, "", chp_value]
+                        chp_common_sheet.append_row(new_row, value_input_option='USER_ENTERED')
+
+                update_total_chp_formula(chp_common_sheet, date_col)
+                print(f"  ✅ ЧП_товары_общая: обработано {len(common_updates)} товаров")
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                    if attempt == MAX_QUOTA_RETRIES - 1:
+                        raise
                 else:
-                    drr_search_total = max(drr_search_total, drr_clean)
+                    print(f"  ❌ Ошибка: {e}")
+                    raise
 
-        if drr_total == 0:
-            drr_total = drr_search_total
+    if drr_updates:
+        for attempt in range(MAX_QUOTA_RETRIES):
+            try:
+                existing_products = {}
+                all_rows = chp_drr_sheet.get_all_values()
 
-        # Рассчитываем ЧП для общей страницы (с общим ДРР)
-        chp_common = calculate_chp(price_before, commission_percent, logistics, tax, cost_price, acquiring, drr_total)
+                for row_idx, row in enumerate(all_rows[1:], start=2):
+                    if row and len(row) > 0 and row[0]:
+                        existing_products[row[0]] = row_idx
 
-        # Рассчитываем ЧП для страницы с ДРР рекламным
-        chp_drr = calculate_chp(price_before, commission_percent, logistics, tax, cost_price, acquiring,
-                                drr_search_total)
+                for offer_id, chp_value in drr_updates:
+                    if offer_id in existing_products:
+                        row_idx = existing_products[offer_id]
+                        chp_drr_sheet.update(f"{col_letter}{row_idx}", [[chp_value]], value_input_option='USER_ENTERED')
+                    else:
+                        new_row = [offer_id, "", chp_value]
+                        chp_drr_sheet.append_row(new_row, value_input_option='USER_ENTERED')
 
-        common_data.append([offer_id, chp_common, "", "", "", ""])
-        drr_data.append([offer_id, chp_drr, "", "", "", ""])
+                update_total_chp_formula(chp_drr_sheet, date_col)
+                print(f"  ✅ ЧП_товары_ДРР: обработано {len(drr_updates)} товаров")
+                break
+            except Exception as e:
+                error_str = str(e)
+                if '429' in error_str or 'Quota exceeded' in error_str:
+                    wait_time = QUOTA_RETRY_DELAY
+                    print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                    time.sleep(wait_time)
+                    if attempt == MAX_QUOTA_RETRIES - 1:
+                        raise
+                else:
+                    print(f"  ❌ Ошибка: {e}")
+                    raise
 
-        print(f"  📦 {offer_id}: ЧП_общая={chp_common:.2f} руб, ЧП_ДРР={chp_drr:.2f} руб")
-
-    # Сортируем по убыванию ЧП
-    common_data.sort(key=lambda x: x[1], reverse=True)
-    drr_data.sort(key=lambda x: x[1], reverse=True)
-
-    # Очищаем старые данные
-    execute_with_retry(chp_common_sheet.batch_clear, ["A2:F10000"])
-    execute_with_retry(chp_drr_sheet.batch_clear, ["A2:F10000"])
-
-    # Записываем новые данные
-    if common_data:
-        execute_with_retry(chp_common_sheet.update, "A2", common_data)
-        execute_with_retry(chp_drr_sheet.update, "A2", drr_data)
-
-        for sheet in [chp_common_sheet, chp_drr_sheet]:
-            execute_with_retry(
-                format_cell_range, sheet, "B:B",
-                CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
+    for sheet in [chp_common_sheet, chp_drr_sheet]:
+        try:
+            format_cell_range(
+                sheet, f"{col_letter}2:{col_letter}1000",
+                CellFormat(
+                    numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                    horizontalAlignment='RIGHT'
+                )
             )
-
-        print(f"  ✅ Записано {len(common_data)} товаров в ЧП_товары_общая")
-        print(f"  ✅ Записано {len(drr_data)} товаров в ЧП_товары_ДРР")
+            format_cell_range(
+                sheet, "B2:B1000",
+                CellFormat(
+                    numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                    horizontalAlignment='RIGHT',
+                    textFormat=TextFormat(bold=True)
+                )
+            )
+        except:
+            pass
 
 
 def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: str, tech_dict: Dict = None):
-    """
-    Добавляет на дашборд столбец "ЧП / в день" после ДРР
-    """
+    """Добавляет на дашборд столбец 'ЧП / в день' после ДРР"""
     print("\n📊 ДОБАВЛЕНИЕ СТОЛБЦА 'ЧП / в день' НА DASHBOARD")
 
     try:
         dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
-
-        # Получаем настройки из Технического листа
         tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"])
 
         tax_rate_cell = tech_sheet.acell('B3').value
         tax_rate = float(tax_rate_cell) if tax_rate_cell and str(tax_rate_cell) not in ['—', ''] else 6.0
 
         acquiring_rate_cell = tech_sheet.acell('B4').value
-        acquiring_rate = float(acquiring_rate_cell) if acquiring_rate_cell and str(acquiring_rate_cell) not in ['—',
-                                                                                                                ''] else 1.0
+        acquiring_rate = float(acquiring_rate_cell) if acquiring_rate_cell and str(acquiring_rate_cell) not in ['—', ''] else 1.0
 
         if tech_dict and 'local_sales_percent' in tech_dict:
             local_sales_percent = float(tech_dict['local_sales_percent'])
         else:
             local_percent_cell = tech_sheet.acell('B5').value
-            local_sales_percent = float(local_percent_cell) if local_percent_cell and str(local_percent_cell) not in [
-                '—', ''] else 87.0
+            local_sales_percent = float(local_percent_cell) if local_percent_cell and str(local_percent_cell) not in ['—', ''] else 87.0
 
-        # Загружаем таблицу логистики
         logistics_sheet = get_or_create_sheet(spreadsheet, LOGISTICS_PRICE_CONFIG["sheet_name"])
         logistics_prices = load_logistics_prices_from_sheet(logistics_sheet)
+        markup_percent = get_markup_percent(spreadsheet)
 
-        non_local_ratio = (100 - local_sales_percent) / 100
-
-        # Получаем текущие данные дашборда
-        dashboard_data = execute_with_retry(dashboard.get_all_values)
+        dashboard_data = dashboard.get_all_values()
 
         if len(dashboard_data) < 2:
             print("  ⚠️ Нет данных в дашборде")
             return
 
-        # Проверяем, есть ли уже столбец "ЧП / в день"
         headers = dashboard_data[0]
         chp_col_index = None
 
@@ -1289,28 +1802,30 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                 chp_col_index = idx
                 break
 
-        # Если нет, добавляем заголовок
         if chp_col_index is None:
             chp_col_index = len(headers)
-            new_col_letter = get_column_letter(chp_col_index + 1)
-            execute_with_retry(dashboard.update, f"{new_col_letter}1", [["ЧП / в день"]])
-            execute_with_retry(
-                format_cell_range, dashboard, f"{new_col_letter}1",
+            col_letter = get_column_letter(chp_col_index + 1)
+            dashboard.update(f"{col_letter}1", [["ЧП / в день"]])
+            format_cell_range(
+                dashboard, f"{col_letter}1",
                 CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
             )
-            execute_with_exponential_backoff(set_column_width, dashboard, new_col_letter, 120)
-            print(f"  🆕 Добавлен столбец 'ЧП / в день' (столбец {new_col_letter})")
+            set_column_width(dashboard, col_letter, 120)
+            print(f"  🆕 Добавлен столбец 'ЧП / в день' (столбец {col_letter})")
 
-        # Рассчитываем ЧП для каждого товара
-        for row_idx, row in enumerate(dashboard_data[1:], start=2):
+        chp_values = []
+        start_row = 2
+
+        for row_idx, row in enumerate(dashboard_data[1:], start=start_row):
             if not row or len(row) < 1:
+                chp_values.append([""])
                 continue
 
             offer_id = row[0]
             if offer_id == "ИТОГО" or not offer_id:
+                chp_values.append([""])
                 continue
 
-            # Находим товар в campaigns_data
             if offer_id in campaigns_data and campaigns_data[offer_id]:
                 first_campaign = campaigns_data[offer_id][0]
 
@@ -1319,32 +1834,34 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                 cost_price = clean_numeric_value(first_campaign.get('cost_price', 0))
                 volume_l = clean_numeric_value(first_campaign.get('item_volume_l', 0))
                 commission_str = str(first_campaign.get('commission_fbo', '0'))
-
-                # Получаем ДРР из дашборда (столбец F - ДРР общий)
                 drr_total = clean_numeric_value(row[5]) if len(row) > 5 else 0
 
-                # Рассчитываем
                 commission_percent = get_commission_rate(commission_str)
                 acquiring = calculate_acquiring(price_before, acquiring_rate)
-                logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices, non_local_ratio)
+                logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices,
+                                                     local_sales_percent, markup_percent)
                 tax = calculate_tax(price_for_buyer, tax_rate)
-                chp = calculate_chp(price_before, commission_percent, logistics, tax, cost_price, acquiring, drr_total)
+                chp = calculate_chp(price_before, commission_percent, logistics, tax,
+                                    cost_price, acquiring, drr_total, offer_id, verbose=True)
 
-                # Записываем в столбец
-                col_letter = get_column_letter(chp_col_index + 1)
-                execute_with_retry(dashboard.update, f"{col_letter}{row_idx}", [[chp]])
+                chp_values.append([chp])
 
                 if row_idx < 10:
                     print(f"  📊 {offer_id}: ЧП={chp:.2f} руб")
+            else:
+                chp_values.append([""])
 
-        # Форматируем столбец с ЧП
-        col_letter = get_column_letter(chp_col_index + 1)
-        execute_with_retry(
-            format_cell_range, dashboard, f"{col_letter}2:{col_letter}{len(dashboard_data)}",
-            CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'}, horizontalAlignment='RIGHT')
-        )
+        if chp_values:
+            col_letter = get_column_letter(chp_col_index + 1)
+            range_name = f"{col_letter}{start_row}:{col_letter}{start_row + len(chp_values) - 1}"
+            dashboard.update(range_name, chp_values, value_input_option='USER_ENTERED')
 
-        print("  ✅ Столбец 'ЧП / в день' обновлен")
+            format_cell_range(
+                dashboard, f"{col_letter}{start_row}:{col_letter}{start_row + len(chp_values) - 1}",
+                CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'}, horizontalAlignment='RIGHT')
+            )
+
+            print(f"  ✅ Столбец 'ЧП / в день' обновлен ({len(chp_values)} записей)")
 
     except Exception as e:
         print(f"  ❌ Ошибка при добавлении ЧП / в день: {e}")
@@ -1353,22 +1870,17 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
 
 
 def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
-    """
-    Добавляет на дашборд столбец СПП после ДРР
-    """
+    """Добавляет на дашборд столбец СПП после ДРР"""
     print("\n📊 ДОБАВЛЕНИЕ СТОЛБЦА 'СПП' НА DASHBOARD")
 
     try:
         dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
-
-        # Получаем текущие данные дашборда
-        dashboard_data = execute_with_retry(dashboard.get_all_values)
+        dashboard_data = dashboard.get_all_values()
 
         if len(dashboard_data) < 2:
             print("  ⚠️ Нет данных в дашборде")
             return
 
-        # Проверяем, есть ли уже столбец "СПП"
         headers = dashboard_data[0]
         spp_col_index = None
 
@@ -1377,51 +1889,53 @@ def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
                 spp_col_index = idx
                 break
 
-        # Если нет, добавляем заголовок
         if spp_col_index is None:
             spp_col_index = len(headers)
-            new_col_letter = get_column_letter(spp_col_index + 1)
-            execute_with_retry(dashboard.update, f"{new_col_letter}1", [["СПП"]])
-            execute_with_retry(
-                format_cell_range, dashboard, f"{new_col_letter}1",
+            col_letter = get_column_letter(spp_col_index + 1)
+            dashboard.update(f"{col_letter}1", [["СПП"]])
+            format_cell_range(
+                dashboard, f"{col_letter}1",
                 CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
             )
-            execute_with_exponential_backoff(set_column_width, dashboard, new_col_letter, 100)
-            print(f"  🆕 Добавлен столбец 'СПП' (столбец {new_col_letter})")
+            set_column_width(dashboard, col_letter, 100)
+            print(f"  🆕 Добавлен столбец 'СПП' (столбец {col_letter})")
 
-        # Рассчитываем СПП для каждого товара
-        for row_idx, row in enumerate(dashboard_data[1:], start=2):
+        spp_values = []
+        start_row = 2
+
+        for row_idx, row in enumerate(dashboard_data[1:], start=start_row):
             if not row or len(row) < 1:
+                spp_values.append([""])
                 continue
 
             offer_id = row[0]
             if offer_id == "ИТОГО" or not offer_id:
+                spp_values.append([""])
                 continue
 
-            # Находим товар в campaigns_data
             if offer_id in campaigns_data and campaigns_data[offer_id]:
                 first_campaign = campaigns_data[offer_id][0]
-
                 price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
                 price_for_buyer = clean_numeric_value(first_campaign.get('product_price', 0))
-
                 spp = calculate_spp(price_before, price_for_buyer)
-
-                # Записываем в столбец
-                col_letter = get_column_letter(spp_col_index + 1)
-                execute_with_retry(dashboard.update, f"{col_letter}{row_idx}", [[spp]])
+                spp_values.append([spp])
 
                 if row_idx < 10:
                     print(f"  📊 {offer_id}: СПП={spp:.2f}%")
+            else:
+                spp_values.append([""])
 
-        # Форматируем столбец с СПП
-        col_letter = get_column_letter(spp_col_index + 1)
-        execute_with_retry(
-            format_cell_range, dashboard, f"{col_letter}2:{col_letter}{len(dashboard_data)}",
-            CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'}, horizontalAlignment='RIGHT')
-        )
+        if spp_values:
+            col_letter = get_column_letter(spp_col_index + 1)
+            range_name = f"{col_letter}{start_row}:{col_letter}{start_row + len(spp_values) - 1}"
+            dashboard.update(range_name, spp_values, value_input_option='USER_ENTERED')
 
-        print("  ✅ Столбец 'СПП' обновлен")
+            format_cell_range(
+                dashboard, f"{col_letter}{start_row}:{col_letter}{start_row + len(spp_values) - 1}",
+                CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'}, horizontalAlignment='RIGHT')
+            )
+
+            print(f"  ✅ Столбец 'СПП' обновлен ({len(spp_values)} записей)")
 
     except Exception as e:
         print(f"  ❌ Ошибка при добавлении СПП: {e}")
@@ -1458,28 +1972,32 @@ def get_current_date_moscow() -> str:
 
 
 def execute_with_exponential_backoff(func, *args, max_retries=10, **kwargs):
+    """Выполняет функцию, при ошибке 429 ждет 30 секунд и повторяет"""
+    last_error = None
+
     for attempt in range(max_retries):
         try:
             return func(*args, **kwargs)
         except Exception as e:
             error_str = str(e)
-            if '429' in error_str or 'Quota exceeded' in error_str or 'Read timed out' in error_str or 'timeout' in error_str.lower():
-                wait_time = min(30 * (2 ** attempt), 600)
-                print(f"  ⏳ Превышен лимит или таймаут. Пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
-                time.sleep(wait_time)
-            elif '403' in error_str or 'PermissionError' in error_str:
-                # Ошибка авторизации - не повторяем, сразу выводим
-                print(f"  ❌ Ошибка авторизации: {error_str[:200]}")
+            last_error = e
+
+            if 'WorksheetNotFound' in error_str:
                 raise
+
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                print(f"  ⏳ Квота API превышена. Пауза {QUOTA_RETRY_DELAY} сек... (попытка {attempt + 1}/{max_retries})")
+                time.sleep(QUOTA_RETRY_DELAY)
+                continue
+
+            if attempt < max_retries - 1:
+                wait_time = min(2 ** attempt, 30)
+                print(f"  ⚠️ Ошибка: {error_str[:200]}. Повтор через {wait_time} сек...")
+                time.sleep(wait_time)
             else:
-                print(f"  ⚠️ Ошибка: {error_str[:200]}")
-                if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
-                    print(f"  ⏳ Повтор через {wait_time} сек...")
-                    time.sleep(wait_time)
-                else:
-                    raise
-    raise Exception(f"Не удалось выполнить операцию после {max_retries} попыток")
+                raise
+
+    raise last_error if last_error else Exception(f"Не удалось выполнить операцию после {max_retries} попыток")
 
 
 def execute_with_retry(func, *args, **kwargs):
@@ -1487,7 +2005,7 @@ def execute_with_retry(func, *args, **kwargs):
 
 
 def get_google_sheets_client():
-    """Создает клиент Google Sheets (старая рабочая версия)"""
+    """Создает клиент Google Sheets"""
     creds = Credentials.from_service_account_file(
         "google_sheets.json",
         scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -1520,10 +2038,14 @@ def test_google_sheets_connection():
 
 
 def get_or_create_sheet(spreadsheet, title: str, rows=1000, cols=30):
+    """Получает существующий лист или создает новый"""
     try:
-        return execute_with_exponential_backoff(spreadsheet.worksheet, title)
+        return spreadsheet.worksheet(title)
     except gspread.exceptions.WorksheetNotFound:
-        return execute_with_exponential_backoff(spreadsheet.add_worksheet, title=title, rows=rows, cols=cols)
+        if title == "История DASHBOARD":
+            rows = 100000
+            print(f"  🆕 Создание листа {title} с {rows} строками")
+        return spreadsheet.add_worksheet(title=title, rows=rows, cols=cols)
 
 
 def get_column_letter(col_num: int) -> str:
@@ -1648,10 +2170,7 @@ def log_dashboard_item(offer_id: str, revenue: float, expenses_search: float,
 
 def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
                            drr_all_dict: Dict) -> Tuple[List[List], Dict, Dict]:
-    """
-    Подготавливает данные для листа DASHBOARD
-    Возвращает: (dashboard_rows, totals, drr_for_products)
-    """
+    """Подготавливает данные для листа DASHBOARD"""
     dashboard_rows = []
     drr_for_products = {}
     totals = {
@@ -1670,17 +2189,22 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
         offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
 
         expenses_search, selled_search, _, _ = extract_campaign_expenses(offer_campaigns)
-        drr_from_dict, money_spent_from_dict = extract_drr_data(drr_all_dict, offer_id)
+        drr_cpo, money_spent_from_dict = extract_drr_data(drr_all_dict, offer_id)
 
         drr_search = calculate_drr(expenses_search, selled_search)
-        drr_cpo = drr_from_dict
         drr_total = calculate_drr(money_spent_from_dict, total_revenue_item)
 
-        drr_for_products[offer_id] = drr_total
+        drr_for_products[offer_id] = {
+            'drr_total': drr_total,
+            'drr_cpo': drr_cpo,
+            'drr_search': drr_search,
+            'money_spent': money_spent_from_dict,
+            'revenue': total_revenue_item
+        }
 
         log_dashboard_item(
             offer_id, total_revenue_item, expenses_search, selled_search,
-            drr_from_dict, money_spent_from_dict, drr_search, drr_cpo, drr_total
+            drr_cpo, money_spent_from_dict, drr_search, drr_cpo, drr_total
         )
 
         dashboard_rows.append([
@@ -1731,7 +2255,7 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
 # ================= НОВАЯ ФУНКЦИЯ ДЛЯ ИСТОРИИ DASHBOARD =================
 
 def setup_history_dashboard_sheet(spreadsheet):
-    """Настраивает лист истории DASHBOARD с правильным форматированием чисел"""
+    """Настраивает лист истории DASHBOARD"""
     print("\n📜 НАСТРОЙКА ЛИСТА ИСТОРИИ DASHBOARD")
     history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=100000, cols=20)
     all_values = execute_with_retry(history_sheet.get_all_values)
@@ -1783,10 +2307,7 @@ def setup_history_dashboard_sheet(spreadsheet):
 
 
 def save_dashboard_to_history(spreadsheet, current_date: str):
-    """
-    Сохраняет текущие данные из листа DASHBOARD в историю
-    НОВЫЕ ДАННЫЕ ДОБАВЛЯЮТСЯ ВВЕРХУ (после заголовков)
-    """
+    """Сохраняет текущие данные из листа DASHBOARD в историю"""
     print("\n💾 СОХРАНЕНИЕ DASHBOARD В ИСТОРИЮ")
 
     try:
@@ -1798,7 +2319,6 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             return False
 
         history_sheet = setup_history_dashboard_sheet(spreadsheet)
-
         existing_data = execute_with_retry(history_sheet.get_all_values)
 
         date_exists = False
@@ -1840,10 +2360,7 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             print("  ⚠️ Нет данных для сохранения в историю")
             return False
 
-        if len(existing_data) <= 2:
-            insert_row_index = 3
-        else:
-            insert_row_index = 3
+        insert_row_index = 3
 
         print(f"  📍 Вставка новых данных начиная со строки {insert_row_index}")
 
@@ -1910,8 +2427,7 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             except:
                 pass
 
-        print(
-            f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date} (вверху листа)")
+        print(f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date} (вверху листа)")
         return True
 
     except Exception as e:
@@ -2012,15 +2528,13 @@ def format_campaign_data(campaigns: List, campaign_type: str) -> List:
     if not campaigns:
         return [""] * len(CAMPAIGN_CONFIGS[campaign_type]['headers'])
     if len(campaigns) == 1:
-        return format_single_cpo_campaign(campaigns[0]) if campaign_type == 'cpo' else format_single_search_campaign(
-            campaigns[0])
+        return format_single_cpo_campaign(campaigns[0]) if campaign_type == 'cpo' else format_single_search_campaign(campaigns[0])
     result = []
     num_fields = len(CAMPAIGN_CONFIGS[campaign_type]['headers'])
     for field_idx in range(num_fields):
         values = []
         for camp in campaigns:
-            formatted = format_single_cpo_campaign(camp) if campaign_type == 'cpo' else format_single_search_campaign(
-                camp)
+            formatted = format_single_cpo_campaign(camp) if campaign_type == 'cpo' else format_single_search_campaign(camp)
             val = formatted[field_idx] if field_idx < len(formatted) else ""
             if val is not None and str(val) != "" and str(val) != "0":
                 values.append(str(val))
@@ -2043,9 +2557,16 @@ def update_position_data(item: Dict, positions_data: Optional[Dict]) -> float:
 
 
 def prepare_product_row(item: Dict, campaigns_data: Dict, drr_for_products: Dict, current_date_str: str) -> List:
+    """Подготавливает строку данных для листа товара"""
     offer_id = item.get("offer_id")
 
-    drr_total = drr_for_products.get(offer_id, 0.0)
+    drr_total = 0.0
+    if drr_for_products and offer_id in drr_for_products:
+        drr_data = drr_for_products[offer_id]
+        if isinstance(drr_data, dict):
+            drr_total = drr_data.get('drr_total', 0.0)
+        else:
+            drr_total = drr_data
 
     analytics_row = [
         current_date_str,
@@ -2062,18 +2583,9 @@ def prepare_product_row(item: Dict, campaigns_data: Dict, drr_for_products: Dict
 
     offer_campaigns = campaigns_data.get(offer_id, []) if campaigns_data else []
 
-    search_campaigns = [
-        camp for camp in offer_campaigns
-        if camp.get('camping_type') == 'Поиск'
-    ]
-    rec_campaigns = [
-        camp for camp in offer_campaigns
-        if camp.get('camping_type') == 'Поиск и рекомендации'
-    ]
-    cpo_campaigns = [
-        camp for camp in offer_campaigns
-        if camp.get('camping_type') == 'Оплата за заказ'
-    ]
+    search_campaigns = [camp for camp in offer_campaigns if camp.get('camping_type') == 'Поиск']
+    rec_campaigns = [camp for camp in offer_campaigns if camp.get('camping_type') == 'Поиск и рекомендации']
+    cpo_campaigns = [camp for camp in offer_campaigns if camp.get('camping_type') == 'Оплата за заказ']
 
     search_data = format_campaign_data(search_campaigns, 'search')
     rec_data = format_campaign_data(rec_campaigns, 'recommendations')
@@ -2150,17 +2662,14 @@ def write_parser_error_to_sheet(error_message: str):
 def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict] = None,
                             positions_data: Optional[Dict] = None,
                             drr_all_dict: Optional[Dict] = None,
-                            tech_dict: Optional[Dict] = None,
-                            ):
-    """
-    Основная функция загрузки данных в Google Sheets
-    """
+                            tech_dict: Optional[Dict] = None):
+    """Основная функция загрузки данных в Google Sheets"""
     print("\n" + "=" * 60)
     print("🚀 НАЧАЛО ЗАГРУЗКИ ДАННЫХ В GOOGLE SHEETS")
     print("=" * 60)
+    time.sleep(5)
 
     try:
-        # Подключение к Google Sheets
         print("\n🔌 Подключение к Google Sheets...")
         client, spreadsheet = test_google_sheets_connection()
         current_date_str = get_current_date_moscow()
@@ -2173,7 +2682,6 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
 
         dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
 
-        # Настройка структуры DASHBOARD
         current_data = execute_with_retry(dashboard.get_all_values)
         expected_headers = [h['name'] for h in DASHBOARD_CONFIG['headers']]
 
@@ -2182,58 +2690,16 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         else:
             clear_old_dashboard_data(dashboard, len(current_data))
 
-        # Подготовка данных DASHBOARD - получаем также drr_for_products
         dashboard_data, _, drr_for_products = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
 
-        # ================= НОВЫЙ ЛИСТ: ДРР ОБЩИЙ (сразу после DASHBOARD) =================
+        # ================= НОВЫЙ ЛИСТ: ДРР ОБЩИЙ =================
         print("\n" + "=" * 60)
         print("📊 ОБНОВЛЕНИЕ СВОДНОЙ ТАБЛИЦЫ ДРР ОБЩИЙ")
         print("=" * 60)
 
-        # Обновляем сводную таблицу на основе текущего DASHBOARD
         update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_str)
-
-        # ================= ОБРАБОТКА ЛИСТОВ ТОВАРОВ =================
-        print("\n" + "=" * 60)
-        print("📄 ОБРАБОТКА ЛИСТОВ ТОВАРОВ")
-        print("=" * 60)
-
-        for idx, item in enumerate(all_items_dict.values()):
-            offer_id = item.get("offer_id")
-            skus_list = item.get("skus", [])
-
-            print(f"\n🔄 Обработка товара {idx + 1}/{len(all_items_dict)}: {offer_id}")
-            print(f"   SKU: {', '.join(skus_list)}")
-
-            # Обновляем позицию товара
-            position_category = update_position_data(item, positions_data)
-            item['avg_position_category'] = position_category
-
-            # Получаем или создаем лист товара
-            try:
-                sheet = execute_with_exponential_backoff(spreadsheet.worksheet, offer_id)
-                need_setup = False
-            except gspread.exceptions.WorksheetNotFound:
-                sheet = execute_with_exponential_backoff(
-                    spreadsheet.add_worksheet, title=offer_id, rows=2000, cols=60
-                )
-                need_setup = True
-                time.sleep(2)
-
-            # Настраиваем структуру листа если нужно
-            if need_setup:
-                setup_product_sheet_structure(sheet, offer_id, skus_list)
-
-            # Подготавливаем и обновляем данные - передаём drr_for_products
-            full_row = prepare_product_row(item, campaigns_data, drr_for_products, current_date_str)
-            update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
-
-            # Пауза для соблюдения лимитов
-            if (idx + 1) % 5 == 0:
-                print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
-                time.sleep(5)
 
         # ================= НАСТРОЙКА ТЕХНИЧЕСКОГО ЛИСТА =================
         print("\n" + "=" * 60)
@@ -2241,8 +2707,6 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         print("=" * 60)
 
         tech_sheet, products_start_row = setup_technical_sheet(spreadsheet)
-
-        # Настраиваем лист стоимости логистики
         logistics_price_sheet = setup_logistics_price_sheet(spreadsheet)
 
         # ================= РАСШИРЕННОЕ ОБНОВЛЕНИЕ ТЕХНИЧЕСКОГО ЛИСТА =================
@@ -2251,34 +2715,29 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         print("=" * 60)
 
         update_technical_sheet_advanced(tech_sheet, campaigns_data, products_start_row,
-                                        logistics_price_sheet, current_date_str, tech_dict)
+                                        logistics_price_sheet, current_date_str, tech_dict, spreadsheet)
 
         # ================= ОБНОВЛЕНИЕ ЛИСТОВ ЧП =================
         print("\n" + "=" * 60)
         print("💰 ОБНОВЛЕНИЕ ЛИСТОВ ЧП")
         print("=" * 60)
 
-        # Отладочная проверка
-        debug_sheet_creation(spreadsheet)
-        update_chp_sheets(spreadsheet, campaigns_data, logistics_price_sheet, current_date_str, tech_dict)
+        update_chp_sheets(spreadsheet, campaigns_data, logistics_price_sheet,
+                          current_date_str, tech_dict, drr_for_products)
 
         # ================= ДОБАВЛЕНИЕ СТОЛБЦОВ НА DASHBOARD =================
         print("\n" + "=" * 60)
         print("📊 ДОБАВЛЕНИЕ НОВЫХ СТОЛБЦОВ НА DASHBOARD")
         print("=" * 60)
 
-        # Добавляем столбец ЧП / в день на дашборд
         add_chp_per_day_column(spreadsheet, campaigns_data, current_date_str, tech_dict)
-
-        # Добавляем столбец СПП на дашборд
         add_spp_column_to_dashboard(spreadsheet, campaigns_data)
 
-        # ================= СОХРАНЕНИЕ ИСТОРИИ DASHBOARD (В КОНЦЕ) =================
+        # ================= СОХРАНЕНИЕ ИСТОРИИ DASHBOARD =================
         print("\n" + "=" * 60)
         print("📜 СОХРАНЕНИЕ ИСТОРИИ DASHBOARD")
         print("=" * 60)
 
-        # Сохраняем данные из DASHBOARD в историю
         save_dashboard_to_history(spreadsheet, current_date_str)
 
         print("\n" + "=" * 60)
@@ -2304,14 +2763,7 @@ def test():
 
 
 def test_with_custom_date(custom_date: str = None):
-    """
-    Тестовая функция с возможностью указать произвольную дату
-
-    Args:
-        custom_date: Дата в формате "DD.MM.YYYY" (например "15.03.2026")
-                    Если не указана, используется текущая дата
-    """
-    # Загружаем тестовые данные
+    """Тестовая функция с возможностью указать произвольную дату"""
     with open('all_items_dict.json', 'r', encoding='utf-8') as f:
         all_dict = json.load(f)
     with open('advert_analytic.json', 'r', encoding='utf-8') as f:
@@ -2321,37 +2773,24 @@ def test_with_custom_date(custom_date: str = None):
     with open('money_spent_advert_dict.json', 'r', encoding='utf-8') as f:
         money_spent_dict = json.load(f)
 
-    # Если указана тестовая дата - используем её
     if custom_date:
         print(f"\n🧪 ТЕСТОВЫЙ РЕЖИМ: используется дата {custom_date}")
-        # Временно переопределяем функцию получения даты
         original_get_date = get_current_date_moscow
         globals()['get_current_date_moscow'] = lambda: custom_date
 
-        # Загружаем данные с тестовой датой
         upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict, {})
 
-        # Восстанавливаем оригинальную функцию
         globals()['get_current_date_moscow'] = original_get_date
     else:
-        # Обычный режим с текущей датой
         upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict, {})
 
 
 def test_technical_sheet_with_saved_data(custom_date: str = None):
-    """
-    Тестовая функция для проверки работы Технического листа и нового функционала
-    Загружает данные из сохраненных JSON файлов и запускает загрузку в Google Sheets
-
-    Args:
-        custom_date: Дата в формате "DD.MM.YYYY" (например "15.05.2026")
-                    Если не указана, используется текущая дата
-    """
+    """Тестовая функция для проверки работы Технического листа"""
     print("\n" + "=" * 80)
     print("🧪 ТЕСТОВЫЙ РЕЖИМ: ЗАГРУЗКА ИЗ СОХРАНЕННЫХ ДАННЫХ")
     print("=" * 80)
 
-    # Пути к файлам с данными
     files = {
         'all_items_dict': 'all_items_dict.json',
         'advert_analytic': 'advert_analytic.json',
@@ -2360,7 +2799,6 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
         'tech_dict': 'tech_dict.json'
     }
 
-    # Проверяем наличие файлов
     missing_files = []
     for name, path in files.items():
         if not os.path.exists(path):
@@ -2371,10 +2809,8 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
         for f in missing_files:
             print(f"   - {f}")
         print("\n💡 Сначала запустите main.py в обычном режиме, чтобы сохранить данные")
-        print("   Или создайте файлы с тестовыми данными вручную")
         return False
 
-    # Загружаем данные
     print("\n📂 ЗАГРУЗКА ДАННЫХ ИЗ ФАЙЛОВ:")
 
     all_items_dict = {}
@@ -2420,15 +2856,12 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
     except Exception as e:
         print(f"   ⚠️ tech_dict не загружен: {e}")
 
-    # Проверяем, есть ли данные для теста
     if not all_items_dict or not advert_analytic:
         print("\n❌ НЕТ ДАННЫХ ДЛЯ ТЕСТА")
-        print("   Убедитесь, что файлы all_items_dict.json и advert_analytic.json существуют")
         return False
 
-    # Выводим информацию о товарах для отладки
     print("\n📊 ИНФОРМАЦИЯ О ТОВАРАХ ИЗ advert_analytic:")
-    for offer_id, campaigns in list(advert_analytic.items())[:5]:  # Показываем первые 5
+    for offer_id, campaigns in list(advert_analytic.items())[:5]:
         if campaigns:
             first = campaigns[0]
             print(f"   📦 {offer_id}:")
@@ -2439,7 +2872,6 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
             print(f"      - Себестоимость: {first.get('cost_price', 'Нет')}")
             print(f"      - Остатки: {first.get('stock_balance', 'Нет')}")
 
-    # Запускаем загрузку в Google Sheets
     print("\n🚀 ЗАПУСК ЗАГРУЗКИ В GOOGLE SHEETS")
     print("=" * 80)
 
@@ -2475,24 +2907,18 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
 
 
 def quick_test():
-    """
-    Быстрый тест с фиксированной датой для проверки Технического листа
-    """
+    """Быстрый тест с фиксированной датой"""
     print("\n🔥 БЫСТРЫЙ ТЕСТ ТЕХНИЧЕСКОГО ЛИСТА")
     print("   Используется дата: 15.05.2026")
     test_technical_sheet_with_saved_data(custom_date="15.05.2026")
 
 
 def debug_technical_sheet():
-    """
-    Отладочная функция для проверки расчетов Технического листа
-    Показывает все промежуточные расчеты без загрузки в Google Sheets
-    """
+    """Отладочная функция для проверки расчетов Технического листа"""
     print("\n" + "=" * 80)
     print("🐛 ОТЛАДКА ТЕХНИЧЕСКОГО ЛИСТА (БЕЗ ЗАГРУЗКИ)")
     print("=" * 80)
 
-    # Загружаем данные
     try:
         with open('advert_analytic.json', 'r', encoding='utf-8') as f:
             advert_analytic = json.load(f)
@@ -2511,13 +2937,11 @@ def debug_technical_sheet():
         print(f"⚠️ tech_dict не загружен, используем 87%")
         local_sales_percent = 87
 
-    # Параметры расчета
     tax_rate = 6.0
     acquiring_rate = 1.0
     non_local_ratio = (100 - local_sales_percent) / 100
     avg_markup = 0.08
 
-    # Загружаем таблицу логистики (имитация)
     logistics_prices = {
         'over_300': [
             {'min': 0, 'max': 0.200, 'price': 56},
@@ -2556,11 +2980,9 @@ def debug_technical_sheet():
         volume_l = clean_numeric_value(first.get('item_volume_l', 0))
         commission_str = str(first.get('commission_fbo', '0'))
 
-        # Расчеты
         commission_percent = get_commission_rate(commission_str)
         acquiring = calculate_acquiring(price_before, acquiring_rate)
 
-        # Логистика
         base_rate = 56
         for rule in logistics_prices['over_300']:
             if rule['min'] <= volume_l <= rule['max']:
@@ -2583,7 +3005,6 @@ def debug_technical_sheet():
         print(f"   СПП: {spp:.2f}%")
         print(f"   Налог ({tax_rate}%): {tax:.2f} руб")
 
-        # Поиск ДРР
         drr_total = 0
         for campaign in campaigns:
             drr_val = campaign.get('drr', '0%')
@@ -2603,7 +3024,6 @@ def debug_technical_sheet():
     print("✅ ОТЛАДКА ЗАВЕРШЕНА")
 
 
-# Добавить в конец файла, чтобы можно было запустить тест:
 if __name__ == "__main__":
     import sys
 
@@ -2618,6 +3038,3 @@ if __name__ == "__main__":
             test_technical_sheet_with_saved_data()
     else:
         test_technical_sheet_with_saved_data()
-
-# if __name__ == "__main__":
-#     test_with_custom_date('31.06.2026')

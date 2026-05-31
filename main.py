@@ -188,6 +188,7 @@ def my_script(api_keys):
         except Exception as e:
             pass
 
+        time.sleep(5)
         upload_to_google_sheets(all_items_dict, advert_analytic, position_analytic, money_spent_advert_dict, tech_stats)
         logger.info("   ✅ Данные загружены в Google Sheets")
 
