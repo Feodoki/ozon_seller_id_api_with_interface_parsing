@@ -1294,25 +1294,35 @@ def setup_chp_common_sheet(spreadsheet):
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
+            # Сначала проверяем, существует ли лист
             try:
                 sheet = spreadsheet.worksheet(sheet_title)
                 print(f"  📄 Лист {sheet_title} уже существует")
                 return sheet
             except gspread.exceptions.WorksheetNotFound:
                 print(f"  🆕 Создание нового листа {sheet_title}...")
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=10000, cols=50)
+
+                # УМЕНЬШАЕМ РАЗМЕР: 5000 строк, 20 колонок = 100,000 ячеек вместо 500,000
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=5000, cols=20)
                 time.sleep(2)
 
+                # Формируем заголовки
                 safe_update_cell(sheet, "A1", [CHP_COMMON_CONFIG["headers"]], value_input_option='USER_ENTERED')
+
+                end_col = get_column_letter(len(CHP_COMMON_CONFIG["headers"]))
                 safe_format_range(
-                    sheet, "A1:F1",
+                    sheet, f"A1:{end_col}1",
                     CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
                                backgroundColor=Color(0.85, 0.95, 0.85))
                 )
 
+                # Устанавливаем ширину колонок
                 for idx, header in enumerate(CHP_COMMON_CONFIG["headers"], start=1):
                     col_letter = get_column_letter(idx)
-                    safe_api_call(set_column_width, sheet, col_letter, 150 if idx == 0 else 120)
+                    try:
+                        safe_api_call(set_column_width, sheet, col_letter, 150 if idx == 0 else 120)
+                    except:
+                        pass
 
                 safe_api_call(set_frozen, sheet, rows=1)
                 print("  ✅ Лист ЧП_товары_общая создан и настроен")
@@ -1325,6 +1335,28 @@ def setup_chp_common_sheet(spreadsheet):
                 print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue
+            elif '10000000 cells' in error_str:
+                # Специальная обработка: пробуем создать лист с МЕНЬШИМ размером
+                print(f"  ⚠️ Лимит ячеек превышен для 5000x20, пробуем 2000x15...")
+                try:
+                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=2000, cols=15)
+                    time.sleep(2)
+
+                    safe_update_cell(sheet, "A1", [CHP_COMMON_CONFIG["headers"]], value_input_option='USER_ENTERED')
+
+                    end_col = get_column_letter(len(CHP_COMMON_CONFIG["headers"]))
+                    safe_format_range(
+                        sheet, f"A1:{end_col}1",
+                        CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
+                                   backgroundColor=Color(0.85, 0.95, 0.85))
+                    )
+
+                    safe_api_call(set_frozen, sheet, rows=1)
+                    print("  ✅ Лист ЧП_товары_общая создан с уменьшенным размером")
+                    return sheet
+                except Exception as e2:
+                    print(f"  ❌ Не удалось создать лист даже с уменьшенным размером: {e2}")
+                    raise
             else:
                 print(f"  ❌ Ошибка при настройке ЧП_товары_общая: {e}")
                 raise
@@ -1340,25 +1372,35 @@ def setup_chp_drr_sheet(spreadsheet):
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
+            # Сначала проверяем, существует ли лист
             try:
                 sheet = spreadsheet.worksheet(sheet_title)
                 print(f"  📄 Лист {sheet_title} уже существует")
                 return sheet
             except gspread.exceptions.WorksheetNotFound:
                 print(f"  🆕 Создание нового листа {sheet_title}...")
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=10000, cols=50)
+
+                # УМЕНЬШАЕМ РАЗМЕР: 5000 строк, 20 колонок
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=5000, cols=20)
                 time.sleep(2)
 
+                # Формируем заголовки
                 safe_update_cell(sheet, "A1", [CHP_DRR_CONFIG["headers"]], value_input_option='USER_ENTERED')
+
+                end_col = get_column_letter(len(CHP_DRR_CONFIG["headers"]))
                 safe_format_range(
-                    sheet, "A1:F1",
+                    sheet, f"A1:{end_col}1",
                     CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
                                backgroundColor=Color(0.85, 0.95, 0.85))
                 )
 
+                # Устанавливаем ширину колонок
                 for idx, header in enumerate(CHP_DRR_CONFIG["headers"], start=1):
                     col_letter = get_column_letter(idx)
-                    safe_api_call(set_column_width, sheet, col_letter, 150 if idx == 0 else 120)
+                    try:
+                        safe_api_call(set_column_width, sheet, col_letter, 150 if idx == 0 else 120)
+                    except:
+                        pass
 
                 safe_api_call(set_frozen, sheet, rows=1)
                 print("  ✅ Лист ЧП_товары_ДРР создан и настроен")
@@ -1371,6 +1413,28 @@ def setup_chp_drr_sheet(spreadsheet):
                 print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue
+            elif '10000000 cells' in error_str:
+                # Специальная обработка: пробуем создать лист с МЕНЬШИМ размером
+                print(f"  ⚠️ Лимит ячеек превышен для 5000x20, пробуем 2000x15...")
+                try:
+                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=2000, cols=15)
+                    time.sleep(2)
+
+                    safe_update_cell(sheet, "A1", [CHP_DRR_CONFIG["headers"]], value_input_option='USER_ENTERED')
+
+                    end_col = get_column_letter(len(CHP_DRR_CONFIG["headers"]))
+                    safe_format_range(
+                        sheet, f"A1:{end_col}1",
+                        CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
+                                   backgroundColor=Color(0.85, 0.95, 0.85))
+                    )
+
+                    safe_api_call(set_frozen, sheet, rows=1)
+                    print("  ✅ Лист ЧП_товары_ДРР создан с уменьшенным размером")
+                    return sheet
+                except Exception as e2:
+                    print(f"  ❌ Не удалось создать лист даже с уменьшенным размером: {e2}")
+                    raise
             else:
                 print(f"  ❌ Ошибка при настройке ЧП_товары_ДРР: {e}")
                 raise
@@ -2662,6 +2726,46 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         dashboard_data, _, drr_for_products = prepare_dashboard_data(all_items_dict, campaigns_data, drr_all_dict)
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
+
+        # ================= ОБРАБОТКА ЛИСТОВ ТОВАРОВ =================
+        print("\n" + "=" * 60)
+        print("📄 ОБРАБОТКА ЛИСТОВ ТОВАРОВ")
+        print("=" * 60)
+
+        for idx, item in enumerate(all_items_dict.values()):
+            offer_id = item.get("offer_id")
+            skus_list = item.get("skus", [])
+
+            print(f"\n🔄 Обработка товара {idx + 1}/{len(all_items_dict)}: {offer_id}")
+            print(f"   SKU: {', '.join(skus_list)}")
+
+            # Обновляем позицию товара
+            position_category = update_position_data(item, positions_data)
+            item['avg_position_category'] = position_category
+
+            # Получаем или создаем лист товара
+            try:
+                sheet = execute_with_exponential_backoff(spreadsheet.worksheet, offer_id)
+                need_setup = False
+            except gspread.exceptions.WorksheetNotFound:
+                sheet = execute_with_exponential_backoff(
+                    spreadsheet.add_worksheet, title=offer_id, rows=2000, cols=60
+                )
+                need_setup = True
+                time.sleep(2)
+
+            # Настраиваем структуру листа если нужно
+            if need_setup:
+                setup_product_sheet_structure(sheet, offer_id, skus_list)
+
+            # Подготавливаем и обновляем данные - передаём drr_for_products
+            full_row = prepare_product_row(item, campaigns_data, drr_for_products, current_date_str)
+            update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
+
+            # Пауза для соблюдения лимитов
+            if (idx + 1) % 5 == 0:
+                print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
+                time.sleep(5)
 
         # ================= НОВЫЙ ЛИСТ: ДРР ОБЩИЙ =================
         print("\n" + "=" * 60)
