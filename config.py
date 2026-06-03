@@ -7,3 +7,16 @@ OZON_PERFORMANCE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhZHZlc
 spread_id = "1yBOhuv4H24GN-FCIaYlKHmwaHWwVS6y4ipRX6vwimms" # google sheet id
 
 profile_name = "profile_name"
+
+# Настройки магазина
+STORE_NAME = "Intrigue test"  # Уникальное имя магазина (будет использоваться в URL)
+STORE_IP = ""  # Оставьте пустым для автоопределения, или укажите IP вручную
+
+# Интервал автозапуска (секунды)
+AUTO_INTERVAL = 1000
+
+# Режим браузера (True - без интерфейса, False - с интерфейсом)
+HEADLESS_MODE = True
+
+# Порт веб-сервера
+WEB_PORT = 5000

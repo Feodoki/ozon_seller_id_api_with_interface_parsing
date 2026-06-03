@@ -1481,7 +1481,7 @@ class InterfaceParser:
                             print(traceback.format_exc())
 
                 try:
-                    with open('money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
+                    with open('logs/money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
                         json.dump(money_spent_dict, f, ensure_ascii=False, indent=4)
                 except Exception as e:
                     pass
@@ -1556,7 +1556,7 @@ class InterfaceParser:
                             print(traceback.format_exc())
                             pass
 
-                with open('money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
+                with open('logs/money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
                     json.dump(volume_dict, f, ensure_ascii=False, indent=4)
                 return volume_dict
             except:

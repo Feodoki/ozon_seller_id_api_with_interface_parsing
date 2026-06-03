@@ -3051,26 +3051,26 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
 
 
 def test():
-    with open('all_items_dict.json', 'r', encoding='utf-8') as f:
+    with open('logs/all_items_dict.json', 'r', encoding='utf-8') as f:
         all_dict = json.load(f)
-    with open('advert_analytic.json', 'r', encoding='utf-8') as f:
+    with open('logs/advert_analytic.json', 'r', encoding='utf-8') as f:
         s_dict = json.load(f)
-    with open('position_analytic.json', 'r', encoding='utf-8') as f:
+    with open('logs/position_analytic.json', 'r', encoding='utf-8') as f:
         l_dict = json.load(f)
-    with open('money_spent_advert_dict.json', 'r', encoding='utf-8') as f:
+    with open('logs/money_spent_advert_dict.json', 'r', encoding='utf-8') as f:
         money_spent_dict = json.load(f)
     upload_to_google_sheets(all_dict, s_dict, l_dict, money_spent_dict, {})
 
 
 def test_with_custom_date(custom_date: str = None):
     """Тестовая функция с возможностью указать произвольную дату"""
-    with open('all_items_dict.json', 'r', encoding='utf-8') as f:
+    with open('logs/all_items_dict.json', 'r', encoding='utf-8') as f:
         all_dict = json.load(f)
-    with open('advert_analytic.json', 'r', encoding='utf-8') as f:
+    with open('logs/advert_analytic.json', 'r', encoding='utf-8') as f:
         s_dict = json.load(f)
-    with open('position_analytic.json', 'r', encoding='utf-8') as f:
+    with open('logs/position_analytic.json', 'r', encoding='utf-8') as f:
         l_dict = json.load(f)
-    with open('money_spent_advert_dict.json', 'r', encoding='utf-8') as f:
+    with open('logs/money_spent_advert_dict.json', 'r', encoding='utf-8') as f:
         money_spent_dict = json.load(f)
 
     if custom_date:
@@ -3092,11 +3092,11 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
     print("=" * 80)
 
     files = {
-        'all_items_dict': 'all_items_dict.json',
-        'advert_analytic': 'advert_analytic.json',
-        'position_analytic': 'position_analytic.json',
-        'money_spent_advert_dict': 'money_spent_advert_dict.json',
-        'tech_dict': 'tech_dict.json'
+        'all_items_dict': 'logs/all_items_dict.json',
+        'advert_analytic': 'logs/advert_analytic.json',
+        'position_analytic': 'logs/position_analytic.json',
+        'money_spent_advert_dict': 'logs/money_spent_advert_dict.json',
+        'tech_dict': 'logs/tech_dict.json'
     }
 
     missing_files = []
@@ -3220,7 +3220,7 @@ def debug_technical_sheet():
     print("=" * 80)
 
     try:
-        with open('advert_analytic.json', 'r', encoding='utf-8') as f:
+        with open('logs/advert_analytic.json', 'r', encoding='utf-8') as f:
             advert_analytic = json.load(f)
         print(f"✅ Загружено {len(advert_analytic)} товаров")
     except Exception as e:
@@ -3228,7 +3228,7 @@ def debug_technical_sheet():
         return
 
     try:
-        with open('tech_dict.json', 'r', encoding='utf-8') as f:
+        with open('logs/tech_dict.json', 'r', encoding='utf-8') as f:
             tech_dict = json.load(f)
         print(f"✅ Загружен tech_dict")
         local_sales_percent = float(tech_dict.get('local_sales_percent', 87))
