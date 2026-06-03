@@ -2543,7 +2543,7 @@ def setup_history_dashboard_sheet(spreadsheet):
 
 
 def save_dashboard_to_history(spreadsheet, current_date: str):
-    """Сохраняет текущие данные из листа DASHBOARD в историю - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ"""
+    """Сохраняет текущие данные из листа DASHBOARD в историю - СОХРАНЯЕТ ВСЮ ИСТОРИЮ"""
     print("\n💾 СОХРАНЕНИЕ DASHBOARD В ИСТОРИЮ")
 
     for attempt in range(MAX_QUOTA_RETRIES):
@@ -2558,13 +2558,14 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             history_sheet = setup_history_dashboard_sheet(spreadsheet)
             existing_data = safe_get_values(history_sheet)
 
-            # Находим строки для удаления
+            # Находим строки для удаления (только за текущую дату)
             rows_to_delete = []
             for row_idx, row in enumerate(existing_data):
                 if row and len(row) > 0 and row[0] == current_date:
+                    # Не удаляем строку ИТОГО за текущую дату отдельно
                     rows_to_delete.append(row_idx + 1)
 
-            # Удаляем строки
+            # Удаляем только старые записи за текущую дату
             deleted_count = 0
             for row_idx in sorted(rows_to_delete, reverse=True):
                 try:
@@ -2606,25 +2607,35 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 print("  ⚠️ Нет данных для сохранения в историю")
                 return False
 
-            # Получаем актуальные данные после удаления
+            # Получаем актуальные данные ПОСЛЕ удаления
             existing_data = safe_get_values(history_sheet)
 
-            # Находим место для вставки
+            # Находим место для вставки (после шапки и примечания)
+            # Шапка - строка 1, примечание - строка 2
             insert_row_index = 3
-            if len(existing_data) > 1 and existing_data[1] and len(existing_data[1]) > 0:
-                first_cell = str(existing_data[1][0]) if existing_data[1][0] else ""
-                if first_cell.startswith('💡') or first_cell.startswith('📊'):
-                    insert_row_index = 3
-                else:
-                    insert_row_index = 2
+
+            # Проверяем, есть ли уже данные за ДРУГИЕ даты
+            # Если есть, вставляем новые данные перед ними (чтобы свежие даты были сверху)
+            first_data_row = None
+            for row_idx, row in enumerate(existing_data[2:], start=3):
+                if row and len(row) > 0 and row[0] and not row[0].startswith('💡') and not row[0].startswith('📊'):
+                    first_data_row = row_idx
+                    break
+
+            if first_data_row:
+                # Вставляем перед существующими данными
+                insert_row_index = first_data_row
+                print(f"     📍 Вставка новых данных перед строкой {insert_row_index}")
             else:
-                insert_row_index = 2
+                # Нет данных - вставляем после примечания
+                insert_row_index = 3
+                print(f"     📍 Первая запись, вставка в строку {insert_row_index}")
 
             # ОДНИМ запросом вставляем все новые данные
             range_name = f"A{insert_row_index}:G{insert_row_index + len(history_rows) - 1}"
             safe_update_cell(history_sheet, range_name, history_rows, value_input_option='USER_ENTERED')
 
-            # Добавляем строку ИТОГО
+            # Добавляем строку ИТОГО сразу после данных за текущую дату
             totals_row_start = insert_row_index + len(history_rows)
             totals_row = [[
                 f"ИТОГО за {current_date}", "",
@@ -2637,7 +2648,7 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
 
             safe_update_cell(history_sheet, f"A{totals_row_start}", totals_row, value_input_option='USER_ENTERED')
 
-            # Форматирование
+            # Форматирование числовых колонок
             end_row = totals_row_start - 1
             for col in ['C', 'D', 'E', 'F', 'G']:
                 try:
@@ -2649,6 +2660,7 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                     pass
 
             print(f"  ✅ История DASHBOARD обновлена: {len(history_rows)} записей за {current_date}")
+            print(f"     📌 Данные вставлены в начало истории (свежие даты сверху)")
             return True
 
         except Exception as e:

@@ -1659,9 +1659,9 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    parser.get_analytic_money_spent()
-    input('test')
+    #parser.get_analytic_money_spent()
+    #input('test')
 
-    #parser.auth()
+    parser.auth()
     time.sleep(2)
     parser.close()
