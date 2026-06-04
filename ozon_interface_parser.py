@@ -13,6 +13,7 @@ from datetime import datetime
 from data_to_google_sheets import write_error_to_sheet, write_parser_error_to_sheet
 import json
 import shutil
+from ozon_api_parser import OzonSellerParse
 
 from config import profile_name
 
@@ -1493,80 +1494,19 @@ class InterfaceParser:
 
 
     # Получение объема товара
-    def get_volume_product(self):
-        global debug
-        if debug:
-            logger.info(f"Init func - {inspect.currentframe().f_code.co_name}")
-        driver = self.driver
-        volume_dict = {}
-        for attempt in range(3):
+    def get_volume_product(self, offer_ids):
+        try:
+            api = OzonSellerParse()
+            offer_dict = api.get_volume(offer_ids)
             try:
-                driver.get('https://seller.ozon.ru/app/products?filter=in_sale')
-
-                WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//thead")))
-                self.random_sleep(1)
-
-                offer_id_index = False
-                volume_index = False
-                headers = driver.find_element(By.XPATH, ".//thead").find_element(By.XPATH, './/tr').find_elements(By.XPATH, './/th')
-                for th in headers:
-                    if 'Артикул' == th.text.strip():
-                        offer_id_index = headers.index(th)
-                    elif 'Объем товара, л' in th.text:
-                        volume_index = headers.index(th)
-
-                logger.info(f'Offer id index = {offer_id_index}\nVolume index = {volume_index}\n\n')
-
-                pagination = driver.find_element(By.XPATH, "//div[@id='pagination']")
-                pages = pagination.find_element(By.XPATH, ".//ul").find_elements(By.XPATH, './/li')
-
-                for page in pages:
-                    page_btn = page.find_element(By.XPATH, ".//button")
-                    self.scroll_to_element_center(page_btn)
-                    self.random_sleep(2)
-                    page_btn.click()
-
-                    self.random_sleep(2)
-                    all_items = driver.find_element(By.XPATH, ".//tbody").find_elements(By.XPATH, './/tr')
-                    self.scroll_to_element_center(all_items[-1])
-                    self.random_sleep(2)
-
-                    for item in all_items:
-                        try:
-                            item_tds = item.find_elements(By.XPATH, ".//td")
-                            if offer_id_index:
-                                offer_id = item_tds[offer_id_index].text.strip()
-                            else:
-                                offer_id = item_tds[3].text.strip()
-
-                            if '\n' in offer_id:
-                                offer_id = offer_id.split('\n')[0].strip()
-
-                            if volume_index:
-                                item_volume = item_tds[volume_index].text.strip()
-                                self.scroll_to_element_center(item_tds[volume_index])
-                                self.random_sleep()
-                            else:
-                                item_volume = item_tds[14].text.strip()
-                                self.scroll_to_element_center(item_tds[14])
-                                self.random_sleep()
-
-                            item_volume_l = item_volume.split('\n')[0].strip()
-                            item_volume_kg = item_volume.split('\n')[1].strip()
-
-                            print(offer_id, item_volume_l, item_volume_kg, sep='\n', end='\n\n')
-                            volume_dict[offer_id] = {'item_volume_l': item_volume_l, 'item_volume_kg': item_volume_kg}
-                        except:
-                            print(traceback.format_exc())
-                            pass
-
                 with open('logs/volume_dict.json', 'w', encoding='utf-8') as f:
-                    json.dump(volume_dict, f, ensure_ascii=False, indent=4)
-                return volume_dict
+                    json.dump(offer_dict, f, ensure_ascii=False, indent=4)
             except:
-                logger.error(f"Ошибка при получении объема товара: {traceback.format_exc()}")
-                self.random_sleep(1)
-                continue
+                pass
+            return offer_dict
+        except:
+            logger.error(f"Ошибка получения объемов товара: {str(traceback.format_exc())}")
+            return {}
 
     def get_local_sales_percent(self):
         driver = self.driver
@@ -1608,14 +1548,13 @@ class InterfaceParser:
                 logger.info(f"   ✅ Рекламная аналитика успешно собрана для {len(res_dict)} товаров")
 
                 try:
-                    volume_dict = self.get_volume_product()
+                    offer_ids = list(res_dict.keys())
+                    volume_dict = self.get_volume_product(offer_ids)
                     for offer_id in volume_dict:
                         item_volume_l = volume_dict[offer_id]['item_volume_l']
-                        item_volume_kg = volume_dict[offer_id]['item_volume_kg']
                         if offer_id in res_dict:
                             for item_dict in res_dict[offer_id]:
                                 item_dict['item_volume_l'] = item_volume_l
-                                item_dict['item_volume_kg'] = item_volume_kg
 
                 except Exception as e:
                     logger.warning(f"Ошибка сопоставления Объема товара - {str(e)}")

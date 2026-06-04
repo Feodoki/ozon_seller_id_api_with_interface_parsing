@@ -533,20 +533,39 @@ class OzonSellerParse:
                 pass
 
 
-    def get_volume(self):
-        api_url = "https://api-seller.ozon.ru/v4/product/info/attributes"
+    def get_volume(self, offer_ids: list):
+        self.update_token()
+        res_dict = {}
+        api_url = "https://api-seller.ozon.ru/v3/product/info/list"
         headers = self.headers
         json_ = {
-            "filter": {"offer_id": ["Наручники_МЕХ"]},
+            "offer_id": offer_ids,
             "limit": 1000,
-
         }
-        response = requests.post(api_url, headers=headers, json=json_)
-        print(response.text)
+        bad_count = 0
+        while True:
+            try:
+                if bad_count > 5:
+                    return {}
+                response = requests.post(api_url, headers=headers, json=json_)
+                if response.status_code != 200:
+                    bad_count += 1
+                else:
+                    data_json = response.json()
+                    for item in data_json['items']:
+                        item_offer_id = item['offer_id']
+                        item_volume = item['volume_weight']
+                        res_dict[item_offer_id] = {"item_volume_l": item_volume}
+
+                    return res_dict
+            except:
+                print(traceback.format_exc())
+
 
 
     def test(self):
-        self.get_volume()
+        res = self.get_volume([])
+        print(res)
 
 
     def main(self):

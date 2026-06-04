@@ -262,7 +262,7 @@ SPP_HISTORY_CONFIG = {
 
 
 def setup_spp_history_sheet(spreadsheet):
-    """Настраивает лист истории СПП"""
+    """Настраивает лист истории СПП (строка 1 - заголовки, строка 2 - пустая)"""
     print("\n📊 НАСТРОЙКА ЛИСТА ИСТОРИИ СПП")
 
     sheet_title = SPP_HISTORY_CONFIG["sheet_name"]
@@ -276,10 +276,10 @@ def setup_spp_history_sheet(spreadsheet):
             except gspread.exceptions.WorksheetNotFound:
                 print(f"  🆕 Создание листа {sheet_title}...")
 
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=10000, cols=100)
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=1000, cols=100)
                 time.sleep(2)
 
-                # Формируем заголовки
+                # Формируем заголовки в строке 1
                 headers = SPP_HISTORY_CONFIG["headers"]
                 safe_update_cell(sheet, "A1", [headers], value_input_option='USER_ENTERED')
 
@@ -296,18 +296,11 @@ def setup_spp_history_sheet(spreadsheet):
                 safe_api_call(set_column_width, sheet, "A", 200)
                 safe_api_call(set_column_width, sheet, "B", 150)
 
-                # Добавляем примечание
-                safe_update_cell(sheet, "A2", [[SPP_HISTORY_CONFIG["note"]]], value_input_option='USER_ENTERED')
-                safe_format_range(
-                    sheet, f"A2:{end_col}2",
-                    CellFormat(
-                        textFormat=TextFormat(italic=True, fontSize=9),
-                        backgroundColor=Color(0.95, 0.95, 0.9)
-                    )
-                )
+                # Строка 2 - пустая (без примечания)
+                # Замораживаем только 1 строку (заголовки)
+                safe_api_call(set_frozen, sheet, rows=1)
 
-                safe_api_call(set_frozen, sheet, rows=2)
-                print("  ✅ Лист истории СПП создан и настроен")
+                print("  ✅ Лист истории СПП создан и настроен (строка 2 пустая)")
                 return sheet
 
         except Exception as e:
@@ -325,7 +318,7 @@ def setup_spp_history_sheet(spreadsheet):
 
 
 def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str):
-    """Сохраняет текущие значения СПП в историю"""
+    """Сохраняет текущие значения СПП в историю. Даты добавляются слева (новые колонки слева от старых)"""
     print("\n📊 СОХРАНЕНИЕ СПП В ИСТОРИЮ")
 
     for attempt in range(MAX_QUOTA_RETRIES):
@@ -354,35 +347,24 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
             # Получаем существующие данные
             existing_data = safe_get_values(spp_history_sheet)
 
+            # Определяем текущие заголовки
+            current_headers = existing_data[0] if len(existing_data) > 0 else []
+
             # Проверяем, есть ли уже колонка с этой датой
-            date_column_index = None
-            if len(existing_data) > 2:
-                headers_row = existing_data[2] if len(existing_data) > 2 else []
-                for idx, header in enumerate(headers_row):
-                    if header and header.strip() == current_date_str:
-                        date_column_index = idx
-                        break
+            date_exists = False
+            date_col_index = None
+            for idx, header in enumerate(current_headers):
+                if header == current_date_str:
+                    date_exists = True
+                    date_col_index = idx
+                    break
 
-            # Если колонки нет - добавляем новую
-            if date_column_index is None:
-                # Находим первую свободную колонку после "Среднее значение СПП"
+            # Если даты нет - вставляем новую колонку
+            if not date_exists:
                 insert_col_index = 3  # Колонка C (0-based индекс 2)
-
-                # Проверяем существующие колонки с датами
-                if len(existing_data) > 2:
-                    for idx, header in enumerate(existing_data[2]):
-                        if header and idx >= 2:  # Начинаем с колонки C
-                            try:
-                                # Пытаемся распарсить как дату
-                                datetime.strptime(header, "%d.%m.%Y")
-                                insert_col_index = idx + 1
-                                break
-                            except:
-                                pass
-
                 col_letter = get_column_letter(insert_col_index)
 
-                # Вставляем новую колонку
+                # Вставляем новую колонку на позицию 3 (после A и B)
                 try:
                     spp_history_sheet.insert_cols(insert_col_index, 1)
                 except TypeError:
@@ -407,51 +389,64 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
 
                 time.sleep(1)
 
-                # Записываем заголовок даты
-                safe_update_cell(spp_history_sheet, f"{col_letter}3", [[current_date_str]],
+                # Записываем заголовок даты в строку 1
+                safe_update_cell(spp_history_sheet, f"{col_letter}1", [[current_date_str]],
                                  value_input_option='USER_ENTERED')
                 safe_format_range(
-                    spp_history_sheet, f"{col_letter}3",
+                    spp_history_sheet, f"{col_letter}1",
                     CellFormat(
                         textFormat=TextFormat(bold=True, fontSize=10),
                         backgroundColor=Color(0.9, 0.95, 0.9),
                         horizontalAlignment='CENTER'
                     )
                 )
-                safe_api_call(set_column_width, spp_history_sheet, col_letter, 100)
-                date_column_index = insert_col_index - 1
+                safe_api_call(set_column_width, spp_history_sheet, col_letter, 80)
 
                 print(f"  🆕 Добавлена новая колонка для даты: {current_date_str} (столбец {col_letter})")
+                date_col_index = insert_col_index - 1  # 0-based индекс
 
-            col_letter = get_column_letter(date_column_index + 1)
+                # Обновляем existing_data после вставки колонки
+                time.sleep(1)
+                existing_data = safe_get_values(spp_history_sheet)
+            else:
+                print(f"  📅 Колонка с датой {current_date_str} уже существует (столбец {get_column_letter(date_col_index + 1)})")
+                col_letter = get_column_letter(date_col_index + 1)
 
-            # Получаем существующие артикулы и их строки
+            # Получаем существующие артикулы и их строки (начинаем с 3 строки, т.к. строка 2 пустая)
             product_row_map = {}
-            for row_idx, row in enumerate(existing_data[3:], start=4):  # Начинаем с 4 строки (после шапки и примечания)
-                if row and len(row) > 0 and row[0] and row[0] != 'Артикул':
+            for row_idx, row in enumerate(existing_data[2:], start=3):
+                if row and len(row) > 0 and row[0] and row[0] not in ['Артикул', '']:
                     product_row_map[row[0]] = row_idx
 
-            # Подготавливаем обновления
-            batch_data = []
-            current_row = 4
+            # Заполняем значения для текущей даты (начинаем с 3 строки)
+            current_row = 3
+            values_to_write = []
 
             for offer_id, spp_value in spp_data.items():
                 if offer_id in product_row_map:
                     # Обновляем существующую строку
-                    batch_data.append({
-                        'range': f"{col_letter}{product_row_map[offer_id]}",
+                    row_num = product_row_map[offer_id]
+                    values_to_write.append({
+                        'range': f"{col_letter}{row_num}",
                         'values': [[round(spp_value, 2)]]
                     })
                 else:
-                    # Добавляем новую строку: артикул + значение СПП
-                    row_data = [offer_id, spp_value]
-                    safe_update_cell(spp_history_sheet, f"A{current_row}", [row_data],
+                    # Добавляем новую строку: артикул + пустое среднее + значение СПП
+                    total_cols = len(existing_data[0]) if existing_data and len(existing_data) > 0 else 3
+                    new_row = [offer_id, ""] + [""] * (total_cols - 2)
+                    # Устанавливаем значение в колонку с датой
+                    while len(new_row) <= date_col_index:
+                        new_row.append("")
+                    new_row[date_col_index] = round(spp_value, 2)
+
+                    safe_update_cell(spp_history_sheet, f"A{current_row}", [new_row],
                                      value_input_option='USER_ENTERED')
+                    product_row_map[offer_id] = current_row
                     current_row += 1
 
-            # Обновляем данные через batch_update
-            if batch_data:
-                for item in batch_data:
+            # Обновляем значения через batch_update
+            if values_to_write:
+                for item in values_to_write:
                     try:
                         safe_update_cell(spp_history_sheet, item['range'], item['values'],
                                          value_input_option='USER_ENTERED')
@@ -459,45 +454,56 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
                     except Exception as e:
                         print(f"  ⚠️ Ошибка обновления {item['range']}: {e}")
 
-            # Обновляем среднее значение СПП для каждой строки
-            # Получаем актуальные данные после всех обновлений
+            # Обновляем колонку B (Среднее значение СПП) с помощью ФОРМУЛЫ
+            time.sleep(1)
             updated_data = safe_get_values(spp_history_sheet)
 
-            for row_idx in range(4, len(updated_data) + 1):
-                if row_idx <= len(updated_data):
-                    row_data = updated_data[row_idx - 1] if row_idx - 1 < len(updated_data) else []
-                    if row_data and row_data[0] and row_data[0] != 'Артикул':
-                        # Собираем все значения СПП начиная с колонки C (индекс 2)
-                        spp_values = []
-                        for col_idx in range(2, len(row_data)):
-                            val = row_data[col_idx]
-                            if val and val != '' and val != '—':
-                                try:
-                                    spp_values.append(float(val))
-                                except:
-                                    pass
+            # Находим последнюю колонку с данными (последнюю дату)
+            if len(updated_data) > 0:
+                last_data_col = len(updated_data[0]) - 1
+                last_col_letter = get_column_letter(last_data_col + 1)
 
-                        if spp_values:
-                            avg_spp = sum(spp_values) / len(spp_values)
-                            # Обновляем колонку B (среднее значение)
-                            safe_update_cell(spp_history_sheet, f"B{row_idx}", [[round(avg_spp, 2)]],
-                                             value_input_option='USER_ENTERED')
+                # Для каждой строки с товаром устанавливаем формулу среднего значения (начинаем с 3 строки)
+                for row_num in range(3, len(updated_data) + 1):
+                    row_data = updated_data[row_num - 1] if row_num - 1 < len(updated_data) else []
+                    if row_data and row_data[0] and row_data[0] not in ['Артикул', '']:
+                        # Формула: =СРЗНАЧ(C{row}:{last_col_letter}{row})
+                        formula = f"=СРЗНАЧ(C{row_num}:{last_col_letter}{row_num})"
+                        safe_update_cell(spp_history_sheet, f"B{row_num}", [[formula]],
+                                         value_input_option='USER_ENTERED')
+                        time.sleep(0.2)
+
+                print(f"  📊 Обновлена формула среднего значения для {len(spp_data)} товаров")
 
             # Форматирование числовых колонок
             last_row = len(updated_data) + 5
-            for col in [get_column_letter(date_column_index + 1), 'B']:
-                try:
-                    safe_format_range(
-                        spp_history_sheet, f"{col}4:{col}{last_row}",
-                        CellFormat(
-                            numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
-                            horizontalAlignment='CENTER'
-                        )
+
+            # Форматируем колонку B как число (начиная с 3 строки)
+            try:
+                safe_format_range(
+                    spp_history_sheet, f"B3:B{last_row}",
+                    CellFormat(
+                        numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                        horizontalAlignment='CENTER'
                     )
-                except:
-                    pass
+                )
+            except:
+                pass
+
+            # Форматируем колонку с датой как число (начиная с 3 строки)
+            try:
+                safe_format_range(
+                    spp_history_sheet, f"{col_letter}3:{col_letter}{last_row}",
+                    CellFormat(
+                        numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                        horizontalAlignment='CENTER'
+                    )
+                )
+            except:
+                pass
 
             print(f"  ✅ История СПП обновлена: {len(spp_data)} товаров за {current_date_str}")
+            print(f"     📅 Дата в колонке {col_letter}")
             return True
 
         except Exception as e:
@@ -1940,7 +1946,7 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
         try:
             safe_format_range(
                 tech_sheet, f"J{products_start_row}:J{last_row}",
-                CellFormat(numberFormat={'type': 'PERCENT', 'pattern': '#,##0.00%'})
+                CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
             )
         except:
             pass
@@ -3469,11 +3475,11 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
             missing_files.append(f"{name} ({path})")
 
     if missing_files:
-        print("\n❌ ОТСУТСТВУЮТ ФАЙЛЫ ДАННЫХ:")
+        print("\nё")
         for f in missing_files:
             print(f"   - {f}")
         print("\n💡 Сначала запустите main.py в обычном режиме, чтобы сохранить данные")
-        return False
+        pass
 
     print("\n📂 ЗАГРУЗКА ДАННЫХ ИЗ ФАЙЛОВ:")
 
