@@ -2263,7 +2263,6 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
             tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"])
 
             # Принудительно устанавливаем ЧП / в день в колонку G (7)
-            # 0-based индекс = 6, колонка G
             chp_col_index = 6
             col_letter = get_column_letter(chp_col_index + 1)
 
@@ -2276,7 +2275,6 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
 
             # Проверяем и устанавливаем правильный заголовок в колонку G
             if len(current_headers) <= chp_col_index or current_headers[chp_col_index] != "ЧП / в день":
-                # Устанавливаем заголовок
                 safe_update_cell(dashboard, f"{col_letter}1", [["ЧП / в день"]], value_input_option='USER_ENTERED')
                 safe_format_range(
                     dashboard, f"{col_letter}1",
@@ -2293,13 +2291,15 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                 tax_rate = float(tax_rate_cell) if tax_rate_cell and str(tax_rate_cell) not in ['—', ''] else 6.0
 
                 acquiring_rate_cell = safe_api_call(tech_sheet.acell, 'B4').value
-                acquiring_rate = float(acquiring_rate_cell) if acquiring_rate_cell and str(acquiring_rate_cell) not in ['—', ''] else 1.0
+                acquiring_rate = float(acquiring_rate_cell) if acquiring_rate_cell and str(acquiring_rate_cell) not in [
+                    '—', ''] else 1.0
 
                 if tech_dict and 'local_sales_percent' in tech_dict:
                     local_sales_percent = float(tech_dict['local_sales_percent'])
                 else:
                     local_percent_cell = safe_api_call(tech_sheet.acell, 'B5').value
-                    local_sales_percent = float(local_percent_cell) if local_percent_cell and str(local_percent_cell) not in ['—', ''] else 87.0
+                    local_sales_percent = float(local_percent_cell) if local_percent_cell and str(
+                        local_percent_cell) not in ['—', ''] else 87.0
 
                 logistics_sheet = get_or_create_sheet(spreadsheet, LOGISTICS_PRICE_CONFIG["sheet_name"])
                 logistics_prices = load_logistics_prices_from_sheet(logistics_sheet)
@@ -2354,14 +2354,23 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                     volume_l = clean_numeric_value(first_campaign.get('item_volume_l', 0))
                     commission_str = str(first_campaign.get('commission_fbo', '0'))
 
-                    # Получаем ДРР из строки дашборда (колонка F, индекс 5)
-                    drr_total = clean_numeric_value(row[5]) if len(row) > 5 else 0
-
-                    ad_expenses = 0.0
+                    # Получаем ДРР из drr_for_products (уже обработанный для ЧП)
+                    drr_total_for_chp = 0
+                    ad_expenses = 0
                     if drr_for_products and offer_id in drr_for_products:
                         drr_data = drr_for_products[offer_id]
                         if isinstance(drr_data, dict):
-                            ad_expenses = drr_data.get('money_spent', 0.0)
+                            drr_total_for_chp = drr_data.get('drr_total', 0)  # Это уже 0 если был отрицательный
+                            ad_expenses = drr_data.get('total_ad_expenses', 0)
+
+                    # Альтернативно, берем из строки дашборда (колонка F, индекс 5)
+                    drr_from_row = clean_numeric_value(row[5]) if len(row) > 5 else 0
+
+                    # Если ДРР из строки отрицательный, используем 0 для ЧП
+                    if drr_from_row < 0:
+                        drr_total_for_chp = 0
+                    elif drr_total_for_chp == 0 and drr_from_row > 0:
+                        drr_total_for_chp = drr_from_row
 
                     commission_percent = get_commission_rate(commission_str)
                     acquiring = calculate_acquiring(price_before, acquiring_rate)
@@ -2369,14 +2378,12 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                                                          local_sales_percent, markup_percent)
                     tax = calculate_tax(price_for_buyer, tax_rate)
 
-                    if drr_total > 0:
-                        chp = calculate_chp(price_before, commission_percent, logistics, tax,
-                                            cost_price, acquiring, drr_total, offer_id, verbose=False)
-                        chp_value = chp
-                    else:
-                        chp_value = -ad_expenses if ad_expenses > 0 else 0
-
-                    chp_values.append([chp_value])
+                    # Если ДРР = 0, то ЧП считается без вычета ДРР, но расходы уже не вычитаются отдельно
+                    # потому что формула ЧП: price_before - комиссия - логистика - налог - себестоимость - эквайринг - (price_before * ДРР/100)
+                    # Если ДРР = 0, то слагаемое с ДРР просто отсутствует
+                    chp = calculate_chp(price_before, commission_percent, logistics, tax,
+                                        cost_price, acquiring, drr_total_for_chp, offer_id, verbose=False)
+                    chp_values.append([chp])
                 else:
                     chp_values.append([""])
 
@@ -2717,7 +2724,6 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
 
     for item in all_items_dict.values():
         offer_id = item.get("offer_id")
-        # Исправление: используем max(0, ...) для исключения отрицательных значений
         total_revenue_item = max(0, clean_numeric_value(item.get("total_revenue", 0)))
         total_ordered_units = max(0, clean_int_value(item.get("total_ordered_units", 0)))
 
@@ -2737,19 +2743,37 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
                 drr_cpo = clean_numeric_value(drr_data)
 
         drr_search = calculate_drr(expenses_search, max(0, selled_search))
-        drr_total = calculate_drr(money_spent, total_revenue_item)
+
+        # Считаем общие расходы по всем рекламным кампаниям
+        total_ad_expenses = 0.0
+        for campaign in offer_campaigns:
+            expense = clean_numeric_value(campaign.get('expense', 0))
+            expense_model = clean_numeric_value(campaign.get('expense_model', 0))
+            total_ad_expenses += expense + expense_model
+
+        # НОВАЯ ЛОГИКА ДЛЯ drr_total
+        if drr_cpo == 0 or money_spent == 0:
+            # Если ДРР = 0, то для отображения используем расходы со знаком минус
+            drr_total_display = -total_ad_expenses if total_ad_expenses > 0 else 0
+            # ДЛЯ РАСЧЕТА ЧП используем 0 (так как расходы уже учтены отдельно?)
+            drr_total_for_chp = 0
+        else:
+            drr_total_display = calculate_drr(money_spent, total_revenue_item)
+            drr_total_for_chp = drr_total_display
 
         drr_for_products[offer_id] = {
-            'drr_total': drr_total,
+            'drr_total': drr_total_for_chp,  # Для ЧП - 0 если отрицательный или 0
+            'drr_total_display': drr_total_display,  # Для отображения на дашборде
             'drr_cpo': drr_cpo,
             'drr_search': drr_search,
-            'money_spent': money_spent,
-            'revenue': total_revenue_item
+            'money_spent': money_spent if money_spent > 0 else total_ad_expenses,
+            'revenue': total_revenue_item,
+            'total_ad_expenses': total_ad_expenses
         }
 
         log_dashboard_item(
             offer_id, total_revenue_item, expenses_search, selled_search,
-            drr_cpo, money_spent, drr_search, drr_cpo, drr_total
+            drr_cpo, money_spent, drr_search, drr_cpo, drr_total_display
         )
 
         dashboard_rows.append([
@@ -2758,7 +2782,7 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
             total_ordered_units,
             drr_search,
             drr_cpo,
-            drr_total
+            drr_total_display if isinstance(drr_total_display, (int, float)) else 0
         ])
 
         totals['total_orders'] += total_ordered_units
