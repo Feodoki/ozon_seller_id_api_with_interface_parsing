@@ -1,3 +1,5 @@
+import traceback
+
 import gspread
 from gspread_formatting import (
     CellFormat,
@@ -39,7 +41,9 @@ TECHNICAL_SHEET_CONFIG = {
         {"name": "Остатки (шт)", "width": 100},
         {"name": "Комиссия FBO (%)", "width": 120},
         {"name": "Объем товара (л)", "width": 120},
-        {"name": "Стоимость логистики (₽)", "width": 140}
+        {"name": "Стоимость логистики (₽)", "width": 140}<
+        {"name": "СПП (%)", "width": 100},
+        {"name": "Себестоимость (₽)", "width": 130}
     ]
 }
 
@@ -250,6 +254,266 @@ CHP_DRR_CONFIG = {
     }
 }
 
+SPP_HISTORY_CONFIG = {
+    "sheet_name": "История СПП",
+    "headers": ["Артикул", "Среднее значение СПП"],
+    "note": "📊 История ежедневных значений СПП (скидка постоянного покупателя) по всем товарам. Данные добавляются автоматически каждый день."
+}
+
+
+def setup_spp_history_sheet(spreadsheet):
+    """Настраивает лист истории СПП"""
+    print("\n📊 НАСТРОЙКА ЛИСТА ИСТОРИИ СПП")
+
+    sheet_title = SPP_HISTORY_CONFIG["sheet_name"]
+
+    for attempt in range(MAX_QUOTA_RETRIES):
+        try:
+            try:
+                sheet = spreadsheet.worksheet(sheet_title)
+                print(f"  📄 Лист {sheet_title} уже существует")
+                return sheet
+            except gspread.exceptions.WorksheetNotFound:
+                print(f"  🆕 Создание листа {sheet_title}...")
+
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=10000, cols=100)
+                time.sleep(2)
+
+                # Формируем заголовки
+                headers = SPP_HISTORY_CONFIG["headers"]
+                safe_update_cell(sheet, "A1", [headers], value_input_option='USER_ENTERED')
+
+                end_col = get_column_letter(len(headers))
+                safe_format_range(
+                    sheet, f"A1:{end_col}1",
+                    CellFormat(
+                        textFormat=TextFormat(bold=True, fontSize=11),
+                        backgroundColor=Color(0.85, 0.95, 0.85)
+                    )
+                )
+
+                # Устанавливаем ширину колонок
+                safe_api_call(set_column_width, sheet, "A", 200)
+                safe_api_call(set_column_width, sheet, "B", 150)
+
+                # Добавляем примечание
+                safe_update_cell(sheet, "A2", [[SPP_HISTORY_CONFIG["note"]]], value_input_option='USER_ENTERED')
+                safe_format_range(
+                    sheet, f"A2:{end_col}2",
+                    CellFormat(
+                        textFormat=TextFormat(italic=True, fontSize=9),
+                        backgroundColor=Color(0.95, 0.95, 0.9)
+                    )
+                )
+
+                safe_api_call(set_frozen, sheet, rows=2)
+                print("  ✅ Лист истории СПП создан и настроен")
+                return sheet
+
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                wait_time = QUOTA_RETRY_DELAY * (attempt + 1) + random.uniform(0, 5)
+                print(f"  ⏳ Квота API при настройке листа истории СПП. Пауза {wait_time:.1f} сек...")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"  ❌ Ошибка при настройке листа истории СПП: {e}")
+                raise
+
+    raise Exception(f"Не удалось настроить лист истории СПП после {MAX_QUOTA_RETRIES} попыток")
+
+
+def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str):
+    """Сохраняет текущие значения СПП в историю"""
+    print("\n📊 СОХРАНЕНИЕ СПП В ИСТОРИЮ")
+
+    for attempt in range(MAX_QUOTA_RETRIES):
+        try:
+            # Получаем или создаем лист истории СПП
+            spp_history_sheet = setup_spp_history_sheet(spreadsheet)
+
+            # Собираем данные СПП для всех товаров
+            spp_data = {}
+            for offer_id, campaigns_list in campaigns_data.items():
+                if not campaigns_list:
+                    continue
+
+                first_campaign = campaigns_list[0]
+                price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
+                price_for_buyer = clean_numeric_value(first_campaign.get('product_price', 0))
+                spp = calculate_spp(price_before, price_for_buyer)
+
+                if spp > 0:  # Сохраняем только положительные значения
+                    spp_data[offer_id] = spp
+
+            if not spp_data:
+                print("  ⚠️ Нет данных СПП для сохранения")
+                return False
+
+            # Получаем существующие данные
+            existing_data = safe_get_values(spp_history_sheet)
+
+            # Проверяем, есть ли уже колонка с этой датой
+            date_column_index = None
+            if len(existing_data) > 2:
+                headers_row = existing_data[2] if len(existing_data) > 2 else []
+                for idx, header in enumerate(headers_row):
+                    if header and header.strip() == current_date_str:
+                        date_column_index = idx
+                        break
+
+            # Если колонки нет - добавляем новую
+            if date_column_index is None:
+                # Находим первую свободную колонку после "Среднее значение СПП"
+                insert_col_index = 3  # Колонка C (0-based индекс 2)
+
+                # Проверяем существующие колонки с датами
+                if len(existing_data) > 2:
+                    for idx, header in enumerate(existing_data[2]):
+                        if header and idx >= 2:  # Начинаем с колонки C
+                            try:
+                                # Пытаемся распарсить как дату
+                                datetime.strptime(header, "%d.%m.%Y")
+                                insert_col_index = idx + 1
+                                break
+                            except:
+                                pass
+
+                col_letter = get_column_letter(insert_col_index)
+
+                # Вставляем новую колонку
+                try:
+                    spp_history_sheet.insert_cols(insert_col_index, 1)
+                except TypeError:
+                    try:
+                        spp_history_sheet.insert_cols(insert_col_index)
+                    except:
+                        body = {
+                            "requests": [{
+                                "insertRange": {
+                                    "range": {
+                                        "sheetId": spp_history_sheet.id,
+                                        "startColumnIndex": insert_col_index - 1,
+                                        "endColumnIndex": insert_col_index,
+                                        "startRowIndex": 0,
+                                        "endRowIndex": spp_history_sheet.row_count
+                                    },
+                                    "shiftDimension": "COLUMNS"
+                                }
+                            }]
+                        }
+                        safe_api_call(spp_history_sheet.spreadsheet.batch_update, body)
+
+                time.sleep(1)
+
+                # Записываем заголовок даты
+                safe_update_cell(spp_history_sheet, f"{col_letter}3", [[current_date_str]],
+                                 value_input_option='USER_ENTERED')
+                safe_format_range(
+                    spp_history_sheet, f"{col_letter}3",
+                    CellFormat(
+                        textFormat=TextFormat(bold=True, fontSize=10),
+                        backgroundColor=Color(0.9, 0.95, 0.9),
+                        horizontalAlignment='CENTER'
+                    )
+                )
+                safe_api_call(set_column_width, spp_history_sheet, col_letter, 100)
+                date_column_index = insert_col_index - 1
+
+                print(f"  🆕 Добавлена новая колонка для даты: {current_date_str} (столбец {col_letter})")
+
+            col_letter = get_column_letter(date_column_index + 1)
+
+            # Получаем существующие артикулы и их строки
+            product_row_map = {}
+            for row_idx, row in enumerate(existing_data[3:], start=4):  # Начинаем с 4 строки (после шапки и примечания)
+                if row and len(row) > 0 and row[0] and row[0] != 'Артикул':
+                    product_row_map[row[0]] = row_idx
+
+            # Подготавливаем обновления
+            batch_data = []
+            current_row = 4
+
+            for offer_id, spp_value in spp_data.items():
+                if offer_id in product_row_map:
+                    # Обновляем существующую строку
+                    batch_data.append({
+                        'range': f"{col_letter}{product_row_map[offer_id]}",
+                        'values': [[round(spp_value, 2)]]
+                    })
+                else:
+                    # Добавляем новую строку: артикул + значение СПП
+                    row_data = [offer_id, spp_value]
+                    safe_update_cell(spp_history_sheet, f"A{current_row}", [row_data],
+                                     value_input_option='USER_ENTERED')
+                    current_row += 1
+
+            # Обновляем данные через batch_update
+            if batch_data:
+                for item in batch_data:
+                    try:
+                        safe_update_cell(spp_history_sheet, item['range'], item['values'],
+                                         value_input_option='USER_ENTERED')
+                        time.sleep(0.3)
+                    except Exception as e:
+                        print(f"  ⚠️ Ошибка обновления {item['range']}: {e}")
+
+            # Обновляем среднее значение СПП для каждой строки
+            # Получаем актуальные данные после всех обновлений
+            updated_data = safe_get_values(spp_history_sheet)
+
+            for row_idx in range(4, len(updated_data) + 1):
+                if row_idx <= len(updated_data):
+                    row_data = updated_data[row_idx - 1] if row_idx - 1 < len(updated_data) else []
+                    if row_data and row_data[0] and row_data[0] != 'Артикул':
+                        # Собираем все значения СПП начиная с колонки C (индекс 2)
+                        spp_values = []
+                        for col_idx in range(2, len(row_data)):
+                            val = row_data[col_idx]
+                            if val and val != '' and val != '—':
+                                try:
+                                    spp_values.append(float(val))
+                                except:
+                                    pass
+
+                        if spp_values:
+                            avg_spp = sum(spp_values) / len(spp_values)
+                            # Обновляем колонку B (среднее значение)
+                            safe_update_cell(spp_history_sheet, f"B{row_idx}", [[round(avg_spp, 2)]],
+                                             value_input_option='USER_ENTERED')
+
+            # Форматирование числовых колонок
+            last_row = len(updated_data) + 5
+            for col in [get_column_letter(date_column_index + 1), 'B']:
+                try:
+                    safe_format_range(
+                        spp_history_sheet, f"{col}4:{col}{last_row}",
+                        CellFormat(
+                            numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'},
+                            horizontalAlignment='CENTER'
+                        )
+                    )
+                except:
+                    pass
+
+            print(f"  ✅ История СПП обновлена: {len(spp_data)} товаров за {current_date_str}")
+            return True
+
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str or 'Quota exceeded' in error_str:
+                wait_time = QUOTA_RETRY_DELAY * (attempt + 1)
+                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"  ❌ Ошибка при сохранении истории СПП: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+
+    return False
 
 def safe_update_cell(sheet, range_name, values, value_input_option='USER_ENTERED', max_retries=MAX_QUOTA_RETRIES):
     """
@@ -1069,6 +1333,37 @@ def setup_technical_sheet(spreadsheet):
                 tech_sheet = spreadsheet.worksheet(sheet_title)
                 print("  📄 Технический лист уже существует")
 
+                # Проверяем и добавляем недостающие столбцы, если лист существует
+                all_values = safe_get_values(tech_sheet)
+                if len(all_values) > 0 and len(all_values[0]) < len(TECHNICAL_SHEET_CONFIG["products_headers"]):
+                    print("  🔧 Добавление недостающих столбцов...")
+                    # Находим блок товаров
+                    products_start_row = 8
+                    for idx, row in enumerate(all_values):
+                        if row and len(row) > 0 and "ТОВАРЫ В ПРОДАЖЕ" in str(row[0]):
+                            products_start_row = idx + 3
+                            break
+
+                    # Добавляем новые заголовки
+                    headers_row = products_start_row + 1
+                    current_headers = all_values[headers_row - 1] if len(all_values) >= headers_row else []
+
+                    if len(current_headers) < len(TECHNICAL_SHEET_CONFIG["products_headers"]):
+                        # Добавляем недостающие заголовки
+                        for i in range(len(current_headers), len(TECHNICAL_SHEET_CONFIG["products_headers"])):
+                            col_letter = get_column_letter(i + 1)
+                            header_name = TECHNICAL_SHEET_CONFIG["products_headers"][i]["name"]
+                            safe_update_cell(tech_sheet, f"{col_letter}{headers_row}", [[header_name]],
+                                             value_input_option='USER_ENTERED')
+
+                            # Устанавливаем ширину
+                            if 'width' in TECHNICAL_SHEET_CONFIG["products_headers"][i]:
+                                safe_api_call(set_column_width, tech_sheet, col_letter,
+                                              TECHNICAL_SHEET_CONFIG["products_headers"][i]['width'])
+
+                            time.sleep(0.5)
+                        print("  ✅ Недостающие столбцы добавлены")
+
                 all_values = safe_get_values(tech_sheet)
                 products_start_row = 8
                 for idx, row in enumerate(all_values):
@@ -1077,7 +1372,7 @@ def setup_technical_sheet(spreadsheet):
                         break
 
                 print(f"  📍 Строка начала данных товаров: {products_start_row}")
-                return tech_sheet, products_start_row
+                return tech_sheet, products_start_row + 2
 
             except gspread.exceptions.WorksheetNotFound:
                 print("  🆕 Технический лист не найден, создаем новый...")
@@ -1125,7 +1420,7 @@ def setup_technical_sheet(spreadsheet):
                 safe_update_cell(tech_sheet, f"A{products_start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]],
                                  value_input_option='USER_ENTERED')
                 safe_format_range(
-                    tech_sheet, f"A{products_start_row}:I{products_start_row}",
+                    tech_sheet, f"A{products_start_row}:K{products_start_row}",  # Изменено с I на K
                     CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
                 )
 
@@ -1149,11 +1444,12 @@ def setup_technical_sheet(spreadsheet):
 
                 # Примечание
                 note_row = products_start_row + 2
-                safe_update_cell(tech_sheet, f"A{note_row}", [
-                    ["💡 Примечание: Стоимость логистики берется из листа 'Стоимость логистики'. Редактируйте таблицу там."]
-                ], value_input_option='USER_ENTERED')
+                safe_update_cell(tech_sheet, f"A{note_row}", [[
+                    "💡 Примечание: Стоимость логистики берется из листа 'Стоимость логистики'. "
+                    "СПП (скидка постоянного покупателя) и себестоимость добавлены автоматически."
+                ]], value_input_option='USER_ENTERED')
                 safe_format_range(
-                    tech_sheet, f"A{note_row}:I{note_row}",
+                    tech_sheet, f"A{note_row}:{end_col}{note_row}",
                     CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
                 )
 
@@ -1164,7 +1460,8 @@ def setup_technical_sheet(spreadsheet):
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1) + random.uniform(0, 5)
-                print(f"  ⏳ Квота API при настройке технического листа. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                print(
+                    f"  ⏳ Квота API при настройке технического листа. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue
             else:
@@ -1597,15 +1894,18 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
         acquiring = calculate_acquiring(price_before, acquiring_rate)
         logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices,
                                              local_sales_percent, markup_percent)
-        spp = calculate_spp(price_before, price_for_buyer)
+        spp = calculate_spp(price_before, price_for_buyer)  # РАСЧЕТ СПП
         tax = calculate_tax(price_for_buyer, tax_rate)
 
+        # Добавляем СПП и себестоимость в данные
         all_products_data.append([
             offer_id, sku, price_before, price_for_buyer, acquiring,
-            stock_balance, commission_percent, volume_l, logistics
+            stock_balance, commission_percent, volume_l, logistics,
+            spp,           # НОВОЕ: СПП (%)
+            cost_price     # НОВОЕ: Себестоимость (₽)
         ])
 
-        print(f"  📦 {offer_id}: цена={price_before:.2f}, логистика={logistics:.2f}, СПП={spp:.2f}%, налог={tax:.2f}")
+        print(f"  📦 {offer_id}: цена={price_before:.2f}, логистика={logistics:.2f}, СПП={spp:.2f}%, себестоимость={cost_price:.2f}")
 
     if all_products_data:
         print(f"\n  📝 Запись {len(all_products_data)} товаров одним запросом...")
@@ -1620,10 +1920,13 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
 
         last_row = products_start_row + len(all_products_data) - 1
 
+        # Обновляем форматирование для новых столбцов
         for col, color, bold in [('C', Color(0.95, 0.9, 1), True),
                                  ('D', Color(0.9, 1, 0.9), True),
                                  ('E', Color(1, 0.95, 0.8), False),
-                                 ('I', Color(0.7, 0.85, 1), False)]:
+                                 ('I', Color(0.7, 0.85, 1), False),
+                                 ('J', Color(0.85, 0.9, 1), False),   # НОВОЕ: СПП
+                                 ('K', Color(1, 0.85, 0.85), False)]:  # НОВОЕ: Себестоимость
             try:
                 fmt = CellFormat(backgroundColor=color)
                 if bold:
@@ -1633,8 +1936,28 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
             except:
                 pass
 
+        # Форматирование СПП как процент
+        try:
+            safe_format_range(
+                tech_sheet, f"J{products_start_row}:J{last_row}",
+                CellFormat(numberFormat={'type': 'PERCENT', 'pattern': '#,##0.00%'})
+            )
+        except:
+            pass
+
+        # Форматирование себестоимости как валюта
+        try:
+            safe_format_range(
+                tech_sheet, f"K{products_start_row}:K{last_row}",
+                CellFormat(numberFormat={'type': 'CURRENCY', 'pattern': '#,##0.00 ₽'})
+            )
+        except:
+            pass
+
         print("  💡 Примечание: Эквайринг рассчитывается автоматически")
         print("  💡 Стоимость логистики берется из листа 'Стоимость логистики'")
+        print("  💡 СПП (скидка постоянного покупателя) рассчитана автоматически")
+        print("  💡 Себестоимость из данных API")
 
     print("  ✅ Технический лист расширенно обновлен")
 
@@ -3047,6 +3370,16 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         print("=" * 60)
 
         save_dashboard_to_history(spreadsheet, current_date_str)
+
+        try:
+            # ================= СОХРАНЕНИЕ ИСТОРИИ СПП =================
+            print("\n" + "=" * 60)
+            print("📊 СОХРАНЕНИЕ ИСТОРИИ СПП")
+            print("=" * 60)
+
+            save_spp_to_history(spreadsheet, campaigns_data, current_date_str)
+        except:
+            print(f"Ошибка сохранения SPP {str(traceback.format_exc())}")
 
         print("\n" + "=" * 60)
         print("✅ ВСЕ ДАННЫЕ УСПЕШНО ЗАГРУЖЕНЫ")
