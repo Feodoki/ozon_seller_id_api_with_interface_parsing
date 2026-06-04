@@ -1544,8 +1544,12 @@ class InterfaceParser:
 
                             if volume_index:
                                 item_volume = item_tds[volume_index].text.strip()
+                                self.scroll_to_element_center(item_tds[volume_index])
+                                self.random_sleep()
                             else:
                                 item_volume = item_tds[14].text.strip()
+                                self.scroll_to_element_center(item_tds[14])
+                                self.random_sleep()
 
                             item_volume_l = item_volume.split('\n')[0].strip()
                             item_volume_kg = item_volume.split('\n')[1].strip()

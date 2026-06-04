@@ -533,8 +533,20 @@ class OzonSellerParse:
                 pass
 
 
+    def get_volume(self):
+        api_url = "https://api-seller.ozon.ru/v4/product/info/attributes"
+        headers = self.headers
+        json_ = {
+            "filter": {"offer_id": ["Наручники_МЕХ"]},
+            "limit": 1000,
+
+        }
+        response = requests.post(api_url, headers=headers, json=json_)
+        print(response.text)
+
+
     def test(self):
-        self.get_advert_stat_pay_to_click()
+        self.get_volume()
 
 
     def main(self):
