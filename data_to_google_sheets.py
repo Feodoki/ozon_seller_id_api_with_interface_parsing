@@ -2543,7 +2543,7 @@ def setup_history_dashboard_sheet(spreadsheet):
 
 
 def save_dashboard_to_history(spreadsheet, current_date: str):
-    """Сохраняет текущие данные из листа DASHBOARD в историю - СОХРАНЯЕТ ВСЮ ИСТОРИЮ"""
+    """Сохраняет текущие данные из листа DASHBOARD в историю - добавляет новые записи в начало"""
     print("\n💾 СОХРАНЕНИЕ DASHBOARD В ИСТОРИЮ")
 
     for attempt in range(MAX_QUOTA_RETRIES):
@@ -2556,33 +2556,6 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 return False
 
             history_sheet = setup_history_dashboard_sheet(spreadsheet)
-            existing_data = safe_get_values(history_sheet)
-
-            # Находим строки для удаления (только за текущую дату)
-            rows_to_delete = []
-            for row_idx, row in enumerate(existing_data):
-                if row and len(row) > 0 and row[0] == current_date:
-                    # Не удаляем строку ИТОГО за текущую дату отдельно
-                    rows_to_delete.append(row_idx + 1)
-
-            # Удаляем только старые записи за текущую дату
-            deleted_count = 0
-            for row_idx in sorted(rows_to_delete, reverse=True):
-                try:
-                    if deleted_count > 0 and deleted_count % 10 == 0:
-                        time.sleep(2)
-                    history_sheet.delete_rows(row_idx)
-                    deleted_count += 1
-                except Exception as e:
-                    if '429' in str(e):
-                        time.sleep(QUOTA_RETRY_DELAY)
-                        history_sheet.delete_rows(row_idx)
-                        deleted_count += 1
-                    else:
-                        print(f"     ⚠️ Ошибка при удалении строки {row_idx}: {e}")
-
-            if deleted_count > 0:
-                print(f"     🗑️ Удалено {deleted_count} старых записей за {current_date}")
 
             # Формируем новые строки истории
             history_rows = []
@@ -2607,36 +2580,22 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 print("  ⚠️ Нет данных для сохранения в историю")
                 return False
 
-            # Получаем актуальные данные ПОСЛЕ удаления
+            # Получаем ВСЕ существующие данные (не удаляем ничего)
             existing_data = safe_get_values(history_sheet)
 
-            # Находим место для вставки (после шапки и примечания)
-            # Шапка - строка 1, примечание - строка 2
-            insert_row_index = 3
-
-            # Проверяем, есть ли уже данные за ДРУГИЕ даты
-            # Если есть, вставляем новые данные перед ними (чтобы свежие даты были сверху)
-            first_data_row = None
-            for row_idx, row in enumerate(existing_data[2:], start=3):
-                if row and len(row) > 0 and row[0] and not row[0].startswith('💡') and not row[0].startswith('📊'):
-                    first_data_row = row_idx
+            # Проверяем, есть ли уже данные за эту дату
+            date_exists = False
+            for row in existing_data:
+                if row and len(row) > 0 and row[0] == current_date:
+                    date_exists = True
                     break
 
-            if first_data_row:
-                # Вставляем перед существующими данными
-                insert_row_index = first_data_row
-                print(f"     📍 Вставка новых данных перед строкой {insert_row_index}")
-            else:
-                # Нет данных - вставляем после примечания
-                insert_row_index = 3
-                print(f"     📍 Первая запись, вставка в строку {insert_row_index}")
+            if date_exists:
+                # Если данные за эту дату уже есть - не добавляем повторно
+                print(f"  ℹ️ Данные за {current_date} уже существуют в истории, пропускаем")
+                return True
 
-            # ОДНИМ запросом вставляем все новые данные
-            range_name = f"A{insert_row_index}:G{insert_row_index + len(history_rows) - 1}"
-            safe_update_cell(history_sheet, range_name, history_rows, value_input_option='USER_ENTERED')
-
-            # Добавляем строку ИТОГО сразу после данных за текущую дату
-            totals_row_start = insert_row_index + len(history_rows)
+            # Подготавливаем строку ИТОГО
             totals_row = [[
                 f"ИТОГО за {current_date}", "",
                 total_revenue_for_date if total_revenue_for_date > 0 else sum(
@@ -2646,27 +2605,63 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 "", "", ""
             ]]
 
-            safe_update_cell(history_sheet, f"A{totals_row_start}", totals_row, value_input_option='USER_ENTERED')
+            # Объединяем: новые данные + ИТОГО + существующие данные (без шапки и примечания)
+            # Шапка - строка 1, примечание - строка 2
+            new_history_data = history_rows + totals_row
 
-            # Форматирование числовых колонок
-            end_row = totals_row_start - 1
-            for col in ['C', 'D', 'E', 'F', 'G']:
-                try:
-                    safe_format_range(
-                        history_sheet, f"{col}{insert_row_index}:{col}{end_row}",
-                        CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
-                    )
-                except:
-                    pass
+            # Добавляем существующие данные, которые находятся после строки 2 (примечание)
+            if len(existing_data) > 2:
+                # Пропускаем строки 0-1 (шапка и примечание)
+                for row in existing_data[2:]:
+                    # Пропускаем пустые строки
+                    if row and any(cell.strip() for cell in row):
+                        new_history_data.append(row)
 
-            print(f"  ✅ История DASHBOARD обновлена: {len(history_rows)} записей за {current_date}")
-            print(f"     📌 Данные вставлены в начало истории (свежие даты сверху)")
+            # Очищаем весь лист (кроме форматирования)
+            safe_api_call(history_sheet.clear)
+            time.sleep(1)
+
+            # Восстанавливаем шапку и примечание
+            headers = [h['name'] for h in HISTORY_DASHBOARD_CONFIG["headers"]]
+            safe_update_cell(history_sheet, "A1", [headers], value_input_option='USER_ENTERED')
+
+            end_col = get_column_letter(len(headers))
+            safe_format_range(
+                history_sheet, f"A1:{end_col}1",
+                CellFormat(textFormat=TextFormat(bold=True, fontSize=11), backgroundColor=Color(0.85, 0.95, 0.85))
+            )
+
+            safe_update_cell(history_sheet, "A2", [[HISTORY_DASHBOARD_CONFIG["note"]]],
+                             value_input_option='USER_ENTERED')
+            safe_format_range(
+                history_sheet, f"A2:{end_col}2",
+                CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
+            )
+
+            # Записываем ВСЕ данные истории (новые + старые) одним запросом
+            if new_history_data:
+                range_name = f"A3:{end_col}{3 + len(new_history_data) - 1}"
+                safe_update_cell(history_sheet, range_name, new_history_data, value_input_option='USER_ENTERED')
+
+                # Форматирование числовых колонок
+                end_row = 3 + len(new_history_data) - 1
+                for col in ['C', 'D', 'E', 'F', 'G']:
+                    try:
+                        safe_format_range(
+                            history_sheet, f"{col}3:{col}{end_row}",
+                            CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
+                        )
+                    except:
+                        pass
+
+            print(f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date}")
+            print(f"     📌 Всего записей в истории: {len(new_history_data)}")
             return True
 
         except Exception as e:
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
-                wait_time = QUOTA_RETRY_DELAY
+                wait_time = QUOTA_RETRY_DELAY * (attempt + 1)
                 print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue

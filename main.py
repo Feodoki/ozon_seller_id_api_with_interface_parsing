@@ -172,10 +172,10 @@ def my_script():
         import json
 
         files_to_save = [
-            ('tech_dict.json', tech_stats),
-            ('all_items_dict.json', all_items_dict),
-            ('advert_analytic.json', advert_analytic),
-            ('money_spent_advert_dict.json', money_spent_advert_dict)
+            ('logs/tech_dict.json', tech_stats),
+            ('logs/all_items_dict.json', all_items_dict),
+            ('logs/advert_analytic.json', advert_analytic),
+            ('logs/money_spent_advert_dict.json', money_spent_advert_dict)
         ]
 
         for filename, data in files_to_save:
@@ -395,6 +395,9 @@ def auto_loop():
     """Автоматический цикл"""
     logger.info(f"🔄 Автоцикл запущен, интервал: {INTERVAL} сек")
 
+    # Добавляем флаг для первого запуска
+    first_run = True
+
     while True:
         try:
             status_data = load_status()
@@ -402,13 +405,27 @@ def auto_loop():
             last_run_time = status_data.get('last_run_time', 0)
             now = time.time()
 
-            if (current_status != STATUS_STOPPED and
-                    not is_running_flag and
-                    (now - last_run_time >= INTERVAL) and
-                    current_status != STATUS_RUNNING):
+            # Проверяем, нужно ли запустить парсинг
+            should_run = False
+
+            if first_run:
+                # При первом запуске - сразу стартуем
+                should_run = True
+                logger.info("🚀 ПЕРВЫЙ ЗАПУСК: Старт парсинга при запуске программы")
+                first_run = False
+            elif (current_status != STATUS_STOPPED and
+                  not is_running_flag and
+                  (now - last_run_time >= INTERVAL) and
+                  current_status != STATUS_RUNNING):
+                should_run = True
                 logger.info("⏰ Автозапуск по расписанию")
+
+            if should_run:
                 run_script()
                 save_status(STATUS_RUNNING, "Автоматический запуск")
+                # Обновляем время последнего запуска
+                status_data['last_run_time'] = now
+                load_status()  # Перезагружаем статус с обновленным временем
 
         except Exception as e:
             logger.error(f"Ошибка в автоцикле: {e}")
