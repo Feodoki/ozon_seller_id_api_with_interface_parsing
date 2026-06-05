@@ -2844,7 +2844,7 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
 # ================= НОВАЯ ФУНКЦИЯ ДЛЯ ИСТОРИИ DASHBOARD =================
 
 def setup_history_dashboard_sheet(spreadsheet):
-    """Настраивает лист истории DASHBOARD"""
+    """Настраивает лист истории DASHBOARD (числовые значения, не проценты)"""
     print("\n📜 НАСТРОЙКА ЛИСТА ИСТОРИИ DASHBOARD")
     history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=100000, cols=20)
     all_values = safe_get_values(history_sheet)
@@ -2871,16 +2871,20 @@ def setup_history_dashboard_sheet(spreadsheet):
             CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
         )
 
+        # Форматирование колонок как ЧИСЛА (не проценты)
+        # Колонка C (Сумма продаж) - валюта
         safe_format_range(
             history_sheet, "C:C",
-            CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0'})
+            CellFormat(numberFormat={'type': 'CURRENCY', 'pattern': '#,##0.00 ₽'})
         )
 
+        # Колонка D (Количество продаж) - целое число
         safe_format_range(
             history_sheet, "D:D",
             CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0'})
         )
 
+        # Колонки E, F, G (ДРР) - ОБЫЧНЫЕ ЧИСЛА (не проценты)
         for col in ['E', 'F', 'G']:
             safe_format_range(
                 history_sheet, f"{col}:{col}",
@@ -2888,15 +2892,25 @@ def setup_history_dashboard_sheet(spreadsheet):
             )
 
         safe_api_call(set_frozen, history_sheet, rows=2)
-        print("  ✅ Структура листа истории настроена")
+        print("  ✅ Структура листа истории настроена (ДРР как обычные числа)")
     else:
         print("  📄 Лист истории уже существует")
+        # Дополнительно проверяем форматирование существующих колонок
+        try:
+            for col in ['E', 'F', 'G']:
+                safe_format_range(
+                    history_sheet, f"{col}:{col}",
+                    CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
+                )
+            print("  🔧 Форматирование колонок ДРР исправлено на числовое")
+        except:
+            pass
 
     return history_sheet
 
 
 def save_dashboard_to_history(spreadsheet, current_date: str):
-    """Сохраняет текущие данные из листа DASHBOARD в историю - добавляет новые записи в начало"""
+    """Сохраняет текущие данные из листа DASHBOARD в историю (обновляет данные за текущую дату)"""
     print("\n💾 СОХРАНЕНИЕ DASHBOARD В ИСТОРИЮ")
 
     for attempt in range(MAX_QUOTA_RETRIES):
@@ -2904,118 +2918,165 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
             dashboard_data = safe_get_values(dashboard)
 
+            print(f"\n  📋 ОТЛАДКА: Содержимое DASHBOARD:")
+            print(f"     Всего строк: {len(dashboard_data)}")
+
             if len(dashboard_data) <= 1:
                 print("  ⚠️ Нет данных в DASHBOARD для сохранения")
                 return False
 
+            # Выводим первые строки для отладки
+            for i in range(1, min(6, len(dashboard_data))):
+                row = dashboard_data[i]
+                print(f"     Строка {i}: {row}")
+
             history_sheet = setup_history_dashboard_sheet(spreadsheet)
 
-            # Формируем новые строки истории
+            # Получаем существующие данные истории
+            existing_history = safe_get_values(history_sheet)
+
+            # УДАЛЯЕМ старые строки за текущую дату (если есть)
+            rows_to_delete = []
+            if len(existing_history) > 2:
+                for idx in range(2, len(existing_history)):  # начиная с строки 3 (индекс 2)
+                    row = existing_history[idx] if idx < len(existing_history) else []
+                    if row and len(row) > 0 and row[0] == current_date:
+                        rows_to_delete.append(idx + 1)  # +1 для перехода к 1-based индексу
+
+            # Удаляем строки с конца, чтобы не сбивать индексы
+            for row_num in sorted(rows_to_delete, reverse=True):
+                try:
+                    history_sheet.delete_rows(row_num)
+                    print(f"  🗑️ Удалена старая запись за {current_date} (строка {row_num})")
+                    time.sleep(0.5)
+                except Exception as e:
+                    print(f"  ⚠️ Не удалось удалить строку {row_num}: {e}")
+
+            # СНОВА получаем данные после удаления (чтобы обновить существующую историю)
+            if rows_to_delete:
+                time.sleep(1)
+                existing_history = safe_get_values(history_sheet)
+
+            # Формируем новые строки истории из DASHBOARD
             history_rows = []
-            total_revenue_for_date = 0
-            total_orders_for_date = 0
+            total_sales = 0
+            total_quantity = 0
 
-            for row in dashboard_data[1:]:
-                if not row or len(row) < 6:
+            for row in dashboard_data[1:]:  # Пропускаем заголовок
+                if not row or len(row) == 0:
                     continue
 
-                if row[0] == "ИТОГО" or row[0] == "":
-                    if row[0] == "ИТОГО" and len(row) >= 3:
-                        total_revenue_for_date = clean_numeric_value(row[1])
-                        total_orders_for_date = clean_int_value(row[2])
+                # Пропускаем пустые строки
+                if not row[0] or row[0] == "":
                     continue
+
+                # Пропускаем строку ИТОГО (если она есть в DASHBOARD) - считаем сами
+                if row[0] == "ИТОГО":
+                    continue
+
+                # Получаем значения
+                sum_sales = clean_numeric_value(row[1]) if len(row) > 1 else 0
+                quantity = clean_int_value(row[2]) if len(row) > 2 else 0
+                drr_search = clean_numeric_value(row[3]) if len(row) > 3 else 0
+                drr_cpo = clean_numeric_value(row[4]) if len(row) > 4 else 0
+                drr_total = clean_numeric_value(row[5]) if len(row) > 5 else 0
+
+                # Суммируем итоги
+                total_sales += sum_sales
+                total_quantity += quantity
 
                 history_rows.append([
-                    current_date, row[0], row[1], row[2], row[3], row[4], row[5]
+                    current_date,  # Дата
+                    str(row[0]).strip(),  # Артикул товара
+                    sum_sales,  # Сумма продаж
+                    quantity,  # Количество продаж
+                    drr_search,  # ДРР поиск
+                    drr_cpo,  # ДРР оплата за заказ
+                    drr_total  # ДРР общий
                 ])
+
+            # Сортируем товары по убыванию количества продаж (как в DASHBOARD)
+            history_rows.sort(key=lambda x: x[3], reverse=True)
+
+            # Добавляем строку ИТОГО (считанную самостоятельно)
+            totals_row = [
+                current_date,  # Дата
+                "ИТОГО",  # Артикул товара
+                round(total_sales, 2),  # Сумма продаж
+                total_quantity,  # Количество продаж
+                "",  # ДРР поиск (пусто)
+                "",  # ДРР оплата за заказ (пусто)
+                ""  # ДРР общий (пусто)
+            ]
+            history_rows.append(totals_row)
 
             if not history_rows:
                 print("  ⚠️ Нет данных для сохранения в историю")
                 return False
 
-            # Получаем ВСЕ существующие данные (не удаляем ничего)
-            existing_data = safe_get_values(history_sheet)
+            print(f"\n  📊 ПОДГОТОВЛЕНО {len(history_rows)} ЗАПИСЕЙ:")
+            print(f"     ИТОГО: сумма = {total_sales:,.2f} ₽, количество = {total_quantity} шт")
+            for hr in history_rows[:3]:
+                print(f"     {hr[0]} | {hr[1]} | Сумма: {hr[2]:.2f} | Кол-во: {hr[3]}")
 
-            # Проверяем, есть ли уже данные за эту дату
-            date_exists = False
-            for row in existing_data:
-                if row and len(row) > 0 and row[0] == current_date:
-                    date_exists = True
-                    break
+            # Находим первую свободную строку для добавления
+            end_col = get_column_letter(len(HISTORY_DASHBOARD_CONFIG["headers"]))
 
-            if date_exists:
-                # Если данные за эту дату уже есть - не добавляем повторно
-                print(f"  ℹ️ Данные за {current_date} уже существуют в истории, пропускаем")
-                return True
+            # Получаем актуальные данные после удаления
+            current_history = safe_get_values(history_sheet)
 
-            # Подготавливаем строку ИТОГО
-            totals_row = [[
-                f"ИТОГО за {current_date}", "",
-                total_revenue_for_date if total_revenue_for_date > 0 else sum(
-                    clean_numeric_value(row[2]) for row in history_rows),
-                total_orders_for_date if total_orders_for_date > 0 else sum(
-                    clean_int_value(row[3]) for row in history_rows),
-                "", "", ""
-            ]]
+            if len(current_history) > 2:
+                next_row = len(current_history) + 1
+            else:
+                next_row = 3
 
-            # Объединяем: новые данные + ИТОГО + существующие данные (без шапки и примечания)
-            # Шапка - строка 1, примечание - строка 2
-            new_history_data = history_rows + totals_row
+            print(f"  📝 Добавление данных начиная с строки {next_row}")
 
-            # Добавляем существующие данные, которые находятся после строки 2 (примечание)
-            if len(existing_data) > 2:
-                # Пропускаем строки 0-1 (шапка и примечание)
-                for row in existing_data[2:]:
-                    # Пропускаем пустые строки
-                    if row and any(cell.strip() for cell in row):
-                        new_history_data.append(row)
+            # Добавляем новые данные
+            range_name = f"A{next_row}:{end_col}{next_row + len(history_rows) - 1}"
+            safe_update_cell(history_sheet, range_name, history_rows, value_input_option='USER_ENTERED')
 
-            # Очищаем весь лист (кроме форматирования)
-            safe_api_call(history_sheet.clear)
-            time.sleep(1)
+            # Форматирование числовых колонок для новых данных
+            end_row = next_row + len(history_rows) - 1
 
-            # Восстанавливаем шапку и примечание
-            headers = [h['name'] for h in HISTORY_DASHBOARD_CONFIG["headers"]]
-            safe_update_cell(history_sheet, "A1", [headers], value_input_option='USER_ENTERED')
-
-            end_col = get_column_letter(len(headers))
+            # Колонка C (Сумма продаж) - валюта
             safe_format_range(
-                history_sheet, f"A1:{end_col}1",
-                CellFormat(textFormat=TextFormat(bold=True, fontSize=11), backgroundColor=Color(0.85, 0.95, 0.85))
+                history_sheet, f"C{next_row}:C{end_row}",
+                CellFormat(numberFormat={'type': 'CURRENCY', 'pattern': '#,##0.00 ₽'})
             )
 
-            safe_update_cell(history_sheet, "A2", [[HISTORY_DASHBOARD_CONFIG["note"]]],
-                             value_input_option='USER_ENTERED')
+            # Колонка D (Количество продаж) - целое число
             safe_format_range(
-                history_sheet, f"A2:{end_col}2",
-                CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
+                history_sheet, f"D{next_row}:D{end_row}",
+                CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0'})
             )
 
-            # Записываем ВСЕ данные истории (новые + старые) одним запросом
-            if new_history_data:
-                range_name = f"A3:{end_col}{3 + len(new_history_data) - 1}"
-                safe_update_cell(history_sheet, range_name, new_history_data, value_input_option='USER_ENTERED')
+            # Колонки E, F, G (ДРР) - обычные числа
+            for col in ['E', 'F', 'G']:
+                safe_format_range(
+                    history_sheet, f"{col}{next_row}:{col}{end_row}",
+                    CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
+                )
 
-                # Форматирование числовых колонок
-                end_row = 3 + len(new_history_data) - 1
-                for col in ['C', 'D', 'E', 'F', 'G']:
-                    try:
-                        safe_format_range(
-                            history_sheet, f"{col}3:{col}{end_row}",
-                            CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0.00'})
-                        )
-                    except:
-                        pass
+            # Выделяем строку ИТОГО жирным шрифтом
+            totals_row_num = next_row + len(history_rows) - 1
+            safe_format_range(
+                history_sheet, f"A{totals_row_num}:G{totals_row_num}",
+                CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.95, 0.95, 0.95))
+            )
 
-            print(f"  ✅ История DASHBOARD обновлена: добавлено {len(history_rows)} записей за {current_date}")
-            print(f"     📌 Всего записей в истории: {len(new_history_data)}")
+            print(f"\n  ✅ История DASHBOARD обновлена:")
+            print(f"     - Обновлено {len(history_rows) - 1} товаров за {current_date}")
+            print(f"     - Добавлена строка ИТОГО: {total_sales:,.2f} ₽, {total_quantity} шт")
+            print(f"     - Старые данные за эту дату удалены и заменены новыми")
+
             return True
 
         except Exception as e:
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1)
-                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек...")
                 time.sleep(wait_time)
                 continue
             else:
@@ -3315,6 +3376,8 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         update_dashboard_sheet(dashboard, dashboard_data)
         print("✅ DASHBOARD успешно обновлен")
 
+        save_dashboard_to_history(spreadsheet, current_date_str)
+
         # ================= ОБРАБОТКА ЛИСТОВ ТОВАРОВ =================
         print("\n" + "=" * 60)
         print("📄 ОБРАБОТКА ЛИСТОВ ТОВАРОВ")
@@ -3398,8 +3461,6 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
         print("\n" + "=" * 60)
         print("📜 СОХРАНЕНИЕ ИСТОРИИ DASHBOARD")
         print("=" * 60)
-
-        save_dashboard_to_history(spreadsheet, current_date_str)
 
         try:
             # ================= СОХРАНЕНИЕ ИСТОРИИ СПП =================
