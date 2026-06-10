@@ -158,7 +158,7 @@ class InterfaceParser:
                     options=options,
                     use_subprocess=True,
                     user_data_dir=self.profile_path,
-                    driver_executable_path="chromedriver.exe",
+                    #driver_executable_path="chromedriver.exe",
                 )
 
                 self.driver.maximize_window()
@@ -486,7 +486,7 @@ class InterfaceParser:
                     selled_index = all_th.index(th)
                 elif "Расход" == th.text:
                     expense_index = all_th.index(th)
-                elif "ДРР" == th.text:
+                elif "ДРР в продвижении" == th.text.replace('\n', '').strip():
                     drr_index = all_th.index(th)
                 elif "Показы" == th.text:
                     views_index = all_th.index(th)
@@ -521,7 +521,7 @@ class InterfaceParser:
                 expense = all_td[expense_index].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                         '.').strip()
             if drr_index:
-                drr = all_td[drr_index].text.replace('\n', '').strip()
+                drr = all_td[drr_index].text.replace('\n', '').strip().replace('%', '')
             if views_index:
                 views = all_td[views_index].text.replace('\n', '').strip()
             if clicks_index:
@@ -549,7 +549,7 @@ class InterfaceParser:
                     count_offers = all_td[6].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[9].text.replace('\n', '').strip()
+                    drr = all_td[9].text.replace('\n', '').strip().replace('%', '')
                     views = all_td[12].text.replace('\n', '').strip()
                     clicks = all_td[13].text.replace('\n', '').strip()
                     to_cart = all_td[14].text.replace('\n', '').strip()
@@ -569,7 +569,7 @@ class InterfaceParser:
                     count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[10].text.replace('\n', '').strip()
+                    drr = all_td[10].text.replace('\n', '').strip().replace('%', '')
                     views = all_td[13].text.replace('\n', '').strip()
                     clicks = all_td[14].text.replace('\n', '').strip()
                     to_cart = all_td[15].text.replace('\n', '').strip()
@@ -583,7 +583,7 @@ class InterfaceParser:
                     count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[6].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[8].text.replace('\n', '').strip()
+                    drr = all_td[8].text.replace('\n', '').strip().replace('%', '')
                     views = all_td[11].text.replace('\n', '').strip()
                     clicks = all_td[12].text.replace('\n', '').strip()
                     to_cart = all_td[13].text.replace('\n', '').strip()
@@ -604,7 +604,7 @@ class InterfaceParser:
                     count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[10].text.replace('\n', '').strip()
+                    drr = all_td[10].text.replace('\n', '').strip().replace('%', '')
                     views = all_td[13].text.replace('\n', '').strip()
                     clicks = all_td[14].text.replace('\n', '').strip()
                     to_cart = all_td[15].text.replace('\n', '').strip()
@@ -682,7 +682,7 @@ class InterfaceParser:
 
                         print(f"Длинна all td - {len(all_td)}")
                         my_bet, concurent_bet, sr_click, count_offers, to_cart, drr, ctp, views, clicks, product_price, expense, selled = self.pars_table_advert(driver, row, all_td, camping_type)
-
+                        print(f"DRR - {drr}")
                         logger.info(
                             f"""
                                 offer id - {offer_id}\n
@@ -837,9 +837,9 @@ class InterfaceParser:
                                 combo_sell = all_td[10].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                                 '.').strip()
 
-                                drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
+                                drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '')
                                 if 'Выключено' in drr or 'Включено' in drr:
-                                    drr = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
+                                    drr = all_td[14].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '')
 
                                 expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                             '.').strip()
@@ -901,7 +901,7 @@ class InterfaceParser:
                             product_buy_pay = all_td[13].text.replace('\n', '').strip().replace('\u202f', '')
                             product_buy_combo_model = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
 
-                            drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '')
+                            drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '')
 
                             expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                         '.').strip()
@@ -1457,7 +1457,7 @@ class InterfaceParser:
                                 if 'Расход' == th.text:
                                     money_spent_index = all_th.index(th)
                                     logger.info(f"Найден INDEX Расхода - {money_spent_index}")
-                                elif 'ДРР' == th.text:
+                                elif 'ДРР в продвижении' == th.text.replace('\n', '').strip():
                                     drr_index = all_th.index(th)
                                     logger.info(f"Найден INDEX ДРР - {drr_index}")
 
@@ -1465,16 +1465,17 @@ class InterfaceParser:
                             data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
                             all_td = data.find_elements(By.XPATH, ".//td")
                             money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
-                            drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip()
+                            drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '')
 
                             if '\n' in money_spent:
                                 money_spent = money_spent.split('\n')[0]
 
                             if '\n' in drr:
-                                drr = drr.split('\n')[0]
+                                drr = drr.split('\n')[0].replace('%', '')
 
                             logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
                             print(f"Get data - {item_offer_id} Расход = {money_spent}")
+                            print(f"DRR - {drr}")
                             money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
 
                             clear_old_data()
@@ -1602,7 +1603,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_analytic_money_spent()
+    parser.get_advert_analytic_pay_to_click()
     #input('test')
 
     parser.auth()
