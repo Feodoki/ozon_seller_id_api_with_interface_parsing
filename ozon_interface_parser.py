@@ -158,7 +158,7 @@ class InterfaceParser:
                     options=options,
                     use_subprocess=True,
                     user_data_dir=self.profile_path,
-                    #driver_executable_path="chromedriver.exe",
+                    driver_executable_path="chromedriver.exe",
                 )
 
                 self.driver.maximize_window()
@@ -1603,7 +1603,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    parser.get_advert_analytic_pay_to_click()
+    #parser.get_advert_analytic_pay_to_click()
     #input('test')
 
     parser.auth()
