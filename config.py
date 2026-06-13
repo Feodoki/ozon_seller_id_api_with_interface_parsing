@@ -20,3 +20,6 @@ HEADLESS_MODE = True
 
 # Порт веб-сервера
 WEB_PORT = 5000
+
+TG_BOT_TOKEN = "6276811648:AAH-JLGBoPafaDqe_rFRQHeV_U0wGtI9gbs"  # Токен бота от @BotFather
+TG_ADMIN_ID = 739115841    # Ваш ID (можно узнать у @userinfobot)

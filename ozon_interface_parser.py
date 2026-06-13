@@ -482,7 +482,7 @@ class InterfaceParser:
                     sr_click_index = all_th.index(th)
                 elif "Заказы" == th.text:
                     count_offers_index = all_th.index(th)
-                elif "Продажи" == th.text:
+                elif "Продано товаров" == th.text:
                     selled_index = all_th.index(th)
                 elif "Расход" == th.text:
                     expense_index = all_th.index(th)
@@ -492,7 +492,7 @@ class InterfaceParser:
                     views_index = all_th.index(th)
                 elif "Клики" == th.text:
                     clicks_index = all_th.index(th)
-                elif "В корзину" == th.text:
+                elif "Добавления в корзину" == th.text.replace('\n', '').strip():
                     to_cart_index = all_th.index(th)
                 elif "CTR" == th.text:
                     ctp_index = all_th.index(th)
