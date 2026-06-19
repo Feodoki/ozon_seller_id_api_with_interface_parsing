@@ -1,6 +1,6 @@
 {
   "status": "idle",
-  "message": "Парсинг завершен. Обработано 40 товаров",
-  "last_run": "2026-06-04T18:58:35.802575",
-  "last_run_time": 1780574315.802575
+  "message": "Ошибка: not enough values to unpack (expected 2, got 0)",
+  "last_run": "2026-06-19T23:52:54.658563",
+  "last_run_time": 1781887974.6585634
 }

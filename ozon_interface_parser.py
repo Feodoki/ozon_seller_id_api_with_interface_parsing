@@ -347,13 +347,13 @@ class InterfaceParser:
                     button = tippy_content.find_element(By.XPATH, ".//div[text()='Активна']")
                     button.click()
 
+                # Получаем элементы пагинации
+                all_pages_with_active_status = []
                 try:
-                    all_pages_with_active_status = driver.find_element(By.XPATH,
-                                                                       "//div[starts-with(@class,'_wrapper_lftsu')]")
-                    self.scroll_to_element_center(all_pages_with_active_status)
+                    pagination_wrapper = driver.find_element(By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")
+                    self.scroll_to_element_center(pagination_wrapper)
                     self.random_sleep()
-                    all_pages_with_active_status = all_pages_with_active_status.find_element(By.XPATH,
-                                                                                             ".//ul").find_elements(
+                    all_pages_with_active_status = pagination_wrapper.find_element(By.XPATH, ".//ul").find_elements(
                         By.XPATH, ".//li")
                 except:
                     all_pages_with_active_status = []
@@ -361,16 +361,37 @@ class InterfaceParser:
                 self.random_sleep()
                 logger.info(f"   📄 Всего страниц - {len(all_pages_with_active_status)}")
 
+                # Функция для повторного получения элементов пагинации
+                def get_pagination_elements():
+                    try:
+                        wrapper = driver.find_element(By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")
+                        return wrapper.find_element(By.XPATH, ".//ul").find_elements(By.XPATH, ".//li")
+                    except:
+                        return []
+
                 if all_pages_with_active_status:
-                    for page in all_pages_with_active_status:
+                    # Сохраняем количество страниц
+                    total_pages = len(all_pages_with_active_status)
+
+                    for page_index in range(total_pages):
                         for page_attempt in range(3):
                             try:
+                                # Получаем свежие элементы пагинации перед каждой итерацией
+                                current_pages = get_pagination_elements()
+                                if not current_pages or page_index >= len(current_pages):
+                                    break
+
+                                page = current_pages[page_index]
+
+                                self.random_sleep(1)
                                 self.scroll_to_element_center(page)
                                 page.click()
                                 self.random_sleep(2)
+
                                 WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
                                 tbody = driver.find_element(By.XPATH, "//tbody")
                                 tbody_elements = tbody.find_elements(By.XPATH, ".//tr")
+
                                 for row in tbody_elements:
                                     camping_id = str(row.find_elements(By.XPATH, ".//td")[1].text)
                                     camping_url = f'https://seller.ozon.ru/app/advertisement/product/cpc/{camping_id}'
@@ -380,14 +401,21 @@ class InterfaceParser:
                                     if '₽' in camping_budget:
                                         camping_budget = float(camping_budget.split('₽')[0])
 
-                                    analytic_advert_dict[camping_id] = {"camping_url": camping_url,
-                                                                        "camping_type": camping_type,
-                                                                        "camping_strategy": camping_strategy,
-                                                                        "camping_budget": camping_budget}
+                                    analytic_advert_dict[camping_id] = {
+                                        "camping_url": camping_url,
+                                        "camping_type": camping_type,
+                                        "camping_strategy": camping_strategy,
+                                        "camping_budget": camping_budget
+                                    }
                                 break
+
                             except Exception as e:
-                                logger.warning(f"   ⚠️ Ошибка при обработке страницы: {e}")
-                                continue
+                                logger.warning(f"   ⚠️ Ошибка при обработке страницы {page_index + 1}: {str(e)}")
+                                if page_attempt < 2:
+                                    time.sleep(2)
+                                    continue
+                                else:
+                                    break
                 else:
                     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
                     tbody = driver.find_element(By.XPATH, "//tbody")
@@ -401,10 +429,12 @@ class InterfaceParser:
                         if '₽' in camping_budget:
                             camping_budget = float(camping_budget.split('₽')[0])
 
-                        analytic_advert_dict[camping_id] = {"camping_url": camping_url,
-                                                            "camping_type": camping_type,
-                                                            "camping_strategy": camping_strategy,
-                                                            "camping_budget": camping_budget}
+                        analytic_advert_dict[camping_id] = {
+                            "camping_url": camping_url,
+                            "camping_type": camping_type,
+                            "camping_strategy": camping_strategy,
+                            "camping_budget": camping_budget
+                        }
 
                 res = self.parser_advert_dict(analytic_advert_dict)
                 if res:
@@ -480,9 +510,9 @@ class InterfaceParser:
                     my_bet_index = all_th.index(th)
                 elif "Средняя стоимость клика" == th.text:
                     sr_click_index = all_th.index(th)
-                elif "Заказы" == th.text:
-                    count_offers_index = all_th.index(th)
                 elif "Продано товаров" == th.text:
+                    count_offers_index = all_th.index(th)
+                elif "Продажи в продвижении" == th.text.replace('\n', '').strip():
                     selled_index = all_th.index(th)
                 elif "Расход" == th.text:
                     expense_index = all_th.index(th)
@@ -1595,6 +1625,7 @@ class InterfaceParser:
         except Exception as e:
             error_msg = f"Критическая ошибка при сборе рекламной аналитики: {e}"
             logger.error(f"   ❌ {error_msg}")
+            input('test')
             write_parser_error_to_sheet(error_msg)
             return {}
 
