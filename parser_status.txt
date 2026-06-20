@@ -1,6 +1,6 @@
 {
-  "status": "idle",
-  "message": "Ошибка: not enough values to unpack (expected 2, got 0)",
-  "last_run": "2026-06-19T23:52:54.658563",
-  "last_run_time": 1781887974.6585634
+  "status": "running",
+  "message": "Загрузка в Google Sheets...",
+  "last_run": "2026-06-20T19:16:51.617580",
+  "last_run_time": 1781957811.61758
 }

@@ -306,7 +306,6 @@ class InterfaceParser:
                 logger.info(f"   📊 Попытка {attempt + 1}/{max_retries} получения аналитики CPC")
 
                 driver.get('https://seller.ozon.ru/app/advertisement/product/cpc')
-                result_date = self.get_ozon_date_today()
 
                 WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[(@type='button')]")))
@@ -347,8 +346,6 @@ class InterfaceParser:
                     button = tippy_content.find_element(By.XPATH, ".//div[text()='Активна']")
                     button.click()
 
-                # Получаем элементы пагинации
-                all_pages_with_active_status = []
                 try:
                     pagination_wrapper = driver.find_element(By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")
                     self.scroll_to_element_center(pagination_wrapper)
@@ -374,6 +371,7 @@ class InterfaceParser:
                     total_pages = len(all_pages_with_active_status)
 
                     for page_index in range(total_pages):
+                        print(f"Page # {page_index + 1}/{total_pages}")
                         for page_attempt in range(3):
                             try:
                                 # Получаем свежие элементы пагинации перед каждой итерацией
@@ -387,6 +385,12 @@ class InterfaceParser:
                                 self.scroll_to_element_center(page)
                                 page.click()
                                 self.random_sleep(2)
+
+                                WebDriverWait(driver, 5).until(
+                                    EC.element_to_be_clickable((By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")))
+                                wrapper = driver.find_element(By.XPATH, "//div[starts-with(@class,'_wrapper_lftsu')]")
+                                self.scroll_to_element_center(wrapper)
+                                self.random_sleep(1)
 
                                 WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
                                 tbody = driver.find_element(By.XPATH, "//tbody")
@@ -444,7 +448,10 @@ class InterfaceParser:
                     raise Exception("Результат парсинга пустой")
 
             except Exception as e:
-                logger.error(f"   ❌ Ошибка в get_advert_analytic_pay_to_click (попытка {attempt + 1}): {e}")
+                logger.error(f"   ❌ Ошибка в get_advert_analytic_pay_to_click (попытка {attempt + 1}): {traceback.format_exc()}")
+                if debug:
+                    input('test')
+
                 if attempt < max_retries - 1:
                     logger.info(f"   🔄 Перезагрузка страницы и повторная попытка...")
                     driver.refresh()
@@ -1098,6 +1105,104 @@ class InterfaceParser:
 
         return {}
 
+
+    def pars_actual_prices(self, driver, prices_dict):
+        try:
+            actual_table = driver.find_element(By.XPATH, "//tbody")
+            all_tr = actual_table.find_elements(By.XPATH, ".//tr")
+            for row in all_tr:
+                for _ in range(3):
+                    try:
+                        all_td = row.find_elements(By.XPATH, ".//td")
+                        self.scroll_to_element_center(all_td[1])
+                        all_td = row.find_elements(By.XPATH, ".//td")
+                        time.sleep(2.5)
+                        item_name = all_td[2].text
+                        if 'Название и артикул' in item_name:
+                            continue
+
+                        print(item_name.split('\n'))
+                        item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n',
+                                                                                                  '').strip()
+                        print(all_td[5].text.split('\n'))
+                        item_price = all_td[5].text
+                        print(f'Item price - {item_price}')
+                        if '\n' in item_price:
+                            item_price = item_price.split('\n')[1].replace('₽', '').strip().replace('\n', '').strip()
+                        else:
+                            item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                        if item_price == '':
+                            time.sleep(3)
+                            all_td = row.find_elements(By.XPATH, ".//td")
+                            self.scroll_to_element_center(all_td[5])
+                            time.sleep(3)
+                            item_price = all_td[5].text
+                            print(f'Item price - {item_price}')
+                            if '\n' in item_price:
+                                item_price = item_price.split('\n')[1].replace('₽', '').strip().replace(
+                                    '\n', '').strip()
+                            else:
+                                item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                        item_price_before = all_td[4].text
+                        if '\n' in item_price_before:
+                            item_price_before = item_price_before.split('\n')[0].replace('₽', '').strip().replace('\n',
+                                                                                                                  '').strip()
+                        else:
+                            item_price_before = item_price_before.replace('₽', '').strip().replace('\n', '').strip()
+
+                        self.scroll_to_element_center(all_td[19])
+                        time.sleep(2)
+                        cost_price = all_td[19].text
+                        if '\n' in cost_price:
+                            cost_price = cost_price.split('\n')[0]
+                        cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
+
+                        try:
+                            self.scroll_to_element_center(all_td[20])
+                            time.sleep(1)
+                            all_td[20].click()
+                            self.random_sleep(2)
+                            tippy_content_text = ''
+                            for att in range(3):
+                                tippy_content_text = driver.find_element(By.XPATH,
+                                                                         ".//div[@class='tippy-content']").text
+                                if 'Вознаграждение Ozon' in tippy_content_text:
+                                    break
+                                time.sleep(1)
+                            commission_fbo = tippy_content_text.split('Вознаграждение Ozon')[1].split('%')[
+                                0].strip()
+                            time.sleep(0.2)
+                            all_td[20].click()
+                        except:
+                            logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
+                            commission_fbo = 38
+
+                        stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
+
+                        print(item_offer_id, f"Цена после скидки - {item_price}",
+                              f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
+                              f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
+                              sep='\n', end='\n\n')
+
+                        if item_offer_id not in prices_dict.keys():
+                            prices_dict[item_offer_id] = {'price': item_price,
+                                                          'price_before': item_price_before,
+                                                          'cost_price': cost_price,
+                                                          'commission_fbo': commission_fbo,
+                                                          'stock_balance': stock_balance,
+                                                          }
+                        break
+                    except:
+                        print(traceback.format_exc())
+                        time.sleep(1)
+            return prices_dict
+        except Exception as e:
+            print(traceback.format_exc())
+            if debug:
+                input('test')
+
     def get_actual_prices_offer_id(self):
         global debug
         if debug:
@@ -1131,212 +1236,47 @@ class InterfaceParser:
                 logger.info(f"Всего страниц с ценой - {len(all_pages_with_active_status)}")
                 if all_pages_with_active_status:
                     for page in all_pages_with_active_status:
-                        print(f"Текст кнопки - {page.text}")
-                        self.scroll_to_element_center(page)
-                        self.random_sleep()
-                        page.click()
-                        self.random_sleep()
-                        self.random_sleep()
+                        try:
+                            print(f"Текст кнопки - {page.text}")
+                            self.scroll_to_element_center(page)
+                            self.random_sleep()
+                            page.click()
+                            self.random_sleep()
+                            self.random_sleep()
 
-                        pages_widget = driver.find_element(By.XPATH, "//article")
-                        self.scroll_to_element_center(pages_widget)
-                        time.sleep(3)
-                        input_element = driver.find_element(By.XPATH, "//input[starts-with(@id, 'baseInput')]")
-                        self.scroll_to_element_center(input_element)
-                        time.sleep(3)
+                            pages_widget = driver.find_element(By.XPATH, "//article")
+                            self.scroll_to_element_center(pages_widget)
+                            time.sleep(3)
+                            input_element = driver.find_element(By.XPATH, "//input[starts-with(@id, 'baseInput')]")
+                            self.scroll_to_element_center(input_element)
+                            time.sleep(3)
 
-                        for _ in range(6):
-                            try:
-                                elem = driver.find_elements(By.XPATH, "//ul")[-1]
-                                self.scroll_to_element_center(elem)
-                                self.random_sleep(1)
-                            except:
-                                pass
-
-                        actual_table = driver.find_element(By.XPATH, "//tbody")
-                        all_tr = actual_table.find_elements(By.XPATH, ".//tr")
-                        for row in all_tr:
-                            for _ in range(3):
+                            for _ in range(6):
                                 try:
-                                    all_td = row.find_elements(By.XPATH, ".//td")
-                                    self.scroll_to_element_center(all_td[1])
-                                    all_td = row.find_elements(By.XPATH, ".//td")
-                                    time.sleep(2.5)
-                                    item_name = all_td[2].text
-                                    if 'Название и артикул' in item_name:
-                                        continue
-
-                                    print(item_name.split('\n'))
-                                    item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n',
-                                                                                                              '').strip()
-                                    print(all_td[5].text.split('\n'))
-                                    item_price = all_td[5].text
-                                    print(f'Item price - {item_price}')
-                                    if '\n' in item_price:
-                                        item_price = item_price.split('\n')[1].replace('₽', '').strip().replace('\n','').strip()
-                                    else:
-                                        item_price = item_price.replace('₽', '').strip().replace('\n','').strip()
-
-                                    if item_price == '':
-                                        time.sleep(3)
-                                        all_td = row.find_elements(By.XPATH, ".//td")
-                                        self.scroll_to_element_center(all_td[5])
-                                        time.sleep(3)
-                                        item_price = all_td[5].text
-                                        print(f'Item price - {item_price}')
-                                        if '\n' in item_price:
-                                            item_price = item_price.split('\n')[1].replace('₽', '').strip().replace(
-                                                '\n', '').strip()
-                                        else:
-                                            item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
-
-                                    item_price_before = all_td[4].text
-                                    if '\n' in item_price_before:
-                                        item_price_before = item_price_before.split('\n')[0].replace('₽', '').strip().replace('\n', '').strip()
-                                    else:
-                                        item_price_before = item_price_before.replace('₽', '').strip().replace('\n', '').strip()
-
-                                    self.scroll_to_element_center(all_td[19])
-                                    time.sleep(2)
-                                    cost_price = all_td[19].text
-                                    if '\n' in cost_price:
-                                        cost_price = cost_price.split('\n')[0]
-                                    cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
-
-                                    try:
-                                        self.scroll_to_element_center(all_td[20])
-                                        time.sleep(1)
-                                        all_td[20].click()
-                                        self.random_sleep(2)
-                                        tippy_content_text = ''
-                                        for att in range(3):
-                                            tippy_content_text = driver.find_element(By.XPATH,
-                                                                                     ".//div[@class='tippy-content']").text
-                                            if 'Вознаграждение Ozon' in tippy_content_text:
-                                                break
-                                            time.sleep(1)
-                                        commission_fbo = tippy_content_text.split('Вознаграждение Ozon')[1].split('%')[
-                                            0].strip()
-                                        time.sleep(0.2)
-                                        all_td[20].click()
-                                    except:
-                                        logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
-                                        commission_fbo = 38
-
-                                    stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
-
-                                    print(item_offer_id, f"Цена после скидки - {item_price}",
-                                          f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
-                                          f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
-                                          sep='\n', end='\n\n')
-
-                                    if item_offer_id not in prices_dict.keys():
-                                        prices_dict[item_offer_id] = {'price': item_price,
-                                                                      'price_before': item_price_before,
-                                                                      'cost_price': cost_price,
-                                                                      'commission_fbo': commission_fbo,
-                                                                      'stock_balance': stock_balance,
-                                                                      }
-                                    break
+                                    elem = driver.find_elements(By.XPATH, "//ul")[-1]
+                                    self.scroll_to_element_center(elem)
+                                    self.random_sleep(1)
                                 except:
-                                    print(traceback.format_exc())
-                                    time.sleep(1)
+                                    pass
+
+                            prices_dict = self.pars_actual_prices(driver, prices_dict)
+                        except:
+                            print(traceback.format_exc())
+                            if debug:
+                                input('test page clicking pay to buy')
+
+                    return prices_dict
                 else:
-                    actual_table = driver.find_element(By.XPATH, "//tbody")
-                    all_tr = actual_table.find_elements(By.XPATH, ".//tr")
-                    for row in all_tr:
-                        for _ in range(3):
-                            try:
-                                all_td = row.find_elements(By.XPATH, ".//td")
-                                self.scroll_to_element_center(all_td[1])
-                                all_td = row.find_elements(By.XPATH, ".//td")
-                                time.sleep(2.5)
-                                item_name = all_td[2].text
-                                if 'Название и артикул' in item_name:
-                                    continue
+                    self.pars_actual_prices(driver, prices_dict)
 
-                                print(item_name.split('\n'))
-                                item_offer_id = item_name.split('\n')[1].replace('₽', '').strip().replace('\n',
-                                                                                                          '').strip()
-                                print(all_td[5].text.split('\n'))
-                                item_price = all_td[5].text
-                                print(f'Item price - {item_price}')
-                                if '\n' in item_price:
-                                    item_price = item_price.split('\n')[1].replace('₽', '').strip().replace('\n',
-                                                                                                            '').strip()
-                                else:
-                                    item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
-
-                                if item_price == '':
-                                    time.sleep(3)
-                                    all_td = row.find_elements(By.XPATH, ".//td")
-                                    self.scroll_to_element_center(all_td[5])
-                                    time.sleep(3)
-                                    item_price = all_td[5].text
-                                    print(f'Item price - {item_price}')
-                                    if '\n' in item_price:
-                                        item_price = item_price.split('\n')[1].replace('₽', '').strip().replace(
-                                            '\n', '').strip()
-                                    else:
-                                        item_price = item_price.replace('₽', '').strip().replace('\n', '').strip()
-
-                                item_price_before = all_td[4].text
-                                if '\n' in item_price_before:
-                                    item_price_before = item_price_before.split('\n')[0].replace('₽',
-                                                                                                 '').strip().replace(
-                                        '\n', '').strip()
-                                else:
-                                    item_price_before = item_price_before.replace('₽', '').strip().replace('\n',
-                                                                                                           '').strip()
-
-                                self.scroll_to_element_center(all_td[19])
-                                time.sleep(2)
-                                cost_price = all_td[19].text
-                                if '\n' in cost_price:
-                                    cost_price = cost_price.split('\n')[0]
-                                cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
-
-                                try:
-                                    self.scroll_to_element_center(all_td[20])
-                                    time.sleep(1)
-                                    all_td[20].click()
-                                    self.random_sleep(2)
-                                    tippy_content_text = ''
-                                    for att in range(3):
-                                        tippy_content_text = driver.find_element(By.XPATH,
-                                                                                 ".//div[@class='tippy-content']").text
-                                        if 'Вознаграждение Ozon' in tippy_content_text:
-                                            break
-                                        time.sleep(1)
-                                    commission_fbo = tippy_content_text.split('Вознаграждение Ozon')[1].split('%')[0].strip()
-                                    time.sleep(0.2)
-                                    all_td[20].click()
-                                except:
-                                    logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
-                                    commission_fbo = 38
-
-                                stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
-
-                                print(item_offer_id, f"Цена после скидки - {item_price}",
-                                      f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
-                                      f"Коммисия FBO - {commission_fbo}", f"Остатки товара - {stock_balance}",
-                                      sep='\n', end='\n\n')
-
-                                if item_offer_id not in prices_dict.keys():
-                                    prices_dict[item_offer_id] = {'price': item_price,
-                                                                  'price_before': item_price_before,
-                                                                  'cost_price': cost_price,
-                                                                  'commission_fbo': commission_fbo,
-                                                                  'stock_balance': stock_balance,
-                                                                  }
-                                break
-                            except:
-                                print(traceback.format_exc())
-                                time.sleep(1)
                 return prices_dict
             except:
                 print(traceback.format_exc())
+                if debug:
+                    input('test')
                 continue
+
+        return prices_dict
 
     def get_analytic_money_spent(self):
         global debug
@@ -1634,7 +1574,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_advert_analytic_pay_to_click()
+    #parser.get_actual_prices_offer_id()
     #input('test')
 
     parser.auth()
