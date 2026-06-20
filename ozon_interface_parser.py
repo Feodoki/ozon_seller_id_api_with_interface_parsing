@@ -1334,12 +1334,12 @@ class InterfaceParser:
                 time.sleep(3)
 
                 all_btns = driver.find_elements(By.XPATH, "//button[(@type='button')]")
-                btn_calendar = all_btns[2]
+                btn_calendar = all_btns[1]
                 btn_calendar.click()
                 logger.info("   ✅ Успешно нажали на кнопку календаря")
 
-                WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+                WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+
                 time.sleep(0.5)
                 button = driver.find_element(By.XPATH, "//button[@type='button' and text()='Сегодня']")
                 button.click()
@@ -1369,17 +1369,21 @@ class InterfaceParser:
                     li_elements = wrapper.find_elements(By.XPATH, ".//li")
                     count_pages = len(li_elements)
                 except:
+                    print(traceback.format_exc())
                     count_pages = 1
 
+                print(f"{count_pages}")
+
                 for page in range(1, count_pages + 1):
+                    print(f"page # {page}")
                     if count_pages != 1:
                         WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
                         wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
                         li_elements = wrapper.find_elements(By.XPATH, ".//li")
                         self.scroll_to_element_center(li_elements[page - 1])
                         time.sleep(1)
-                        li_elements[page - 1].click()
-                        time.sleep(2)
+                        li_elements[page - 1].find_element(By.XPATH, ".//button").click()
+                        time.sleep(3)
 
                     table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
                     table = table_div.find_element(By.XPATH, ".//tbody")
@@ -1460,6 +1464,9 @@ class InterfaceParser:
                 return money_spent_dict
             except:
                 logger.error(f"Ошибка при сборе DRR: {traceback.format_exc()}")
+                print(traceback.format_exc())
+                if debug:
+                    input('test')
 
         return {}
 
@@ -1571,10 +1578,20 @@ class InterfaceParser:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.ERROR,  # Уровень логирования: DEBUG, INFO, WARNING, ERROR, CRITICAL
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.StreamHandler(),  # Вывод в консоль
+            logging.FileHandler('test_parser.log', encoding='utf-8')  # Запись в файл
+        ]
+    )
+
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_actual_prices_offer_id()
+    #parser.get_analytic_money_spent()
     #input('test')
 
     parser.auth()

@@ -1,6 +1,6 @@
 {
-  "status": "running",
-  "message": "Загрузка в Google Sheets...",
-  "last_run": "2026-06-20T19:16:51.617580",
-  "last_run_time": 1781957811.61758
+  "status": "idle",
+  "message": "Парсинг завершен. Обработано 40 товаров",
+  "last_run": "2026-06-20T20:45:24.935907",
+  "last_run_time": 1781963124.9359078
 }
