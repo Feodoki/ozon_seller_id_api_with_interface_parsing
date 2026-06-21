@@ -593,3 +593,172 @@ KeyboardInterrupt
   File "<frozen codecs>", line 319, in decode
 KeyboardInterrupt
 
+2026-06-21 20:36:18 - uc - WARNING - could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2026-06-21 20:36:31 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7d9b73435+14875]
+	chromedriver!GetHandleVerifier [0x7ff7d9b73490+148d0]
+	chromedriver!(No symbol) [0x7ff7d96c778d]
+	chromedriver!(No symbol) [0x7ff7d972195d]
+	chromedriver!(No symbol) [0x7ff7d9721c5c]
+	chromedriver!(No symbol) [0x7ff7d9771e37]
+	chromedriver!(No symbol) [0x7ff7d976e9fc]
+	chromedriver!(No symbol) [0x7ff7d9713eb0]
+	chromedriver!(No symbol) [0x7ff7d9714e23]
+	chromedriver!GetHandleVerifier [0x7ff7da156c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff7da15101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff7da176305+617745]
+	chromedriver!GetHandleVerifier [0x7ff7d9b903ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff7d9b98b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff7d9b60997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa42ba7374+14]
+	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
+
+
+2026-06-21 20:36:39 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7d9b73435+14875]
+	chromedriver!GetHandleVerifier [0x7ff7d9b73490+148d0]
+	chromedriver!(No symbol) [0x7ff7d96c778d]
+	chromedriver!(No symbol) [0x7ff7d972195d]
+	chromedriver!(No symbol) [0x7ff7d9721c5c]
+	chromedriver!(No symbol) [0x7ff7d9771e37]
+	chromedriver!(No symbol) [0x7ff7d976e9fc]
+	chromedriver!(No symbol) [0x7ff7d9713eb0]
+	chromedriver!(No symbol) [0x7ff7d9714e23]
+	chromedriver!GetHandleVerifier [0x7ff7da156c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff7da15101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff7da176305+617745]
+	chromedriver!GetHandleVerifier [0x7ff7d9b903ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff7d9b98b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff7d9b60997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa42ba7374+14]
+	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
+
+
+2026-06-21 20:36:47 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7d9b73435+14875]
+	chromedriver!GetHandleVerifier [0x7ff7d9b73490+148d0]
+	chromedriver!(No symbol) [0x7ff7d96c778d]
+	chromedriver!(No symbol) [0x7ff7d972195d]
+	chromedriver!(No symbol) [0x7ff7d9721c5c]
+	chromedriver!(No symbol) [0x7ff7d9771e37]
+	chromedriver!(No symbol) [0x7ff7d976e9fc]
+	chromedriver!(No symbol) [0x7ff7d9713eb0]
+	chromedriver!(No symbol) [0x7ff7d9714e23]
+	chromedriver!GetHandleVerifier [0x7ff7da156c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff7da15101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff7da176305+617745]
+	chromedriver!GetHandleVerifier [0x7ff7d9b903ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff7d9b98b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff7d9b60997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa42ba7374+14]
+	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
+
+
+2026-06-21 20:37:20 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7d9b73435+14875]
+	chromedriver!GetHandleVerifier [0x7ff7d9b73490+148d0]
+	chromedriver!(No symbol) [0x7ff7d96c778d]
+	chromedriver!(No symbol) [0x7ff7d972195d]
+	chromedriver!(No symbol) [0x7ff7d9721c5c]
+	chromedriver!(No symbol) [0x7ff7d9771e37]
+	chromedriver!(No symbol) [0x7ff7d976e9fc]
+	chromedriver!(No symbol) [0x7ff7d9713eb0]
+	chromedriver!(No symbol) [0x7ff7d9714e23]
+	chromedriver!GetHandleVerifier [0x7ff7da156c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff7da15101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff7da176305+617745]
+	chromedriver!GetHandleVerifier [0x7ff7d9b903ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff7d9b98b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff7d9b60997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa42ba7374+14]
+	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
+
+
+2026-06-21 20:37:28 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7d9b73435+14875]
+	chromedriver!GetHandleVerifier [0x7ff7d9b73490+148d0]
+	chromedriver!(No symbol) [0x7ff7d96c778d]
+	chromedriver!(No symbol) [0x7ff7d972195d]
+	chromedriver!(No symbol) [0x7ff7d9721c5c]
+	chromedriver!(No symbol) [0x7ff7d9771e37]
+	chromedriver!(No symbol) [0x7ff7d976e9fc]
+	chromedriver!(No symbol) [0x7ff7d9713eb0]
+	chromedriver!(No symbol) [0x7ff7d9714e23]
+	chromedriver!GetHandleVerifier [0x7ff7da156c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff7da15101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff7da176305+617745]
+	chromedriver!GetHandleVerifier [0x7ff7d9b903ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff7d9b98b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff7d9b60997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa42ba7374+14]
+	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
+
+
+2026-06-21 20:37:36 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff7d9b73435+14875]
+	chromedriver!GetHandleVerifier [0x7ff7d9b73490+148d0]
+	chromedriver!(No symbol) [0x7ff7d96c778d]
+	chromedriver!(No symbol) [0x7ff7d972195d]
+	chromedriver!(No symbol) [0x7ff7d9721c5c]
+	chromedriver!(No symbol) [0x7ff7d9771e37]
+	chromedriver!(No symbol) [0x7ff7d976e9fc]
+	chromedriver!(No symbol) [0x7ff7d9713eb0]
+	chromedriver!(No symbol) [0x7ff7d9714e23]
+	chromedriver!GetHandleVerifier [0x7ff7da156c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff7da15101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff7da176305+617745]
+	chromedriver!GetHandleVerifier [0x7ff7d9b903ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff7d9b98b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff7d9b7cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff7d9b60997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa42ba7374+14]
+	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
+
+

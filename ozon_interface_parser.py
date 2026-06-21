@@ -1272,6 +1272,7 @@ class InterfaceParser:
                 return prices_dict
             except:
                 print(traceback.format_exc())
+                driver.save_screenshot(f'logs/actual_prices({str(time.time())}).png')
                 if debug:
                     input('test')
                 continue
@@ -1301,6 +1302,7 @@ class InterfaceParser:
 
             tippy_content = driver.find_element(By.XPATH, "//div[@class='tippy-content']")
             menu_next_step_btn = tippy_content.find_element(By.XPATH, ".//div[text()='Товары']")
+            self.scroll_to_element_center(menu_next_step_btn)
             menu_next_step_btn.click()
 
             time.sleep(2)
@@ -1314,12 +1316,14 @@ class InterfaceParser:
                 WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//div[starts-with(@class, '_unselectBlock')]")))
                 time.sleep(2)
                 btn_reset = driver.find_element(By.XPATH, "//div[starts-with(@class, '_unselectBlock')]").find_element(By.XPATH, ".//button[@type='submit']")
+                self.scroll_to_element_center(btn_reset)
                 btn_reset.click()
             except:
                 try:
                     WebDriverWait(driver, 3).until(
                         EC.element_to_be_clickable((By.XPATH, "//button[text()='Сбросить']")))
                     btn_reset = driver.find_element(By.XPATH, "//button[text()='Сбросить']")
+                    self.scroll_to_element_center(btn_reset)
                     btn_reset.click()
                 except:
                     print(traceback.format_exc())
@@ -1334,7 +1338,7 @@ class InterfaceParser:
                 time.sleep(3)
 
                 all_btns = driver.find_elements(By.XPATH, "//button[(@type='button')]")
-                btn_calendar = all_btns[1]
+                btn_calendar = all_btns[2]
                 btn_calendar.click()
                 logger.info("   ✅ Успешно нажали на кнопку календаря")
 
@@ -1375,86 +1379,101 @@ class InterfaceParser:
                 print(f"{count_pages}")
 
                 for page in range(1, count_pages + 1):
-                    print(f"page # {page}")
-                    if count_pages != 1:
-                        WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
-                        wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
-                        li_elements = wrapper.find_elements(By.XPATH, ".//li")
-                        self.scroll_to_element_center(li_elements[page - 1])
-                        time.sleep(1)
-                        li_elements[page - 1].find_element(By.XPATH, ".//button").click()
-                        time.sleep(3)
+                    try:
+                        print(f"page # {page}")
+                        if count_pages != 1:
+                            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                            wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                            li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                            self.scroll_to_element_center(li_elements[page - 1])
+                            time.sleep(2)
+                            li_elements[page - 1].find_element(By.XPATH, ".//button").click()
+                            time.sleep(3)
 
-                    table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
-                    table = table_div.find_element(By.XPATH, ".//tbody")
-                    all_tr = table.find_elements(By.XPATH, ".//tr")
-                    print(f"Всего товаров - {len(all_tr)}, страница - {page}")
-                    for num_product in range(len(all_tr)):
-                        try:
-                            time.sleep(0.5)
-                            if count_pages != 1:
-                                WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
-                                wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
-                                li_elements = wrapper.find_elements(By.XPATH, ".//li")
-                                self.scroll_to_element_center(li_elements[page - 1])
+                        time.sleep(2)
+                        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")))
+                        table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
+                        WebDriverWait(table_div, 10).until(EC.element_to_be_clickable((By.XPATH, ".//tbody")))
+                        table = table_div.find_element(By.XPATH, ".//tbody")
+                        all_tr = table.find_elements(By.XPATH, ".//tr")
+                        print(f"Всего товаров - {len(all_tr)}, страница - {page}")
+                        for num_product in range(len(all_tr)):
+                            try:
+                                time.sleep(0.5)
+                                if count_pages != 1:
+                                    WebDriverWait(driver, 7).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+                                    time.sleep(1)
+                                    wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                                    self.scroll_to_element_center(wrapper)
+                                    time.sleep(1)
+                                    wrapper = driver.find_elements(By.XPATH, "//ul")[-1]
+                                    li_elements = wrapper.find_elements(By.XPATH, ".//li")
+                                    self.scroll_to_element_center(li_elements[page - 1])
+                                    time.sleep(1)
+                                    li_elements[page - 1].click()
+                                    time.sleep(2)
+
+                                table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
+                                table = table_div.find_element(By.XPATH, ".//tbody")
+                                all_tr = table.find_elements(By.XPATH, ".//tr")
+
+                                product_tr = all_tr[num_product]
+
+                                item_offer_id = product_tr.find_elements(By.XPATH, ".//td")[1].text.split("\n")[1].strip()
+
+                                product_input = product_tr.find_element(By.XPATH, ".//input[@type='checkbox']")
+                                self.scroll_to_element_center(product_input)
+                                time.sleep(0.5)
+                                product_input.click()
+
                                 time.sleep(1)
-                                li_elements[page - 1].click()
+
+                                btn_submit = driver.find_element(By.XPATH, "//span[text()='Выбрать']")
+                                btn_submit.click()
                                 time.sleep(2)
 
-                            table_div = driver.find_element(By.XPATH, "//div[starts-with(@class, '_laputaContainer')]")
-                            table = table_div.find_element(By.XPATH, ".//tbody")
-                            all_tr = table.find_elements(By.XPATH, ".//tr")
+                                money_spent_index = 3
+                                drr_index = 6
 
-                            product_tr = all_tr[num_product]
+                                headers = driver.find_element(By.XPATH, ".//thead")
+                                self.scroll_to_element_center(headers)
+                                time.sleep(1)
+                                all_th = headers.find_elements(By.XPATH, ".//th")
+                                for th in all_th:
+                                    if 'Расход' == th.text:
+                                        money_spent_index = all_th.index(th)
+                                        logger.info(f"Найден INDEX Расхода - {money_spent_index}")
+                                    elif 'ДРР в продвижении' == th.text.replace('\n', '').strip():
+                                        drr_index = all_th.index(th)
+                                        logger.info(f"Найден INDEX ДРР - {drr_index}")
 
-                            item_offer_id = product_tr.find_elements(By.XPATH, ".//td")[1].text.split("\n")[1].strip()
+                                time.sleep(1)
+                                data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
+                                all_td = data.find_elements(By.XPATH, ".//td")
+                                money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
+                                drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '')
 
-                            product_input = product_tr.find_element(By.XPATH, ".//input[@type='checkbox']")
-                            self.scroll_to_element_center(product_input)
-                            time.sleep(0.5)
-                            product_input.click()
+                                if '\n' in money_spent:
+                                    money_spent = money_spent.split('\n')[0]
 
-                            time.sleep(1)
+                                if '\n' in drr:
+                                    drr = drr.split('\n')[0].replace('%', '')
 
-                            btn_submit = driver.find_element(By.XPATH, "//span[text()='Выбрать']")
-                            btn_submit.click()
-                            time.sleep(2)
+                                logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
+                                print(f"Get data - {item_offer_id} Расход = {money_spent}")
+                                print(f"DRR - {drr}")
+                                money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
 
-                            money_spent_index = 3
-                            drr_index = 6
+                                clear_old_data()
+                            except Exception as e:
+                                print(traceback.format_exc())
+                                driver.save_screenshot(f'logs/money_spent_pars_error{str(time.time())}.png')
 
-                            headers = driver.find_element(By.XPATH, ".//thead")
-                            self.scroll_to_element_center(headers)
-                            time.sleep(1)
-                            all_th = headers.find_elements(By.XPATH, ".//th")
-                            for th in all_th:
-                                if 'Расход' == th.text:
-                                    money_spent_index = all_th.index(th)
-                                    logger.info(f"Найден INDEX Расхода - {money_spent_index}")
-                                elif 'ДРР в продвижении' == th.text.replace('\n', '').strip():
-                                    drr_index = all_th.index(th)
-                                    logger.info(f"Найден INDEX ДРР - {drr_index}")
-
-                            time.sleep(1)
-                            data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
-                            all_td = data.find_elements(By.XPATH, ".//td")
-                            money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
-                            drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '')
-
-                            if '\n' in money_spent:
-                                money_spent = money_spent.split('\n')[0]
-
-                            if '\n' in drr:
-                                drr = drr.split('\n')[0].replace('%', '')
-
-                            logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
-                            print(f"Get data - {item_offer_id} Расход = {money_spent}")
-                            print(f"DRR - {drr}")
-                            money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
-
-                            clear_old_data()
-                        except Exception as e:
-                            print(traceback.format_exc())
+                    except:
+                        print(traceback.format_exc())
+                        driver.save_screenshot(f'logs/money_spent_page_error{str(time.time())}.png')
+                        driver.refresh()
+                        time.sleep(2)
 
                 try:
                     with open('logs/money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
@@ -1464,6 +1483,7 @@ class InterfaceParser:
                 return money_spent_dict
             except:
                 logger.error(f"Ошибка при сборе DRR: {traceback.format_exc()}")
+                driver.save_screenshot(f'logs/money_spent({str(time.time())}).png')
                 print(traceback.format_exc())
                 if debug:
                     input('test')
@@ -1559,13 +1579,12 @@ class InterfaceParser:
                             logger.warning(f"   ⚠️ offer_id {offer_id} не найден в рекламной аналитике")
 
                     logger.info(f"   ✅ Актуальные цены добавлены для {len(price_dict)} товаров")
-                    return res_dict, tech_stats
-
                 except Exception as e:
                     logger.error(f'   ❌ Ошибка сопоставления актуальных цен - {str(e)}')
                     import traceback
                     logger.error(traceback.format_exc())
-                    return res_dict
+
+                return res_dict, tech_stats
             else:
                 logger.warning("   ⚠️ Не удалось получить аналитику CPC")
                 return {}
