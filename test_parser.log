@@ -762,3 +762,672 @@ Stacktrace:
 	ntdll!RtlUserThreadStart [0x7ffa44bbcc91+21]
 
 
+2026-07-08 16:56:11 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 16:56:20 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 16:56:28 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 16:57:13 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1345, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 16:59:34 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1346, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 17:03:00 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1347, in get_analytic_money_spent
+    WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 17:05:41 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1347, in get_analytic_money_spent
+    btn.click()
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 114, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 508, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <button type="button" class="c9s111-a0 c9s111-a s3c111-a s3c111-a2 s3c111-b s3c111-a9 s3c111-a7 s3c111-a5 s3c111-a8" data-active="true">...</button> is not clickable at point (1459, 505). Other element would receive the click: <div class="sc3111-a sc3111-a0">...</div>
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c9605]
+	chromedriver!(No symbol) [0x7ff6226c721a]
+	chromedriver!(No symbol) [0x7ff6226c4567]
+	chromedriver!(No symbol) [0x7ff6226c3410]
+	chromedriver!(No symbol) [0x7ff6226b5e28]
+	chromedriver!(No symbol) [0x7ff6226ea27a]
+	chromedriver!(No symbol) [0x7ff6226b56a6]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 17:06:51 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1350, in get_analytic_money_spent
+    input('test')
+  File "<frozen codecs>", line 319, in decode
+KeyboardInterrupt
+
+2026-07-08 17:07:00 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Users\feodo\AppData\Local\Programs\Python\Python311\Lib\http\client.py", line 1386, in getresponse
+    response.begin()
+  File "C:\Users\feodo\AppData\Local\Programs\Python\Python311\Lib\http\client.py", line 325, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\feodo\AppData\Local\Programs\Python\Python311\Lib\http\client.py", line 286, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\feodo\AppData\Local\Programs\Python\Python311\Lib\socket.py", line 706, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] Удаленный хост принудительно разорвал существующее подключение
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1335, in get_analytic_money_spent
+    driver.get('https://seller.ozon.ru/app/advertisement/product/overview')
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\undetected_chromedriver\__init__.py", line 665, in get
+    return super().get(url)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 470, in get
+    self.execute(Command.GET, {"url": url})
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 447, in execute
+    response = cast(RemoteConnection, self.command_executor).execute(driver_command, params)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\remote_connection.py", line 407, in execute
+    return self._request(command_info[0], url, body=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\remote_connection.py", line 431, in _request
+    response = self._conn.request(method, url, body=body, headers=headers, timeout=self._client_config.timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\_request_methods.py", line 143, in request
+    return self.request_encode_body(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\_request_methods.py", line 278, in request_encode_body
+    return self.urlopen(method, url, **extra_kw)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\poolmanager.py", line 457, in urlopen
+    response = conn.urlopen(method, u.request_uri, **kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\feodo\AppData\Local\Programs\Python\Python311\Lib\http\client.py", line 1388, in getresponse
+    self.close()
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\urllib3\connection.py", line 375, in close
+    def close(self) -> None:
+    
+KeyboardInterrupt
+
+2026-07-08 20:46:33 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:46:42 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:46:51 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:46:59 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:47:08 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:47:17 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:47:26 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:47:35 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:47:44 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:47:53 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:49:54 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1170, in pars_actual_prices
+    tippy_content_text = driver.find_element(By.XPATH,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[@class='tippy-content']"}
+  (Session info: chrome=150.0.7871.46); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff622b13435+14875]
+	chromedriver!GetHandleVerifier [0x7ff622b13490+148d0]
+	chromedriver!(No symbol) [0x7ff62266778d]
+	chromedriver!(No symbol) [0x7ff6226c195d]
+	chromedriver!(No symbol) [0x7ff6226c1c5c]
+	chromedriver!(No symbol) [0x7ff622711e37]
+	chromedriver!(No symbol) [0x7ff62270e9fc]
+	chromedriver!(No symbol) [0x7ff6226b3eb0]
+	chromedriver!(No symbol) [0x7ff6226b4e23]
+	chromedriver!GetHandleVerifier [0x7ff6230f6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6230f101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff623116305+617745]
+	chromedriver!GetHandleVerifier [0x7ff622b303ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff622b38b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff622b1cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff622b1cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff622b00997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-08 20:51:31 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1166, in pars_actual_prices
+    input('test1')
+  File "<frozen codecs>", line 319, in decode
+KeyboardInterrupt
+
+2026-07-08 20:54:14 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1166, in pars_actual_prices
+    input('test1')
+  File "<frozen codecs>", line 319, in decode
+KeyboardInterrupt
+

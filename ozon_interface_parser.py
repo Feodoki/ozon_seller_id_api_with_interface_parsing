@@ -315,10 +315,11 @@ class InterfaceParser:
                 btn_status = None
 
                 """ Находим кнопку с календарем и выбираем текущую дату """
-                all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
+                all_buttons_with_type = driver.find_elements(By.XPATH, "//button[starts-with(@type, 'button')]")
                 for button_calendar in all_buttons_with_type:
                     btn_text = button_calendar.text
-                    if 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text:
+                    if 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text or "Тип" in btn_text or "Создать" in btn_text or "Ещё" in btn_text:
+                        print(f"Skip - {btn_text}")
                         continue
 
                     button_calendar.click()
@@ -1152,9 +1153,9 @@ class InterfaceParser:
                         else:
                             item_price_before = item_price_before.replace('₽', '').strip().replace('\n', '').strip()
 
-                        self.scroll_to_element_center(all_td[19])
+                        self.scroll_to_element_center(all_td[20])
                         time.sleep(2)
-                        cost_price = all_td[19].text
+                        cost_price = all_td[20].text
                         if '\n' in cost_price:
                             cost_price = cost_price.split('\n')[0]
                         cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
@@ -1162,7 +1163,7 @@ class InterfaceParser:
                         try:
                             self.scroll_to_element_center(all_td[20])
                             time.sleep(1)
-                            all_td[20].click()
+                            all_td[21].click()
                             self.random_sleep(2)
                             tippy_content_text = ''
                             for att in range(3):
@@ -1174,12 +1175,12 @@ class InterfaceParser:
                             commission_fbo = tippy_content_text.split('Вознаграждение Ozon')[1].split('%')[
                                 0].strip()
                             time.sleep(0.2)
-                            all_td[20].click()
+                            all_td[21].click()
                         except:
                             logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
                             commission_fbo = 38
 
-                        stock_balance = all_td[17].text.replace('₽', '').strip().replace('\n', '').strip()
+                        stock_balance = all_td[18].text.replace('₽', '').strip().replace('\n', '').strip()
 
                         print(item_offer_id, f"Цена после скидки - {item_price}",
                               f"Цена ДО скидки - {item_price_before}", f"Себестоимсоть - {cost_price}",
@@ -1238,8 +1239,10 @@ class InterfaceParser:
                     for page in all_pages_with_active_status:
                         try:
                             print(f"Текст кнопки - {page.text}")
-                            self.scroll_to_element_center(page)
-                            self.random_sleep()
+                            for _ in range(4):
+                                self.scroll_to_element_center(page)
+                                self.random_sleep()
+
                             page.click()
                             self.random_sleep()
                             self.random_sleep()
@@ -1338,10 +1341,16 @@ class InterfaceParser:
                 time.sleep(3)
 
                 all_btns = driver.find_elements(By.XPATH, "//button[(@type='button')]")
-                btn_calendar = all_btns[2]
-                btn_calendar.click()
-                logger.info("   ✅ Успешно нажали на кнопку календаря")
+                for btn in all_btns:
+                    btn_text = btn.text
+                    if 'Скачать' in btn_text or 'Тип' in btn_text or 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text:
+                        continue
 
+                    btn.click()
+                    logger.info("   ✅ Успешно нажали на кнопку календаря")
+                    break
+
+                time.sleep(0.5)
                 WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//button[@type='button' and text()='Сегодня']")))
 
                 time.sleep(0.5)
@@ -1610,7 +1619,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_analytic_money_spent()
+    #parser.get_actual_prices_offer_id()
     #input('test')
 
     parser.auth()

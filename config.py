@@ -16,7 +16,7 @@ STORE_IP = ""  # Оставьте пустым для автоопределен
 AUTO_INTERVAL = 1000
 
 # Режим браузера (True - без интерфейса, False - с интерфейсом)
-HEADLESS_MODE = True
+HEADLESS_MODE = False
 
 # Порт веб-сервера
 WEB_PORT = 5000
