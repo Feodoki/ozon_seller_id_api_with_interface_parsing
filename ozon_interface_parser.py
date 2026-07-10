@@ -312,6 +312,8 @@ class InterfaceParser:
 
                 self.random_sleep(2)
 
+                self.close_banner(driver)
+
                 btn_status = None
 
                 """ Находим кнопку с календарем и выбираем текущую дату """
@@ -681,6 +683,8 @@ class InterfaceParser:
                     driver.get(camping_url)
                     self.random_sleep(2)
 
+                    self.close_banner(driver)
+
                     all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
                     for button_calendar in all_buttons_with_type:
                         btn_text = button_calendar.text
@@ -797,6 +801,8 @@ class InterfaceParser:
                     EC.element_to_be_clickable((By.XPATH, "//button[(@type='button')]")))
 
                 self.random_sleep(2)
+
+                self.close_banner(driver)
 
                 """ Находим кнопку с календарем и выбираем текущую дату """
                 all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
@@ -1012,6 +1018,7 @@ class InterfaceParser:
                 WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, "//div[@class='analyticsSearchApp']")))
 
+                self.close_banner(driver)
                 time.sleep(random.uniform(self.random_sleep_from, self.random_sleep_to))
 
                 all_templates = driver.find_element(By.XPATH, "//div[@class='analyticsSearchApp']").find_element(
@@ -1217,6 +1224,8 @@ class InterfaceParser:
                 driver.get('https://seller.ozon.ru/app/prices/control')
                 WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//tbody")))
 
+                self.close_banner(driver)
+
                 self.random_sleep()
                 self.random_sleep()
 
@@ -1337,6 +1346,7 @@ class InterfaceParser:
                 driver.get('https://seller.ozon.ru/app/advertisement/product/overview')
                 self.check_auth_in_ozon()
 
+                self.close_banner(driver)
                 WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//button[(@type='button')]")))
                 time.sleep(3)
 
@@ -1522,11 +1532,19 @@ class InterfaceParser:
                 driver.get('https://seller.ozon.ru/app/analytics/sales-geography/local-packaging')
                 WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//div[(@data-onboarding-target='LocalSalesWidgetIndex')]")))
                 self.random_sleep()
+                self.close_banner(driver)
                 local_sales_percent = driver.find_element(By.XPATH, "//div[(@data-onboarding-target='LocalSalesWidgetIndex')]").text.replace('%', '').strip().replace('\n', '')
                 print(local_sales_percent)
                 return local_sales_percent
             except:
                 logger.error(f"Ошибка при получении Процента локальных продаж: {traceback.format_exc()}")
+
+
+    def close_banner(self, driver):
+        try:
+            driver.find_element(By.XPATH, "//div[(@class='tippy-content')]").find_elements(By.XPATH, ".//div")[-1].click()
+        except:
+            pass
 
     def get_all_advert_analytic(self, max_retries: int = 3):
         global debug

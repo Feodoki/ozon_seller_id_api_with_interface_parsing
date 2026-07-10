@@ -1431,3 +1431,97 @@ KeyboardInterrupt
   File "<frozen codecs>", line 319, in decode
 KeyboardInterrupt
 
+2026-07-11 03:20:44 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1377, in get_analytic_money_spent
+    open_menu_product()
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1307, in open_menu_product
+    menu_next_step_btn = tippy_content.find_element(By.XPATH, ".//div[text()='Товары']")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 532, in find_element
+    return self._execute(Command.FIND_CHILD_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 508, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[text()='Товары']"}
+  (Session info: chrome=150.0.7871.102); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff70e9e3435+14875]
+	chromedriver!GetHandleVerifier [0x7ff70e9e3490+148d0]
+	chromedriver!(No symbol) [0x7ff70e53778d]
+	chromedriver!(No symbol) [0x7ff70e59195d]
+	chromedriver!(No symbol) [0x7ff70e591c5c]
+	chromedriver!(No symbol) [0x7ff70e5857fc]
+	chromedriver!(No symbol) [0x7ff70e5856a6]
+	chromedriver!(No symbol) [0x7ff70e5de9fc]
+	chromedriver!(No symbol) [0x7ff70e583eb0]
+	chromedriver!(No symbol) [0x7ff70e584e23]
+	chromedriver!GetHandleVerifier [0x7ff70efc6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff70efc101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff70efe6305+617745]
+	chromedriver!GetHandleVerifier [0x7ff70ea003ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff70ea08b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff70e9ecb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff70e9ecc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff70e9d0997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-11 03:20:47 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1341, in get_analytic_money_spent
+    time.sleep(3)
+KeyboardInterrupt
+
+2026-07-11 03:21:13 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1377, in get_analytic_money_spent
+    open_menu_product()
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1307, in open_menu_product
+    menu_next_step_btn = tippy_content.find_element(By.XPATH, ".//div[text()='Товары']")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 532, in find_element
+    return self._execute(Command.FIND_CHILD_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 508, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.NoSuchElementException: Message: no such element: Unable to locate element: {"method":"xpath","selector":".//div[text()='Товары']"}
+  (Session info: chrome=150.0.7871.102); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff70e9e3435+14875]
+	chromedriver!GetHandleVerifier [0x7ff70e9e3490+148d0]
+	chromedriver!(No symbol) [0x7ff70e53778d]
+	chromedriver!(No symbol) [0x7ff70e59195d]
+	chromedriver!(No symbol) [0x7ff70e591c5c]
+	chromedriver!(No symbol) [0x7ff70e5857fc]
+	chromedriver!(No symbol) [0x7ff70e5856a6]
+	chromedriver!(No symbol) [0x7ff70e5de9fc]
+	chromedriver!(No symbol) [0x7ff70e583eb0]
+	chromedriver!(No symbol) [0x7ff70e584e23]
+	chromedriver!GetHandleVerifier [0x7ff70efc6c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff70efc101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff70efe6305+617745]
+	chromedriver!GetHandleVerifier [0x7ff70ea003ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff70ea08b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff70e9ecb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff70e9ecc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff70e9d0997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffa88087374+14]
+	ntdll!RtlUserThreadStart [0x7ffa88d3cc91+21]
+
+
+2026-07-11 03:25:27 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1378, in get_analytic_money_spent
+    open_menu_product()
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1302, in open_menu_product
+    time.sleep(1)
+KeyboardInterrupt
+
