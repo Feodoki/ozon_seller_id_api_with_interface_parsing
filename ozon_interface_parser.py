@@ -293,6 +293,27 @@ class InterfaceParser:
         driver.get('https://seller.ozon.ru/app/advertisement/product/cpc')
         input("Нажмите Enter после авторизации и выбора магазина")
 
+
+    def btn_calendar_filter(self, btn_text):
+        static_names = [
+            'Стать Premium Pro',
+            'Кампании',
+            'Архив',
+            'Тип',
+            'Создать',
+            'Ещё',
+            'AI',
+            'Скачать',
+            'Отчет',
+            'Отчёт'
+        ]
+        for name in static_names:
+            if str(name) in str(btn_text):
+                print(f"Skip - {btn_text}")
+                return True
+
+        return False
+
     def get_advert_analytic_pay_to_click(self, max_retries: int = 3):
         global debug
         if debug:
@@ -320,8 +341,7 @@ class InterfaceParser:
                 all_buttons_with_type = driver.find_elements(By.XPATH, "//button[starts-with(@type, 'button')]")
                 for button_calendar in all_buttons_with_type:
                     btn_text = button_calendar.text
-                    if 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text or "Тип" in btn_text or "Создать" in btn_text or "Ещё" in btn_text:
-                        print(f"Skip - {btn_text}")
+                    if self.btn_calendar_filter(btn_text):
                         continue
 
                     button_calendar.click()
@@ -688,7 +708,7 @@ class InterfaceParser:
                     all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
                     for button_calendar in all_buttons_with_type:
                         btn_text = button_calendar.text
-                        if 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text:
+                        if self.btn_calendar_filter(btn_text):
                             continue
                         if result_date == btn_text:
                             break
@@ -808,7 +828,7 @@ class InterfaceParser:
                 all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
                 for button_calendar in all_buttons_with_type:
                     btn_text = button_calendar.text
-                    if 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text:
+                    if self.btn_calendar_filter(btn_text):
                         continue
                     if result_date == btn_text:
                         break
@@ -1353,7 +1373,7 @@ class InterfaceParser:
                 all_btns = driver.find_elements(By.XPATH, "//button[(@type='button')]")
                 for btn in all_btns:
                     btn_text = btn.text
-                    if 'Скачать' in btn_text or 'Тип' in btn_text or 'Стать Premium Pro' in btn_text or 'Кампании' in btn_text or 'Архив' in btn_text:
+                    if self.btn_calendar_filter(btn_text):
                         continue
 
                     btn.click()
