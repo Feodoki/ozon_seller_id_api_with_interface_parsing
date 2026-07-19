@@ -1499,32 +1499,38 @@ class InterfaceParser:
                                         logger.info(f"Найден INDEX ДРР - {drr_index}")
 
                                 time.sleep(1)
-                                data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
-                                all_td = data.find_elements(By.XPATH, ".//td")
-                                money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
-                                drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '')
+                                try:
+                                    data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
+                                    all_td = data.find_elements(By.XPATH, ".//td")
+                                    money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
+                                    drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '')
 
-                                if '\n' in money_spent:
-                                    money_spent = money_spent.split('\n')[0]
+                                    if '\n' in money_spent:
+                                        money_spent = money_spent.split('\n')[0]
 
-                                if '\n' in drr:
-                                    drr = drr.split('\n')[0].replace('%', '')
+                                    if '\n' in drr:
+                                        drr = drr.split('\n')[0].replace('%', '')
 
-                                logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
-                                print(f"Get data - {item_offer_id} Расход = {money_spent}")
-                                print(f"DRR - {drr}")
-                                money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
+                                    logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
+                                    print(f"Get data - {item_offer_id} Расход = {money_spent}")
+                                    print(f"DRR - {drr}")
+                                    money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
+                                except:
+                                    money_spent = '-'
+                                    drr = '-'
+                                    money_spent_dict[item_offer_id] = {'money_spent': money_spent, 'drr': drr}
 
                                 clear_old_data()
                             except Exception as e:
                                 print(traceback.format_exc())
                                 driver.save_screenshot(f'logs/money_spent_pars_error{str(time.time())}.png')
-
                     except:
                         print(traceback.format_exc())
                         driver.save_screenshot(f'logs/money_spent_page_error{str(time.time())}.png')
                         driver.refresh()
                         time.sleep(2)
+                        if debug:
+                            input('test')
 
                 try:
                     with open('logs/money_spent_advert_dict.json', 'w', encoding='utf-8') as f:
@@ -1674,7 +1680,7 @@ if __name__ == "__main__":
     parser = InterfaceParser()
 
     parser.start_browser(headless=False)
-    #parser.get_actual_prices_offer_id()
+    #parser.get_analytic_money_spent()
     #input('test')
 
     parser.auth()

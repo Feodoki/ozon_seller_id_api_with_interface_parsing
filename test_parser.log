@@ -1572,3 +1572,40 @@ Stacktrace:
     time.sleep(random.uniform(self.random_sleep_from, self.random_sleep_to))
 KeyboardInterrupt
 
+2026-07-20 04:17:01 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1436, in get_analytic_money_spent
+    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff6cfeb3435+14875]
+	chromedriver!GetHandleVerifier [0x7ff6cfeb3490+148d0]
+	chromedriver!(No symbol) [0x7ff6cfa0778d]
+	chromedriver!(No symbol) [0x7ff6cfa6195d]
+	chromedriver!(No symbol) [0x7ff6cfa61c5c]
+	chromedriver!(No symbol) [0x7ff6cfab1e37]
+	chromedriver!(No symbol) [0x7ff6cfaae9fc]
+	chromedriver!(No symbol) [0x7ff6cfa53eb0]
+	chromedriver!(No symbol) [0x7ff6cfa54e23]
+	chromedriver!GetHandleVerifier [0x7ff6d0496c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6d049101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff6d04b6305+617745]
+	chromedriver!GetHandleVerifier [0x7ff6cfed03ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff6cfed8b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff6cfebcb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff6cfebcc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff6cfea0997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffb89fb7374+14]
+	ntdll!RtlUserThreadStart [0x7ffb8b8dcc91+21]
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1529, in get_analytic_money_spent
+    driver.save_screenshot(f'logs/money_spent_page_error{str(time.time())}.png')
+        ^^^^^^^^^^^^^
+  File "<frozen codecs>", line 319, in decode
+KeyboardInterrupt
+

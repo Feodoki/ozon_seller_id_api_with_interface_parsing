@@ -431,6 +431,8 @@ class OzonSellerParse:
         # ===== ЗАТЕМ ОБНОВЛЯЕМ ДАННЫЕ ИЗ АНАЛИТИКИ =====
         items_processed = 0
 
+        print(analytics_data)
+
         for item in analytics_data.get('result', {}).get('data', []):
             dimensions = item.get('dimensions', [])
             metrics = item.get('metrics', [])
@@ -477,6 +479,18 @@ class OzonSellerParse:
                                 result[offer_id]['avg_position_category'] = round(
                                     (result[offer_id]['avg_position_category'] + position_category) / 2, 0
                                 )
+            elif dimensions and len(metrics) == 2:
+                sku_id = dimensions[0].get('id')
+                if sku_id in sku_to_offer:
+                    offer_data = sku_to_offer[sku_id]
+                    offer_id = offer_data['offer_id']
+                    items_processed += 1
+                    revenue = metrics[0]
+                    ordered_units = metrics[1]
+
+                    if offer_id in result:
+                        result[offer_id]['total_revenue'] += revenue
+                        result[offer_id]['total_ordered_units'] += ordered_units
 
         logger.info(f"   🔗 Обновлено {items_processed} SKU из аналитики")
 
@@ -502,31 +516,6 @@ class OzonSellerParse:
             data['total_revenue'] = round(data['total_revenue'], 2)
 
         return result
-
-    def get_advert_stat_pay_to_click(self):
-
-        moscow_tz = pytz.timezone('Europe/Moscow')
-        now_moscow = datetime.now(moscow_tz)
-
-        date_from_date_only = now_moscow.strftime("%Y-%m-%d")
-
-        url = f"https://api-performance.ozon.ru:443/api/client/statistics/campaign/product/json?dateFrom={date_from_date_only}"
-        headers = self.headers_perfomance
-        response = requests.get(url, headers=headers)
-        print(response.text)
-        all_items = response.json()['rows']
-        for item in all_items:
-            try:
-                item_id = item.get('id')
-                item_title = item.get('title')
-                item_date = item.get('date')
-                item_money_spent = item.get('moneySpent')
-                item_orders_money = item.get('ordersMoney')
-                if item_date == '2026-05-06':
-                    print(item_id, item_title, f"Траты - {item_money_spent}", f"Товаров на сумму - {item_orders_money}", sep='\n', end='\n\n')
-            except Exception as e:
-                pass
-
 
     def get_volume(self, offer_ids: list):
         self.update_token()
