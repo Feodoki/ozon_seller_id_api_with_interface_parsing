@@ -1,0 +1,15 @@
+2026-07-19 03:39:40,157 - __main__ - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-07-19 03:39:40,159 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-performance.ozon.ru:443
+2026-07-19 03:39:40,584 - urllib3.connectionpool - DEBUG - https://api-performance.ozon.ru:443 "POST /api/client/token HTTP/1.1" 401 None
+2026-07-19 03:39:40,594 - __main__ - INFO -    ✅ Токен успешно обновлен
+2026-07-19 03:39:41,595 - __main__ - INFO - ============================================================
+2026-07-19 03:39:41,595 - __main__ - INFO - 🚀 НАЧАЛО РАБОТЫ OZON API PARSER
+2026-07-19 03:39:41,596 - __main__ - INFO - ============================================================
+2026-07-19 03:39:41,596 - __main__ - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-07-19 03:39:41,597 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-performance.ozon.ru:443
+2026-07-19 03:39:41,939 - urllib3.connectionpool - DEBUG - https://api-performance.ozon.ru:443 "POST /api/client/token HTTP/1.1" 401 None
+2026-07-19 03:39:41,940 - __main__ - INFO -    ✅ Токен успешно обновлен
+2026-07-19 03:39:42,941 - __main__ - INFO -    📦 Начинаем получение списка товаров в продаже...
+2026-07-19 03:39:42,942 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-seller.ozon.ru:443
+2026-07-19 03:39:43,303 - urllib3.connectionpool - DEBUG - https://api-seller.ozon.ru:443 "POST /v3/product/list HTTP/1.1" 401 None
+2026-07-19 03:39:43,303 - __main__ - ERROR -    ❌ Ошибка API: статус 401, текст: {"code":16, "message":"Client-Id and Api-Key headers are required"}

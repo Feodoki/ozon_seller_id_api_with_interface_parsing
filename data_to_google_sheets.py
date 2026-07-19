@@ -19,7 +19,6 @@ from typing import Dict, List, Any, Optional, Tuple
 import os
 import random
 import requests, traceback
-from config import TG_BOT_TOKEN, TG_ADMIN_ID
 
 QUOTA_RETRY_DELAY = 30
 MAX_QUOTA_RETRIES = 20
@@ -134,7 +133,7 @@ ANALYTICS_CONFIG = {
 CAMPAIGN_CONFIGS = {
     "search": {
         "title": "РЕКЛАМА — ПОИСК",
-        "start_column": "K",
+        "start_column": "L",
         "headers": [
             {"name": "Стратегия", "width": 75},
             {"name": "Конкурентная ставка", "width": 75},
@@ -154,7 +153,7 @@ CAMPAIGN_CONFIGS = {
     },
     "recommendations": {
         "title": "РЕКЛАМА — ПОИСК И РЕКОМЕНДАЦИИ",
-        "start_column": "Y",
+        "start_column": "Z",
         "headers": [
             {"name": "Стратегия", "width": 75},
             {"name": "Конкурентная ставка", "width": 75},
@@ -174,7 +173,7 @@ CAMPAIGN_CONFIGS = {
     },
     "cpo": {
         "title": "РЕКЛАМА — ОПЛАТА ЗА ЗАКАЗ",
-        "start_column": "AM",
+        "start_column": "AN",
         "headers": [
             {"name": "Ставка (₽) [%]", "width": 75},
             {"name": "Цена товара (₽)", "width": 75},
@@ -2696,13 +2695,44 @@ def setup_sheet_headers(sheet, config: Dict, start_row: int = 1):
     time.sleep(0.5)
 
 
-def clear_old_dashboard_data(dashboard, current_total_rows: int):
-    if current_total_rows > 1:
-        print("  🗑️ Очищаем старые данные...")
+def clear_old_dashboard_data(dashboard, current_total_rows: int, max_rows_to_keep: int = 1000):
+    """
+    Очищает старые данные в DASHBOARD, оставляя только нужное количество строк
+    """
+    if current_total_rows <= 1:
+        return
+
+    # Если строк слишком много - удаляем старые
+    if current_total_rows > max_rows_to_keep:
+        rows_to_delete = current_total_rows - max_rows_to_keep
+        print(f"  🗑️ Удаляем {rows_to_delete} старых строк из DASHBOARD (оставляем {max_rows_to_keep})")
+
         try:
-            safe_api_call(dashboard.batch_clear, [f"A2:F{current_total_rows}"])
-            print(f"  ✅ Очищено содержимое строк 2-{current_total_rows}")
-            time.sleep(1)
+            # Удаляем строки с конца (начиная с max_rows_to_keep + 1)
+            for i in range(rows_to_delete):
+                row_to_delete = max_rows_to_keep + 1
+                if row_to_delete > 1:
+                    dashboard.delete_rows(row_to_delete)
+                    time.sleep(0.1)
+            print(f"  ✅ Удалено {rows_to_delete} старых строк")
+        except Exception as e:
+            print(f"  ⚠️ Ошибка при удалении строк: {e}")
+            # Альтернативный метод - очистка данных
+            try:
+                end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
+                clear_range = f"A{max_rows_to_keep + 1}:{end_col}{current_total_rows}"
+                dashboard.batch_clear([clear_range])
+                print(f"  🗑️ Очищены старые данные (строки {max_rows_to_keep + 1}-{current_total_rows})")
+            except Exception as clear_error:
+                print(f"  ❌ Ошибка при очистке данных: {clear_error}")
+    else:
+        # Очищаем только данные (не удаляем строки)
+        try:
+            if current_total_rows > 1:
+                end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
+                clear_range = f"A2:{end_col}{current_total_rows}"
+                dashboard.batch_clear([clear_range])
+                print(f"  ✅ Очищено содержимое строк 2-{current_total_rows}")
         except Exception as e:
             print(f"  ⚠️ Ошибка при очистке: {e}")
 
@@ -2715,17 +2745,115 @@ def format_totals_row(sheet, last_row: int, num_columns: int):
     )
 
 
-def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10):
-    current_rows = len(safe_get_values(sheet))
-    if current_rows < required_rows + buffer_rows:
+def monitor_sheet_usage(spreadsheet):
+    """Мониторит использование ячеек в таблице и выводит предупреждения"""
+    print("\n📊 МОНИТОРИНГ ИСПОЛЬЗОВАНИЯ ЯЧЕЕК:")
+
+    total_cells = 0
+    sheet_info = []
+
+    for sheet in spreadsheet.worksheets():
+        try:
+            values = safe_get_values(sheet)
+            rows = len(values)
+            cols = len(values[0]) if values and len(values[0]) > 0 else 1
+            cells = rows * cols
+            total_cells += cells
+
+            info = f"  - {sheet.title}: {rows} строк × {cols} колонок = {cells:,} ячеек"
+            sheet_info.append(info)
+            print(info)
+        except Exception as e:
+            print(f"  - {sheet.title}: ошибка получения данных - {e}")
+
+    print(f"\n  📊 ИТОГО ячеек: {total_cells:,} из 10,000,000 ({total_cells / 10000000 * 100:.1f}%)")
+
+    if total_cells > 8000000:
+        print("  ⚠️ ВНИМАНИЕ! Использовано более 80% лимита ячеек!")
+        print("  💡 Рекомендуется удалить старые листы или данные")
+
+    return total_cells, sheet_info
+
+
+def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10, max_rows: int = 1000):
+    """
+    Обеспечивает достаточное количество строк в листе.
+    Если лимит ячеек превышен - удаляет старые строки.
+    """
+    try:
+        # Получаем текущее количество строк
+        current_data = safe_get_values(sheet)
+        current_rows = len(current_data)
+
+        # Если строк достаточно - ничего не делаем
+        if current_rows >= required_rows + buffer_rows:
+            print(f"  ✅ Строк достаточно: {current_rows} >= {required_rows + buffer_rows}")
+            return True
+
+        # Пытаемся добавить строки
         rows_to_add = (required_rows + buffer_rows) - current_rows
-        print(f"  ➕ Добавляем {rows_to_add} новых строк...")
+        print(f"  ➕ Пытаемся добавить {rows_to_add} новых строк...")
+
         try:
             sheet.add_rows(rows_to_add)
             print(f"  ✅ Добавлено {rows_to_add} строк")
-            time.sleep(1)
+            return True
         except Exception as e:
-            print(f"  ⚠️ Ошибка при добавлении строк: {e}")
+            error_str = str(e)
+            # Проверяем, связана ли ошибка с лимитом ячеек
+            if '10000000 cells' in error_str or 'limit of cells' in error_str:
+                print(f"  ⚠️ Достигнут лимит ячеек. Удаляем старые строки...")
+
+                # Удаляем старые строки, оставляя только необходимые
+                rows_to_keep = required_rows + buffer_rows
+                rows_to_delete = current_rows - rows_to_keep
+
+                if rows_to_delete > 0:
+                    print(f"  🗑️ Удаляем {rows_to_delete} старых строк (оставляем {rows_to_keep})")
+
+                    # Удаляем строки с конца (самые старые)
+                    # Начинаем с последней строки и идем вверх
+                    for i in range(rows_to_delete):
+                        row_to_delete = current_rows - i
+                        if row_to_delete > 1:  # Не удаляем заголовок
+                            try:
+                                sheet.delete_rows(row_to_delete)
+                                time.sleep(0.2)  # Небольшая пауза между удалениями
+                            except Exception as del_error:
+                                print(f"     ⚠️ Ошибка удаления строки {row_to_delete}: {del_error}")
+
+                    print(f"  ✅ Удалено {rows_to_delete} старых строк")
+
+                    # Проверяем, достаточно ли теперь строк
+                    new_data = safe_get_values(sheet)
+                    new_rows = len(new_data)
+
+                    if new_rows >= required_rows + buffer_rows:
+                        print(f"  ✅ Теперь строк достаточно: {new_rows}")
+                        return True
+                    else:
+                        # Если все еще не хватает, пробуем добавить
+                        rows_still_needed = (required_rows + buffer_rows) - new_rows
+                        if rows_still_needed > 0:
+                            print(f"  ➕ Добавляем еще {rows_still_needed} строк...")
+                            try:
+                                sheet.add_rows(rows_still_needed)
+                                print(f"  ✅ Добавлено {rows_still_needed} строк")
+                                return True
+                            except Exception as add_error:
+                                print(f"  ❌ Не удалось добавить строки: {add_error}")
+                                return False
+                else:
+                    print(f"  ⚠️ Недостаточно строк для удаления")
+                    return False
+            else:
+                # Другая ошибка
+                print(f"  ❌ Ошибка при добавлении строк: {e}")
+                return False
+
+    except Exception as e:
+        print(f"  ❌ Ошибка в ensure_sheet_rows: {e}")
+        return False
 
 
 # ================= ФУНКЦИИ ДЛЯ РАБОТЫ С DASHBOARD =================
@@ -2868,7 +2996,13 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
 
 
 def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
-    """Обновляет лист DASHBOARD с правильной структурой колонок"""
+    """
+    Обновляет лист DASHBOARD с сохранением форматирования.
+    Перезаписывает данные, не удаляя строки, чтобы сохранить условное форматирование.
+    """
+    print("  📊 ОБНОВЛЕНИЕ DASHBOARD С СОХРАНЕНИЕМ ФОРМАТИРОВАНИЯ")
+
+    # Получаем текущие данные
     current_data = safe_get_values(dashboard)
     current_total_rows = len(current_data)
 
@@ -2876,33 +3010,91 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
     expected_headers = [h['name'] for h in DASHBOARD_CONFIG['headers']]
     if len(current_data) == 0 or (len(current_data) > 0 and current_data[0] != expected_headers):
         setup_sheet_headers(dashboard, DASHBOARD_CONFIG, start_row=1)
+        current_data = safe_get_values(dashboard)
+        current_total_rows = len(current_data)
 
-        # После установки заголовков нужно убедиться, что есть колонки G и H
-        # Они будут добавлены позже функциями add_chp_per_day_column и add_spp_column_to_dashboard
-    else:
-        if current_total_rows > 1:
-            clear_old_dashboard_data(dashboard, current_total_rows)
-
+    # Подготавливаем данные с итогами
     if dashboard_data:
-        total_revenue = sum(max(0, row[1]) for row in dashboard_data)  # Исправлено: только положительные
-        total_orders = sum(max(0, row[2]) for row in dashboard_data)  # Исправлено: только положительные
+        total_revenue = sum(max(0, row[1]) for row in dashboard_data)
+        total_orders = sum(max(0, row[2]) for row in dashboard_data)
+
+        # Добавляем пустую строку и итоги
         dashboard_data.append([""] * len(DASHBOARD_CONFIG['headers']))
         dashboard_data.append(["ИТОГО", total_revenue, total_orders, 0, 0, 0])
 
-    rows_needed = len(dashboard_data) + 1
-    ensure_sheet_rows(dashboard, rows_needed)
+    rows_needed = len(dashboard_data) + 1  # +1 для заголовка
 
-    print(f"  📝 Вставка {len(dashboard_data)} строк данных одной операцией...")
-    safe_update_cell(dashboard, "A2", dashboard_data, value_input_option='USER_ENTERED')
-    print(f"  ✅ Вставлено {len(dashboard_data)} строк данных")
-    time.sleep(1)
+    # Проверяем, достаточно ли строк в листе
+    if current_total_rows < rows_needed:
+        rows_to_add = rows_needed - current_total_rows
+        print(f"  ➕ Добавляем {rows_to_add} новых строк (сохраняя форматирование)...")
+        try:
+            dashboard.add_rows(rows_to_add)
+            print(f"  ✅ Добавлено {rows_to_add} строк")
+        except Exception as e:
+            if '10000000 cells' in str(e) or 'limit of cells' in str(e):
+                print(f"  ⚠️ Достигнут лимит ячеек. Очищаем старые данные (сохраняя форматирование)...")
 
+                # Вместо удаления строк - очищаем старые данные в существующих строках
+                # Оставляем только нужное количество строк с данными
+                if current_total_rows > 1000:
+                    # Очищаем данные в старых строках (начиная с 1000-й)
+                    end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
+                    clear_range = f"A1001:{end_col}{current_total_rows}"
+                    try:
+                        dashboard.batch_clear([clear_range])
+                        print(f"  🗑️ Очищены данные в строках 1001-{current_total_rows}")
+                    except:
+                        pass
+
+                # Пробуем добавить строки снова
+                current_data_after = safe_get_values(dashboard)
+                current_rows_after = len(current_data_after)
+                if current_rows_after < rows_needed:
+                    rows_to_add = rows_needed - current_rows_after
+                    dashboard.add_rows(rows_to_add)
+                    print(f"  ✅ Добавлено {rows_to_add} строк после очистки")
+            else:
+                print(f"  ❌ Ошибка при добавлении строк: {e}")
+                raise
+
+    # ПЕРЕЗАПИСЫВАЕМ ДАННЫЕ (не удаляем строки, чтобы сохранить форматирование)
+    print(f"  📝 Перезапись {len(dashboard_data)} строк данных...")
+    try:
+        # Записываем данные, начиная со строки 2 (после заголовка)
+        safe_update_cell(dashboard, "A2", dashboard_data, value_input_option='USER_ENTERED')
+        print(f"  ✅ Перезаписано {len(dashboard_data)} строк данных")
+        time.sleep(1)
+    except Exception as e:
+        if "10000000 cells" in str(e):
+            print(f"  ⚠️ Лимит ячеек при записи. Очищаем старые данные...")
+            # Очищаем данные в старых строках
+            end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
+            clear_range = f"A100:{end_col}{current_total_rows}"
+            try:
+                dashboard.batch_clear([clear_range])
+                print(f"  🗑️ Очищены данные в строках 100-{current_total_rows}")
+                # Повторяем запись
+                safe_update_cell(dashboard, "A2", dashboard_data, value_input_option='USER_ENTERED')
+                print(f"  ✅ Перезаписано {len(dashboard_data)} строк данных после очистки")
+            except Exception as clear_error:
+                print(f"  ❌ Ошибка при очистке: {clear_error}")
+                raise
+        else:
+            raise
+
+    # Форматируем только строку ИТОГО (условное форматирование сохранится)
     if dashboard_data:
         last_row = len(dashboard_data) + 1
-        format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
+        # Проверяем, есть ли строка ИТОГО
+        if len(dashboard_data) >= 2 and dashboard_data[-1] and dashboard_data[-1][0] == "ИТОГО":
+            format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
+
+        # Делаем артикулы жирным шрифтом
         safe_format_range(dashboard, f"A2:A{last_row}",
                           CellFormat(textFormat=TextFormat(bold=True)))
 
+    print("  ✅ DASHBOARD обновлен с сохранением форматирования")
     return dashboard_data[:-2] if len(dashboard_data) >= 2 else dashboard_data
 
 
@@ -3344,24 +3536,31 @@ def prepare_product_row(item: Dict, campaigns_data: Dict, drr_for_products: Dict
 
 
 def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_date_str: str):
+    """
+    Обновляет лист товара с сохранением форматирования.
+    Перезаписывает данные за текущую дату.
+    """
     all_data = safe_get_values(sheet)
     existing_row_index = None
+
+    # Ищем существующую строку с этой датой
     for i, row in enumerate(all_data[6:], start=7):
         if len(row) > 0 and row[0] == current_date_str:
             existing_row_index = i
             break
 
     max_retries = 5
-    rows_to_delete_on_retry = 10  # Количество строк для удаления при каждой попытке
 
     for attempt in range(max_retries):
         try:
             if existing_row_index:
-                print(f"  🔄 Обновление строки {existing_row_index}")
-                sheet.update(values=[full_row], range_name=f"A{existing_row_index}", value_input_option='USER_ENTERED')
+                # Обновляем существующую строку (перезаписываем)
+                print(f"  🔄 Обновление строки {existing_row_index} за {current_date_str}")
+                safe_update_cell(sheet, f"A{existing_row_index}", [full_row], value_input_option='USER_ENTERED')
                 print(f"  ✅ Обновлена строка за {current_date_str}")
                 break
             else:
+                # Добавляем новую строку (вставляем после заголовков)
                 print(f"  📝 Добавление новой строки за {current_date_str}")
                 safe_api_call(sheet.insert_row, full_row, index=7)
                 print(f"  ✅ Добавлена строка за {current_date_str}")
@@ -3369,84 +3568,38 @@ def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_dat
         except Exception as e:
             error_str = str(e)
 
-            # Проверяем на ошибку лимита ячеек
             if 'limit of 10000000 cells' in error_str or 'exceeded the limit' in error_str:
                 if attempt < max_retries - 1:
-                    # Получаем ОБЩЕЕ количество строк в листе (включая пустые)
-                    # Используем row_count, который хранит фактический размер листа
-                    try:
-                        total_rows = sheet.row_count
-                    except:
-                        # Если не получается получить row_count, считаем через get_all_values
-                        all_vals = safe_get_values(sheet)
-                        total_rows = len(all_vals)
-
-                    # Удаляем последние строки (именно с конца листа)
-                    # Начинаем с последней строки и удаляем rows_to_delete_on_retry штук
-                    rows_to_delete = min(rows_to_delete_on_retry,
-                                         max(10, total_rows - 10))  # Оставляем минимум 10 строк
-
-                    if rows_to_delete > 0:
-                        start_row = total_rows - rows_to_delete + 1
-                        end_row = total_rows
-                        print(
-                            f"     ⚠️ Лимит ячеек! Удаляем {rows_to_delete} последних строк (строки {start_row}-{end_row})...")
-
+                    # Если лимит - очищаем старые строки (начиная с 7-й)
+                    current_rows = len(safe_get_values(sheet))
+                    if current_rows > 100:
+                        rows_to_delete = current_rows - 50
+                        # Очищаем данные, не удаляя строки (сохраняем форматирование)
+                        end_col = get_column_letter(len(full_row))
+                        clear_range = f"A{current_rows - rows_to_delete + 1}:{end_col}{current_rows}"
                         try:
-                            # Удаляем строки с КОНЦА листа (самые последние, даже пустые)
-                            # Важно: удаляем в обратном порядке, чтобы индексы не смещались
-                            for i in range(rows_to_delete):
-                                row_to_delete = total_rows - i
-                                safe_api_call(sheet.delete_rows, row_to_delete)
-                                time.sleep(0.5)
-
-                            print(f"     ✅ Удалено {rows_to_delete} последних строк")
-
-                            # Небольшая пауза после удаления
-                            time.sleep(2)
-
-                            # Сбрасываем existing_row_index, так как строки изменились
-                            existing_row_index = None
-                            all_data = safe_get_values(sheet)
-                            for i, row in enumerate(all_data[6:], start=7):
-                                if len(row) > 0 and row[0] == current_date_str:
-                                    existing_row_index = i
-                                    break
-
-                            print(f"     🔄 Повторяем попытку {attempt + 2}/{max_retries}")
+                            sheet.batch_clear([clear_range])
+                            print(f"  🗑️ Очищены старые данные ({rows_to_delete} строк)")
+                            time.sleep(1)
                             continue
-                        except Exception as delete_err:
-                            print(f"     ❌ Ошибка при удалении строк: {delete_err}")
-                            # Пробуем альтернативный метод - очистка диапазона
-                            try:
-                                last_col = get_column_letter(len(full_row))
-                                clear_range = f"A{start_row}:{last_col}{end_row}"
-                                safe_api_call(sheet.batch_clear, [clear_range])
-                                print(f"     🗑️ Очищен диапазон {clear_range} вместо удаления")
-                                time.sleep(2)
-                                continue
-                            except:
-                                raise
-                    else:
-                        print(f"     ⚠️ Недостаточно строк для удаления, пропускаем")
-                        raise
+                        except:
+                            pass
+                    raise
                 else:
-                    print(f"     ❌ Не удалось добавить строку после {max_retries} попыток")
                     raise
             elif '429' in error_str or 'Quota exceeded' in error_str:
                 if attempt < max_retries - 1:
                     wait_time = 30 * (attempt + 1)
-                    print(f"     ⏳ Квота API, пауза {wait_time} сек... (попытка {attempt + 1}/{max_retries})")
+                    print(f"  ⏳ Квота API, пауза {wait_time} сек...")
                     time.sleep(wait_time)
                     continue
                 else:
                     raise
             else:
-                print(f"     ❌ Другая ошибка: {error_str}")
+                print(f"  ❌ Ошибка: {error_str}")
                 raise
 
     time.sleep(1)
-    enforce_sheet_size_limit(sheet, max_rows=500)
 
 
 def enforce_sheet_size_limit(sheet, max_rows: int = 500):
@@ -3468,35 +3621,51 @@ def enforce_sheet_size_limit(sheet, max_rows: int = 500):
 def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
     """Записывает ошибку в лист и отправляет уведомление в Telegram"""
 
-    # Отправляем уведомление в Telegram
+    # Отправляем уведомление в Telegram с повторными попытками
     try:
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tg_message = f"❌ <b>ОШИБКА В ПАРСЕРЕ OZON</b>\n\n📅 Время: {timestamp}\n📝 Ошибка: {error_message[:500]}"
         send_tg_notification(tg_message)
-    except:
-        import traceback
-        print(traceback.format_exc())
+    except Exception as e:
+        print(f"  ⚠️ Ошибка отправки уведомления: {e}")
 
-    # Записываем в лист (существующий код)
+    # Записываем в лист Google Sheets
     for attempt in range(3):
         try:
             client = get_google_sheets_client()
-            client.set_timeout(120)
+            client.set_timeout(60)
             spreadsheet = client.open_by_key(spread_id)
+
             try:
                 sheet = spreadsheet.worksheet(sheet_name)
-                sheet.clear()
+                # Ограничиваем размер листа ошибок
+                current_rows = len(safe_get_values(sheet))
+                if current_rows > 1000:
+                    # Удаляем старые записи
+                    rows_to_delete = current_rows - 900
+                    for i in range(rows_to_delete):
+                        try:
+                            sheet.delete_rows(2)  # Удаляем вторую строку (после заголовка)
+                        except:
+                            pass
             except gspread.exceptions.WorksheetNotFound:
-                sheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=5)
+                sheet = spreadsheet.add_worksheet(title=sheet_name, rows=1000, cols=5)
+                sheet.update(range_name="A1", values=[["Дата", "Ошибка", "Трассировка"]],
+                             value_input_option='USER_ENTERED')
 
-            full_error = f"[{timestamp}] {error_message}"
-            sheet.update(range_name="A1", values=[[full_error]], value_input_option='USER_ENTERED')
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            full_error = error_message[:500]  # Ограничиваем длину
+
             import traceback
             tb = traceback.format_exc()
-            if tb and tb != "NoneType: None\n":
-                sheet.update(range_name="A2", values=[[tb]], value_input_option='USER_ENTERED')
+            tb_short = tb[:500] if tb else ""
+
+            # Добавляем новую строку с ошибкой
+            sheet.append_row([timestamp, full_error, tb_short], value_input_option='USER_ENTERED')
+
             print(f"✅ Ошибка записана в лист {sheet_name}")
             return
+
         except Exception as e:
             if '429' in str(e) and attempt < 2:
                 wait_time = 30 * (attempt + 1)

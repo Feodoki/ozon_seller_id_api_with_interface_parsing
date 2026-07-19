@@ -1,6 +1,6 @@
 {
   "status": "running",
   "message": "Загрузка в Google Sheets...",
-  "last_run": "2026-07-08T21:20:08.315106",
-  "last_run_time": 1783520408.3151064
+  "last_run": "2026-07-20T01:51:59.168575",
+  "last_run_time": 1784487119.1685758
 }

@@ -1525,3 +1525,50 @@ Stacktrace:
     time.sleep(1)
 KeyboardInterrupt
 
+2026-07-19 03:54:53 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1204, in pars_actual_prices
+    all_td[21].click()
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 114, in click
+    self._execute(Command.CLICK_ELEMENT)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webelement.py", line 508, in _execute
+    return self._parent.execute(command, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.ElementClickInterceptedException: Message: element click intercepted: Element <td id="3639948848-commissionsFbo" keytable="price-control-filter-all" class="ct5134-a0 ct5134-a3 table-500 ct5134-a8 ct5134-b1 ct5134-b0 ct5134-a6 nd-j7b nd-bj0" style="width:180px;">...</td> is not clickable at point (2540, 656). Other element would receive the click: <td id="3639948848-actions" keytable="price-control-filter-all" class="ct5134-a0 ct5134-a3 table-500 ct5134-a8 ct5134-b1 ct5134-b0 ct5134-a6 ct5134-a1 nd-j7b nd-jb" style="width:56px;right:0;">...</td>
+  (Session info: chrome=150.0.7871.125); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#elementclickinterceptedexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff6ea343435+14875]
+	chromedriver!GetHandleVerifier [0x7ff6ea343490+148d0]
+	chromedriver!(No symbol) [0x7ff6e9e9778d]
+	chromedriver!(No symbol) [0x7ff6e9ef9605]
+	chromedriver!(No symbol) [0x7ff6e9ef721a]
+	chromedriver!(No symbol) [0x7ff6e9ef4567]
+	chromedriver!(No symbol) [0x7ff6e9ef3410]
+	chromedriver!(No symbol) [0x7ff6e9ee5e28]
+	chromedriver!(No symbol) [0x7ff6e9f1a27a]
+	chromedriver!(No symbol) [0x7ff6e9ee56a6]
+	chromedriver!(No symbol) [0x7ff6e9f3e9fc]
+	chromedriver!(No symbol) [0x7ff6e9ee3eb0]
+	chromedriver!(No symbol) [0x7ff6e9ee4e23]
+	chromedriver!GetHandleVerifier [0x7ff6ea926c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6ea92101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff6ea946305+617745]
+	chromedriver!GetHandleVerifier [0x7ff6ea3603ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff6ea368b0c+39f4c]
+	chromedriver!GetHandleVerifier [0x7ff6ea34cb04+1df44]
+	chromedriver!GetHandleVerifier [0x7ff6ea34cc94+1e0d4]
+	chromedriver!GetHandleVerifier [0x7ff6ea330997+1dd7]
+	KERNEL32!BaseThreadInitThunk [0x7ffb89fb7374+14]
+	ntdll!RtlUserThreadStart [0x7ffb8b8dcc91+21]
+
+
+2026-07-19 03:55:48 - __main__ - ERROR - Ошибка FBO: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1205, in pars_actual_prices
+    self.random_sleep(2)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 219, in random_sleep
+    time.sleep(random.uniform(self.random_sleep_from, self.random_sleep_to))
+KeyboardInterrupt
+

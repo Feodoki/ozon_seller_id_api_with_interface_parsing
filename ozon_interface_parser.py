@@ -294,7 +294,8 @@ class InterfaceParser:
         input("Нажмите Enter после авторизации и выбора магазина")
 
 
-    def btn_calendar_filter(self, btn_text):
+    def btn_calendar_filter(self, btn):
+        btn_text = btn.text
         static_names = [
             'Стать Premium Pro',
             'Кампании',
@@ -311,6 +312,16 @@ class InterfaceParser:
             if str(name) in str(btn_text):
                 print(f"Skip - {btn_text}")
                 return True
+
+        btn_widget_name = btn.get_attribute("data-widget-name-custom")
+        widget_names = [
+            'header-ai-assistant-button'
+        ]
+
+        for widget_name in widget_names:
+            if str(widget_name) == str(btn_widget_name):
+                return True
+
 
         return False
 
@@ -341,7 +352,7 @@ class InterfaceParser:
                 all_buttons_with_type = driver.find_elements(By.XPATH, "//button[starts-with(@type, 'button')]")
                 for button_calendar in all_buttons_with_type:
                     btn_text = button_calendar.text
-                    if self.btn_calendar_filter(btn_text):
+                    if self.btn_calendar_filter(button_calendar):
                         continue
 
                     button_calendar.click()
@@ -708,7 +719,7 @@ class InterfaceParser:
                     all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
                     for button_calendar in all_buttons_with_type:
                         btn_text = button_calendar.text
-                        if self.btn_calendar_filter(btn_text):
+                        if self.btn_calendar_filter(button_calendar):
                             continue
                         if result_date == btn_text:
                             break
@@ -828,7 +839,7 @@ class InterfaceParser:
                 all_buttons_with_type = driver.find_elements(By.XPATH, ".//button[starts-with(@type, 'button')]")
                 for button_calendar in all_buttons_with_type:
                     btn_text = button_calendar.text
-                    if self.btn_calendar_filter(btn_text):
+                    if self.btn_calendar_filter(button_calendar):
                         continue
                     if result_date == btn_text:
                         break
@@ -1186,6 +1197,8 @@ class InterfaceParser:
                         if '\n' in cost_price:
                             cost_price = cost_price.split('\n')[0]
                         cost_price = cost_price.replace('₽', '').strip().replace('\n', '').strip()
+                        if '-' in cost_price:
+                            cost_price = cost_price.split('-')[0].strip()
 
                         try:
                             self.scroll_to_element_center(all_td[20])
@@ -1204,6 +1217,7 @@ class InterfaceParser:
                             time.sleep(0.2)
                             all_td[21].click()
                         except:
+                            driver.save_screenshot(f'logs/fbo({str(time.time())}).png')
                             logger.error(f"Ошибка FBO: {str(traceback.format_exc())}")
                             commission_fbo = 38
 
@@ -1246,8 +1260,7 @@ class InterfaceParser:
 
                 self.close_banner(driver)
 
-                self.random_sleep()
-                self.random_sleep()
+                self.random_sleep(3)
 
                 if not self.check_auth_in_ozon():
                     error_msg = "Авторизация не пройдена, невозможно получить позиции товаров"
@@ -1273,8 +1286,7 @@ class InterfaceParser:
                                 self.random_sleep()
 
                             page.click()
-                            self.random_sleep()
-                            self.random_sleep()
+                            self.random_sleep(2)
 
                             pages_widget = driver.find_element(By.XPATH, "//article")
                             self.scroll_to_element_center(pages_widget)
@@ -1373,7 +1385,7 @@ class InterfaceParser:
                 all_btns = driver.find_elements(By.XPATH, "//button[(@type='button')]")
                 for btn in all_btns:
                     btn_text = btn.text
-                    if self.btn_calendar_filter(btn_text):
+                    if self.btn_calendar_filter(btn):
                         continue
 
                     btn.click()
@@ -1563,6 +1575,11 @@ class InterfaceParser:
     def close_banner(self, driver):
         try:
             driver.find_element(By.XPATH, "//div[(@class='tippy-content')]").find_elements(By.XPATH, ".//div")[-1].click()
+        except:
+            pass
+
+        try:
+            driver.find_element(By.XPATH, "//main[(@data-widget='main')]").find_elements(By.XPATH, ".//div")[-1].find_element(By.XPATH, ".//span").click()
         except:
             pass
 
