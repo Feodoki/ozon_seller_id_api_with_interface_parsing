@@ -592,7 +592,7 @@ class InterfaceParser:
                 expense = all_td[expense_index].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                         '.').strip()
             if drr_index:
-                drr = all_td[drr_index].text.replace('\n', '').strip().replace('%', '')
+                drr = all_td[drr_index].text.replace('\n', '').strip().replace('%', '').replace('<', '').replace('>', '')
             if views_index:
                 views = all_td[views_index].text.replace('\n', '').strip()
             if clicks_index:
@@ -620,7 +620,7 @@ class InterfaceParser:
                     count_offers = all_td[6].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[9].text.replace('\n', '').strip().replace('%', '')
+                    drr = all_td[9].text.replace('\n', '').strip().replace('%', '').replace('<', '').replace('>', '')
                     views = all_td[12].text.replace('\n', '').strip()
                     clicks = all_td[13].text.replace('\n', '').strip()
                     to_cart = all_td[14].text.replace('\n', '').strip()
@@ -654,7 +654,7 @@ class InterfaceParser:
                     count_offers = all_td[5].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[6].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[7].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[8].text.replace('\n', '').strip().replace('%', '')
+                    drr = all_td[8].text.replace('\n', '').strip().replace('%', '').replace('<', '').replace('>', '')
                     views = all_td[11].text.replace('\n', '').strip()
                     clicks = all_td[12].text.replace('\n', '').strip()
                     to_cart = all_td[13].text.replace('\n', '').strip()
@@ -675,7 +675,7 @@ class InterfaceParser:
                     count_offers = all_td[7].text.replace('\n', '').strip().replace('\n', '').strip()
                     selled = all_td[8].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
                     expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',', '.').strip()
-                    drr = all_td[10].text.replace('\n', '').strip().replace('%', '')
+                    drr = all_td[10].text.replace('\n', '').strip().replace('%', '').replace('<', '').replace('>', '')
                     views = all_td[13].text.replace('\n', '').strip()
                     clicks = all_td[14].text.replace('\n', '').strip()
                     to_cart = all_td[15].text.replace('\n', '').strip()
@@ -787,7 +787,7 @@ class InterfaceParser:
                             'sr_click': sr_click,
                             'offers': count_offers,
                             'to_cart': to_cart,
-                            'drr': drr,
+                            'drr': drr.replace('<', '').replace('>', ''),
                             'ctp': ctp,
                             'views': views,
                             'clicks': clicks,
@@ -914,7 +914,7 @@ class InterfaceParser:
 
                                 drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '')
                                 if 'Выключено' in drr or 'Включено' in drr:
-                                    drr = all_td[14].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '')
+                                    drr = all_td[14].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '').replace('<', '').replace('>', '')
 
                                 expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                             '.').strip()
@@ -930,7 +930,7 @@ class InterfaceParser:
                                     'index_view': index_view,
                                     'product_buy_pay': product_buy_pay,
                                     'product_buy_combo_model': product_buy_combo_model,
-                                    'drr': drr,
+                                    'drr': drr.replace('<', '').replace('>', ''),
                                     'expense': expense,
                                     'expense_combo': expense_combo,
                                     'selled': combo_sell,
@@ -976,7 +976,7 @@ class InterfaceParser:
                             product_buy_pay = all_td[13].text.replace('\n', '').strip().replace('\u202f', '')
                             product_buy_combo_model = all_td[14].text.replace('\n', '').strip().replace('\u202f', '')
 
-                            drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '')
+                            drr = all_td[15].text.replace('\n', '').strip().replace('\u202f', '').replace('%', '').replace('<', '').replace('>', '')
 
                             expense = all_td[9].text.replace('\n', '').strip().replace('₽', '').replace(',',
                                                                                                         '.').strip()
@@ -995,7 +995,7 @@ class InterfaceParser:
                                 'index_view': index_view,
                                 'product_buy_pay': product_buy_pay,
                                 'product_buy_combo_model': product_buy_combo_model,
-                                'drr': drr,
+                                'drr': drr.replace('<', '').replace('>', ''),
                                 'expense': expense,
                                 'expense_combo': expense_combo,
                                 'selled': selled,
@@ -1503,13 +1503,13 @@ class InterfaceParser:
                                     data = driver.find_element(By.XPATH, "//tbody").find_element(By.XPATH, ".//tr")
                                     all_td = data.find_elements(By.XPATH, ".//td")
                                     money_spent = all_td[money_spent_index].text.replace('%', '').replace(',', '.').replace('₽','').strip()
-                                    drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '')
+                                    drr = all_td[drr_index].text.replace('%', '').replace(',', '.').replace('₽', '').strip().replace('%', '').replace('<', '').replace('>', '')
 
                                     if '\n' in money_spent:
                                         money_spent = money_spent.split('\n')[0]
 
                                     if '\n' in drr:
-                                        drr = drr.split('\n')[0].replace('%', '')
+                                        drr = drr.split('\n')[0].replace('%', '').replace('<', '').replace('>', '')
 
                                     logger.info(f"Get data - {item_offer_id} Расход = {money_spent}")
                                     print(f"Get data - {item_offer_id} Расход = {money_spent}")

@@ -109,3 +109,40 @@
 2026-07-20 04:30:14,683 - __main__ - INFO - ✅ API ПАРСЕР УСПЕШНО ЗАВЕРШИЛ РАБОТУ
 2026-07-20 04:30:14,683 - __main__ - INFO -    Обработано товаров: 1
 2026-07-20 04:30:14,683 - __main__ - INFO - ============================================================
+2026-07-20 19:18:35,141 - __main__ - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-07-20 19:18:35,143 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-performance.ozon.ru:443
+2026-07-20 19:18:35,621 - urllib3.connectionpool - DEBUG - https://api-performance.ozon.ru:443 "POST /api/client/token HTTP/1.1" 200 None
+2026-07-20 19:18:35,623 - __main__ - INFO -    ✅ Токен успешно обновлен
+2026-07-20 19:18:36,624 - __main__ - INFO - ============================================================
+2026-07-20 19:18:36,624 - __main__ - INFO - 🚀 НАЧАЛО РАБОТЫ OZON API PARSER
+2026-07-20 19:18:36,624 - __main__ - INFO - ============================================================
+2026-07-20 19:18:36,624 - __main__ - INFO -    🔑 Обновление токена (попытка 1/3)
+2026-07-20 19:18:36,625 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-performance.ozon.ru:443
+2026-07-20 19:18:36,970 - urllib3.connectionpool - DEBUG - https://api-performance.ozon.ru:443 "POST /api/client/token HTTP/1.1" 200 None
+2026-07-20 19:18:36,971 - __main__ - INFO -    ✅ Токен успешно обновлен
+2026-07-20 19:18:37,972 - __main__ - INFO -    📦 Начинаем получение списка товаров в продаже...
+2026-07-20 19:18:37,972 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-seller.ozon.ru:443
+2026-07-20 19:18:38,366 - urllib3.connectionpool - DEBUG - https://api-seller.ozon.ru:443 "POST /v3/product/list HTTP/1.1" 200 None
+2026-07-20 19:18:38,366 - __main__ - INFO -    📄 Получено 1 товаров (last_id: начало)
+2026-07-20 19:18:38,367 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-seller.ozon.ru:443
+2026-07-20 19:18:38,723 - urllib3.connectionpool - DEBUG - https://api-seller.ozon.ru:443 "POST /v3/product/list HTTP/1.1" 200 None
+2026-07-20 19:18:38,724 - __main__ - INFO -    📄 Получено 0 товаров (last_id: WzUyMDA5NTczMjQsNTIwMDk1NzMyNF0=)
+2026-07-20 19:18:38,724 - __main__ - INFO -    ✅ Всего получено 1 товаров в продаже
+2026-07-20 19:18:38,725 - __main__ - INFO - ✅ Получено 1 offer_id товаров в продаже
+2026-07-20 19:18:39,727 - __main__ - INFO -    📝 Получение информации для 1 товаров (1 частей по 100)
+2026-07-20 19:18:39,727 - __main__ - INFO -    🔄 Обработка части 1/1 (1 товаров)
+2026-07-20 19:18:39,728 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-seller.ozon.ru:443
+2026-07-20 19:18:40,117 - urllib3.connectionpool - DEBUG - https://api-seller.ozon.ru:443 "POST /v3/product/info/list HTTP/1.1" 200 None
+2026-07-20 19:18:40,118 - __main__ - INFO -    ✅ Получена информация для 1 товаров
+2026-07-20 19:18:40,619 - __main__ - INFO -    ✅ Всего получена информация для 1 товаров, найдено 1 SKU
+2026-07-20 19:18:42,229 - __main__ - INFO -    📊 Запрос аналитики за 2026-07-20
+2026-07-20 19:18:42,230 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-seller.ozon.ru:443
+2026-07-20 19:18:46,318 - urllib3.connectionpool - DEBUG - https://api-seller.ozon.ru:443 "POST /v1/analytics/data HTTP/1.1" 200 None
+2026-07-20 19:18:46,319 - __main__ - INFO -    ✅ Аналитика успешно получена
+2026-07-20 19:18:46,320 - __main__ - INFO -    🔗 Сопоставление метрик с SKU товаров...
+2026-07-20 19:18:46,320 - __main__ - INFO -    📦 Добавлено 1 товаров с нулевыми данными (будут обновлены если есть аналитика)
+2026-07-20 19:18:46,320 - __main__ - INFO -    🔗 Обновлено 1 SKU из аналитики
+2026-07-20 19:18:46,320 - __main__ - INFO - ============================================================
+2026-07-20 19:18:46,320 - __main__ - INFO - ✅ API ПАРСЕР УСПЕШНО ЗАВЕРШИЛ РАБОТУ
+2026-07-20 19:18:46,320 - __main__ - INFO -    Обработано товаров: 1
+2026-07-20 19:18:46,320 - __main__ - INFO - ============================================================

@@ -1609,3 +1609,124 @@ Traceback (most recent call last):
   File "<frozen codecs>", line 319, in decode
 KeyboardInterrupt
 
+2026-07-22 19:58:32 - __main__ - ERROR - Ошибка при сборе DRR: Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1455, in get_analytic_money_spent
+    WebDriverWait(driver, 7).until(EC.element_to_be_clickable((By.XPATH, "//ul")))
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 112, in until
+    value = method(self._driver)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\support\expected_conditions.py", line 514, in _predicate
+    target = driver.find_element(*target)  # grab element at locator
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 823, in find_element
+    return self.execute(Command.FIND_ELEMENT, {"using": by, "value": value})["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff6d0063435+14875]
+	chromedriver!GetHandleVerifier [0x7ff6d0063490+148d0]
+	chromedriver!(No symbol) [0x7ff6cfbb7576]
+	chromedriver!(No symbol) [0x7ff6cfc02ea6]
+	chromedriver!(No symbol) [0x7ff6cfc3a182]
+	chromedriver!(No symbol) [0x7ff6cfc33f82]
+	chromedriver!(No symbol) [0x7ff6cfc33742]
+	chromedriver!(No symbol) [0x7ff6cfb80255]
+	chromedriver!GetHandleVerifier [0x7ff6d0646c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6d064101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff6d0666305+617745]
+	chromedriver!GetHandleVerifier [0x7ff6d00803ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff6d0088b0c+39f4c]
+	chromedriver!(No symbol) [0x7ff6cfb7eff8]
+	chromedriver!GetHandleVerifier [0x7ff6d081f358+7d0798]
+	KERNEL32!BaseThreadInitThunk [0x7ffc81cb7374+14]
+	ntdll!RtlUserThreadStart [0x7ffc8235cc91+21]
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1526, in get_analytic_money_spent
+    driver.save_screenshot(f'logs/money_spent_pars_error{str(time.time())}.png')
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 903, in save_screenshot
+    return self.get_screenshot_as_file(filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 880, in get_screenshot_as_file
+    png = self.get_screenshot_as_png()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 911, in get_screenshot_as_png
+    return b64decode(self.get_screenshot_as_base64().encode("ascii"))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 921, in get_screenshot_as_base64
+    return self.execute(Command.SCREENSHOT)["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff6d0063435+14875]
+	chromedriver!GetHandleVerifier [0x7ff6d0063490+148d0]
+	chromedriver!(No symbol) [0x7ff6cfbb7576]
+	chromedriver!(No symbol) [0x7ff6cfc02ea6]
+	chromedriver!(No symbol) [0x7ff6cfc3a182]
+	chromedriver!(No symbol) [0x7ff6cfc33f82]
+	chromedriver!(No symbol) [0x7ff6cfc33742]
+	chromedriver!(No symbol) [0x7ff6cfb80255]
+	chromedriver!GetHandleVerifier [0x7ff6d0646c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6d064101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff6d0666305+617745]
+	chromedriver!GetHandleVerifier [0x7ff6d00803ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff6d0088b0c+39f4c]
+	chromedriver!(No symbol) [0x7ff6cfb7eff8]
+	chromedriver!GetHandleVerifier [0x7ff6d081f358+7d0798]
+	KERNEL32!BaseThreadInitThunk [0x7ffc81cb7374+14]
+	ntdll!RtlUserThreadStart [0x7ffc8235cc91+21]
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\ozon_interface_parser.py", line 1529, in get_analytic_money_spent
+    driver.save_screenshot(f'logs/money_spent_page_error{str(time.time())}.png')
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 903, in save_screenshot
+    return self.get_screenshot_as_file(filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 880, in get_screenshot_as_file
+    png = self.get_screenshot_as_png()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 911, in get_screenshot_as_png
+    return b64decode(self.get_screenshot_as_base64().encode("ascii"))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 921, in get_screenshot_as_base64
+    return self.execute(Command.SCREENSHOT)["value"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 450, in execute
+    self.error_handler.check_response(response)
+  File "C:\Projects\Python\Kwork\ozon_seller_api_v2\.venv\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+	chromedriver!GetHandleVerifier [0x7ff6d0063435+14875]
+	chromedriver!GetHandleVerifier [0x7ff6d0063490+148d0]
+	chromedriver!(No symbol) [0x7ff6cfbb7576]
+	chromedriver!(No symbol) [0x7ff6cfc02ea6]
+	chromedriver!(No symbol) [0x7ff6cfc3a182]
+	chromedriver!(No symbol) [0x7ff6cfc33f82]
+	chromedriver!(No symbol) [0x7ff6cfc33742]
+	chromedriver!(No symbol) [0x7ff6cfb80255]
+	chromedriver!GetHandleVerifier [0x7ff6d0646c91+5f80d1]
+	chromedriver!GetHandleVerifier [0x7ff6d064101b+5f245b]
+	chromedriver!GetHandleVerifier [0x7ff6d0666305+617745]
+	chromedriver!GetHandleVerifier [0x7ff6d00803ee+3182e]
+	chromedriver!GetHandleVerifier [0x7ff6d0088b0c+39f4c]
+	chromedriver!(No symbol) [0x7ff6cfb7eff8]
+	chromedriver!GetHandleVerifier [0x7ff6d081f358+7d0798]
+	KERNEL32!BaseThreadInitThunk [0x7ffc81cb7374+14]
+	ntdll!RtlUserThreadStart [0x7ffc8235cc91+21]
+
+

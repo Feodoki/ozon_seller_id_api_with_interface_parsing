@@ -403,35 +403,7 @@ class OzonSellerParse:
                 }
 
         result = {}
-
-        # ===== НОВАЯ ЛОГИКА: СНАЧАЛА ДОБАВЛЯЕМ ВСЕ ТОВАРЫ С НУЛЕВЫМИ ДАННЫМИ =====
-        for offer_id, product_info in products_data.items():
-            result[offer_id] = {
-                'offer_id': offer_id,
-                'product_name': product_info.get('name', ''),
-                'skus': product_info.get('skus', []),
-                'total_revenue': 0,
-                'total_ordered_units': 0,
-                'total_hits_view': 0,
-                'total_hits_view_search': 0,
-                'total_hits_view_pdp': 0,
-                'total_session_view_pdp': 0,
-                'total_session_view_search': 0,
-                'total_hits_tocart': 0,
-                'avg_position_category': 0,
-                'conversion_search_to_pdp': 0,
-                'avg_conversion_search_to_pdp': 0,
-                'conversion_view_to_order': 0,
-                'avg_conv_tocart_search': 0,
-                'avg_conv_tocart': 0
-            }
-
-        logger.info(f"   📦 Добавлено {len(result)} товаров с нулевыми данными (будут обновлены если есть аналитика)")
-
-        # ===== ЗАТЕМ ОБНОВЛЯЕМ ДАННЫЕ ИЗ АНАЛИТИКИ =====
         items_processed = 0
-
-        print(analytics_data)
 
         for item in analytics_data.get('result', {}).get('data', []):
             dimensions = item.get('dimensions', [])
@@ -460,25 +432,46 @@ class OzonSellerParse:
                     conv_tocart_search = metrics[12]
                     conv_tocart_pdp = metrics[13]
 
-                    # Обновляем существующий товар
-                    if offer_id in result:
-                        result[offer_id]['total_revenue'] += revenue
-                        result[offer_id]['total_ordered_units'] += ordered_units
-                        result[offer_id]['total_hits_view'] += hits_view
-                        result[offer_id]['total_hits_view_search'] += hits_view_search
-                        result[offer_id]['total_hits_view_pdp'] += hits_view_pdp
-                        result[offer_id]['total_session_view_pdp'] += session_view_pdp
-                        result[offer_id]['total_session_view_search'] += session_view_search
-                        result[offer_id]['total_hits_tocart'] += hits_tocart
+                    conversion_search_to_pdp = (hits_view_pdp / hits_view_search * 100) if hits_view_search > 0 else 0
 
-                        # Средняя позиция
-                        if position_category > 0:
-                            if result[offer_id]['avg_position_category'] == 0:
-                                result[offer_id]['avg_position_category'] = position_category
-                            else:
-                                result[offer_id]['avg_position_category'] = round(
-                                    (result[offer_id]['avg_position_category'] + position_category) / 2, 0
-                                )
+                    if offer_id not in result:
+                        result[offer_id] = {
+                            'offer_id': offer_id,
+                            'product_name': offer_data['name'],
+                            'skus': [],
+                            'total_revenue': 0,
+                            'total_ordered_units': 0,
+                            'total_hits_view': 0,
+                            'total_hits_view_search': 0,
+                            'total_hits_view_pdp': 0,
+                            'total_session_view_pdp': 0,
+                            'total_session_view_search': 0,
+                            'total_hits_tocart': 0,
+                            'positions_list': [],
+                            'conv_tocart_search_weighted': 0,
+                            'conv_tocart_weighted': 0,
+                            'total_weight': 0
+                        }
+
+                    if sku_id not in result[offer_id]['skus']:
+                        result[offer_id]['skus'].append(sku_id)
+
+                    result[offer_id]['total_revenue'] += revenue
+                    result[offer_id]['total_ordered_units'] += ordered_units
+                    result[offer_id]['total_hits_view'] += hits_view
+                    result[offer_id]['total_hits_view_search'] += hits_view_search
+                    result[offer_id]['total_hits_view_pdp'] += hits_view_pdp
+                    result[offer_id]['total_session_view_pdp'] += session_view_pdp
+                    result[offer_id]['total_session_view_search'] += session_view_search
+                    result[offer_id]['total_hits_tocart'] += hits_tocart
+
+                    if position_category > 0:
+                        result[offer_id]['positions_list'].append(position_category)
+
+                    if hits_view > 0:
+                        result[offer_id]['conv_tocart_search_weighted'] += conv_tocart_search * hits_view
+                        result[offer_id]['conv_tocart_weighted'] += conv_tocart * hits_view
+                        result[offer_id]['total_weight'] += hits_view
             elif dimensions and len(metrics) == 2:
                 sku_id = dimensions[0].get('id')
                 if sku_id in sku_to_offer:
@@ -488,34 +481,93 @@ class OzonSellerParse:
                     revenue = metrics[0]
                     ordered_units = metrics[1]
 
-                    if offer_id in result:
-                        result[offer_id]['total_revenue'] += revenue
-                        result[offer_id]['total_ordered_units'] += ordered_units
+                    result[offer_id]['total_revenue'] += revenue
+                    result[offer_id]['total_ordered_units'] += ordered_units
+            else:
+                sku_id = dimensions[0].get('id')
+                if sku_id in sku_to_offer:
+                    offer_data = sku_to_offer[sku_id]
+                    offer_id = offer_data['offer_id']
+                    items_processed += 1
+                    result[offer_id] = {
+                        'offer_id': offer_id,
+                        'product_name': offer_data['name'],
+                        'skus': [],
+                        'total_revenue': 0,
+                        'total_ordered_units': 0,
+                        'total_hits_view': 0,
+                        'total_hits_view_search': 0,
+                        'total_hits_view_pdp': 0,
+                        'total_session_view_pdp': 0,
+                        'total_session_view_search': 0,
+                        'total_hits_tocart': 0,
+                        'positions_list': [],
+                        'conv_tocart_search_weighted': 0,
+                        'conv_tocart_weighted': 0,
+                        'total_weight': 0
+                    }
 
-        logger.info(f"   🔗 Обновлено {items_processed} SKU из аналитики")
 
-        # Пересчитываем производные метрики
+
+        logger.info(f"   🔗 Обработано {items_processed} SKU, сформировано {len(result)} товаров")
+
         for offer_id, data in result.items():
-            if data['total_hits_view_search'] > 0:
-                data['conversion_search_to_pdp'] = round(
-                    (data['total_hits_view_pdp'] / data['total_hits_view_search'] * 100), 2
-                )
+            if data['positions_list']:
+                data['avg_position_category'] = round(sum(data['positions_list']) / len(data['positions_list']), 0)
+            else:
+                data['avg_position_category'] = 0
+
+            data['conversion_search_to_pdp'] = round(
+                (data['total_hits_view_pdp'] / data['total_hits_view_search'] * 100), 2) if data[
+                                                                                                'total_hits_view_search'] > 0 else 0
+
+            # Добавить для совместимости
             data['avg_conversion_search_to_pdp'] = data['conversion_search_to_pdp']
 
-            if data['total_hits_view'] > 0:
-                data['conversion_view_to_order'] = round(
-                    (data['total_ordered_units'] / data['total_hits_view'] * 100), 2
-                )
-                data['avg_conv_tocart'] = round(
-                    (data['total_hits_tocart'] / data['total_hits_view'] * 100), 2
-                )
+            data['conversion_view_to_order'] = round((data['total_ordered_units'] / data['total_hits_view'] * 100),
+                                                     2) if data['total_hits_view'] > 0 else 0
+
+            if data['total_weight'] > 0:
+                data['avg_conv_tocart_search'] = round(data['conv_tocart_search_weighted'] / data['total_weight'], 2)
+                data['avg_conv_tocart'] = round((data['total_hits_tocart'] / data['total_hits_view'] * 100), 2) if data[
+                                                                                                                       'total_hits_view'] > 0 else 0
             else:
-                data['conversion_view_to_order'] = 0
+                data['avg_conv_tocart_search'] = 0
                 data['avg_conv_tocart'] = 0
 
             data['total_revenue'] = round(data['total_revenue'], 2)
 
+            del data['positions_list']
+            del data['conv_tocart_search_weighted']
+            del data['conv_tocart_weighted']
+            del data['total_weight']
+
         return result
+
+    def get_advert_stat_pay_to_click(self):
+
+        moscow_tz = pytz.timezone('Europe/Moscow')
+        now_moscow = datetime.now(moscow_tz)
+
+        date_from_date_only = now_moscow.strftime("%Y-%m-%d")
+
+        url = f"https://api-performance.ozon.ru:443/api/client/statistics/campaign/product/json?dateFrom={date_from_date_only}"
+        headers = self.headers_perfomance
+        response = requests.get(url, headers=headers)
+        print(response.text)
+        all_items = response.json()['rows']
+        for item in all_items:
+            try:
+                item_id = item.get('id')
+                item_title = item.get('title')
+                item_date = item.get('date')
+                item_money_spent = item.get('moneySpent')
+                item_orders_money = item.get('ordersMoney')
+                if item_date == '2026-05-06':
+                    print(item_id, item_title, f"Траты - {item_money_spent}", f"Товаров на сумму - {item_orders_money}", sep='\n', end='\n\n')
+            except Exception as e:
+                pass
+
 
     def get_volume(self, offer_ids: list):
         self.update_token()
@@ -548,7 +600,8 @@ class OzonSellerParse:
 
 
     def test(self):
-        print(self.main())
+        res = self.get_volume([])
+        print(res)
 
 
     def main(self):
@@ -586,6 +639,9 @@ class OzonSellerParse:
 
             matched_data = self.match_metrics_with_skus(all_skus_for_offer_id, analytics_data)
 
+            with open('logs/api_dict.json', 'w', encoding='utf-8') as f:
+                json.dump(matched_data, f, ensure_ascii=False, indent=4)
+
             logger.info("=" * 60)
             logger.info(f"✅ API ПАРСЕР УСПЕШНО ЗАВЕРШИЛ РАБОТУ")
             logger.info(f"   Обработано товаров: {len(matched_data)}")
@@ -601,16 +657,6 @@ class OzonSellerParse:
 
 
 if __name__ == "__main__":
-    # Настройка логирования для отладки
-    logging.basicConfig(
-        level=logging.DEBUG,  # Меняем INFO на DEBUG
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('api_parser_debug.log', encoding='utf-8')
-        ]
-    )
-    logger = logging.getLogger(__name__)
     parse = OzonSellerParse()
     parse.test()
     #res = parse.main()

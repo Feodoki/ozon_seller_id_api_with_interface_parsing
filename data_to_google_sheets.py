@@ -26,6 +26,7 @@ MAX_QUOTA_RETRIES = 20
 
 def send_tg_notification(message: str):
     """Отправляет уведомление в Telegram"""
+    return
     try:
         from config import TG_BOT_TOKEN, TG_ADMIN_ID
 
@@ -47,6 +48,7 @@ def send_tg_notification(message: str):
             print(f"  ⚠️ Ошибка отправки уведомления: {response.text}")
     except Exception as e:
         print(f"  ⚠️ Не удалось отправить уведомление в Telegram: {e}")
+
 
 # ================= НОВЫЙ МОДУЛЬ: TECHNICAL SHEET =================
 
@@ -287,8 +289,138 @@ SPP_HISTORY_CONFIG = {
 }
 
 
+def clean_old_rows_in_sheet(sheet, max_rows_to_keep=200, start_row=7):
+    """
+    Очищает старые строки в листе, оставляя только последние max_rows_to_keep строк
+
+    Args:
+        sheet: объект листа Google Sheets
+        max_rows_to_keep: максимальное количество строк для хранения
+        start_row: строка, с которой начинаются данные (после заголовков)
+    """
+    try:
+        # Получаем все данные
+        all_data = safe_get_values(sheet)
+
+        if len(all_data) <= start_row:
+            return 0
+
+        # Сколько строк нужно удалить
+        rows_to_delete = len(all_data) - max_rows_to_keep
+
+        if rows_to_delete <= 0:
+            return 0
+
+        print(f"  🗑️ Удаление {rows_to_delete} старых строк из листа {sheet.title}...")
+
+        # Удаляем самые старые строки (начиная с start_row)
+        for i in range(rows_to_delete):
+            try:
+                # Всегда удаляем строку start_row (самую старую)
+                sheet.delete_rows(start_row)
+                time.sleep(0.1)
+            except Exception as e:
+                print(f"    ⚠️ Ошибка удаления строки: {e}")
+                break
+
+        print(f"  ✅ Удалено {rows_to_delete} старых строк, осталось {max_rows_to_keep}")
+        return rows_to_delete
+
+    except Exception as e:
+        print(f"  ❌ Ошибка при очистке листа {sheet.title}: {e}")
+        return 0
+
+
+def handle_cell_limit_error(spreadsheet, current_sheet_title=None):
+    """
+    Обрабатывает ошибку превышения лимита ячеек.
+    Очищает старые данные в листах для освобождения места.
+    """
+    print("\n⚠️ ОБРАБОТКА ОШИБКИ ПРЕВЫШЕНИЯ ЛИМИТА ЯЧЕЕК")
+
+    try:
+        all_sheets = spreadsheet.worksheets()
+
+        protected_sheets = [
+            "DASHBOARD",
+            "ТЕХНИЧЕСКИЙ ЛИСТ",
+            "Стоимость логистики",
+            "Наценка за нелокальную доставку",
+            "ERROR",
+            "ERROR_PARS",
+            "ЧП_товары_общая",
+            "ЧП_товары_ДРР"
+        ]
+
+        # Очищаем листы истории (оставляем 50 записей)
+        history_sheets = ["История DASHBOARD", "История СПП", "История ДРР"]
+        for sheet_name in history_sheets:
+            try:
+                sheet = spreadsheet.worksheet(sheet_name)
+                all_data = safe_get_values(sheet)
+                if len(all_data) > 50:
+                    deleted = clean_old_rows_in_sheet(sheet, 50, 3)
+                    if deleted > 0:
+                        print(f"  ✅ {sheet_name}: удалено {deleted} старых записей")
+                        if check_cells_limit(spreadsheet):
+                            print("  ✅ Место освобождено!")
+                            return True
+            except gspread.exceptions.WorksheetNotFound:
+                continue
+            except Exception as e:
+                print(f"  ⚠️ Ошибка очистки {sheet_name}: {e}")
+
+        # Очищаем листы товаров (оставляем 30 записей)
+        for sheet in all_sheets:
+            title = sheet.title
+
+            if title in protected_sheets:
+                continue
+            if title in history_sheets:
+                continue
+
+            try:
+                all_data = safe_get_values(sheet)
+                if len(all_data) > 30:
+                    deleted = clean_old_rows_in_sheet(sheet, 30, 7)
+                    if deleted > 0:
+                        print(f"  ✅ {title}: удалено {deleted} старых строк")
+                        if check_cells_limit(spreadsheet):
+                            print("  ✅ Место освобождено!")
+                            return True
+            except Exception as e:
+                print(f"  ⚠️ Ошибка обработки {title}: {e}")
+
+        return False
+
+    except Exception as e:
+        print(f"  ❌ Ошибка в handle_cell_limit_error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def check_cells_limit(spreadsheet, max_cells_limit=9000000):
+    """Проверяет, не превышен ли лимит ячеек"""
+    try:
+        all_sheets = spreadsheet.worksheets()
+        total_cells = 0
+
+        for sheet in all_sheets:
+            try:
+                total_cells += sheet.row_count * sheet.col_count
+            except:
+                pass
+
+        return total_cells < max_cells_limit
+
+    except Exception as e:
+        print(f"  ⚠️ Ошибка проверки лимита: {e}")
+        return False
+
+
 def setup_spp_history_sheet(spreadsheet):
-    """Настраивает лист истории СПП (строка 1 - заголовки, строка 2 - пустая)"""
+    """Настраивает лист истории СПП с минимальным размером"""
     print("\n📊 НАСТРОЙКА ЛИСТА ИСТОРИИ СПП")
 
     sheet_title = SPP_HISTORY_CONFIG["sheet_name"]
@@ -302,10 +434,10 @@ def setup_spp_history_sheet(spreadsheet):
             except gspread.exceptions.WorksheetNotFound:
                 print(f"  🆕 Создание листа {sheet_title}...")
 
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=1000, cols=100)
+                # Минимальный размер: 500 строк, 50 колонок
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=500, cols=50)
                 time.sleep(2)
 
-                # Формируем заголовки в строке 1
                 headers = SPP_HISTORY_CONFIG["headers"]
                 safe_update_cell(sheet, "A1", [headers], value_input_option='USER_ENTERED')
 
@@ -318,15 +450,11 @@ def setup_spp_history_sheet(spreadsheet):
                     )
                 )
 
-                # Устанавливаем ширину колонок
                 safe_api_call(set_column_width, sheet, "A", 200)
                 safe_api_call(set_column_width, sheet, "B", 150)
-
-                # Строка 2 - пустая (без примечания)
-                # Замораживаем только 1 строку (заголовки)
                 safe_api_call(set_frozen, sheet, rows=1)
 
-                print("  ✅ Лист истории СПП создан и настроен (строка 2 пустая)")
+                print("  ✅ Лист истории СПП создан и настроен")
                 return sheet
 
         except Exception as e:
@@ -336,6 +464,16 @@ def setup_spp_history_sheet(spreadsheet):
                 print(f"  ⏳ Квота API при настройке листа истории СПП. Пауза {wait_time:.1f} сек...")
                 time.sleep(wait_time)
                 continue
+            elif '10000000 cells' in error_str or 'limit of cells' in error_str:
+                print(f"  ⚠️ Лимит ячеек, пробуем создать с минимальным размером...")
+                try:
+                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=200, cols=30)
+                    time.sleep(2)
+                    headers = SPP_HISTORY_CONFIG["headers"]
+                    safe_update_cell(sheet, "A1", [headers], value_input_option='USER_ENTERED')
+                    return sheet
+                except:
+                    raise
             else:
                 print(f"  ❌ Ошибка при настройке листа истории СПП: {e}")
                 raise
@@ -343,16 +481,50 @@ def setup_spp_history_sheet(spreadsheet):
     raise Exception(f"Не удалось настроить лист истории СПП после {MAX_QUOTA_RETRIES} попыток")
 
 
+def update_average_formulas(spp_history_sheet):
+    """Обновляет формулы среднего значения в колонке B для всех товаров"""
+    try:
+        time.sleep(1)
+        updated_data = safe_get_values(spp_history_sheet)
+
+        if len(updated_data) > 0 and len(updated_data[0]) > 2:
+            last_data_col = len(updated_data[0]) - 1
+            last_col_letter = get_column_letter(last_data_col + 1)
+
+            for row_num in range(2, len(updated_data) + 1):
+                row_data = updated_data[row_num - 1] if row_num - 1 < len(updated_data) else []
+                if row_data and row_data[0] and str(row_data[0]).strip() and row_data[0] not in ['Артикул', '']:
+                    formula = f"=СРЗНАЧ(C{row_num}:{last_col_letter}{row_num})"
+                    try:
+                        safe_update_cell(spp_history_sheet, f"B{row_num}", [[formula]],
+                                         value_input_option='USER_ENTERED')
+                        time.sleep(0.1)
+                    except:
+                        pass
+
+            print(f"  📊 Обновлены формулы среднего значения для {len(updated_data) - 1} товаров")
+    except Exception as e:
+        print(f"  ⚠️ Ошибка при обновлении формул: {e}")
+
+
 def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str):
-    """Сохраняет текущие значения СПП в историю. Динамически удаляет старые колонки при необходимости"""
+    """Сохраняет текущие значения СПП в историю"""
     print("\n📊 СОХРАНЕНИЕ СПП В ИСТОРИЮ")
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
-            # Получаем или создаем лист истории СПП
             spp_history_sheet = setup_spp_history_sheet(spreadsheet)
 
-            # Собираем данные СПП для всех товаров
+            dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
+            dashboard_data = safe_get_values(dashboard)
+
+            all_offer_ids_from_dashboard = []
+            for row in dashboard_data[1:]:
+                if row and len(row) > 0 and row[0] and row[0] != "ИТОГО" and row[0] != "":
+                    all_offer_ids_from_dashboard.append(str(row[0]).strip())
+
+            print(f"  📊 Найдено {len(all_offer_ids_from_dashboard)} товаров в DASHBOARD")
+
             spp_data = {}
             for offer_id, campaigns_list in campaigns_data.items():
                 if not campaigns_list:
@@ -363,17 +535,27 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
                 price_for_buyer = clean_numeric_value(first_campaign.get('product_price', 0))
                 spp = calculate_spp(price_before, price_for_buyer)
 
-                if spp > 0:  # Сохраняем только положительные значения
+                if spp > 0:
                     spp_data[offer_id] = spp
+
+            for offer_id in all_offer_ids_from_dashboard:
+                if offer_id not in spp_data and offer_id in campaigns_data:
+                    first_campaign = campaigns_data[offer_id][0] if campaigns_data[offer_id] else None
+                    if first_campaign:
+                        price_before = clean_numeric_value(first_campaign.get('product_price_before', 0))
+                        price_for_buyer = clean_numeric_value(first_campaign.get('product_price', 0))
+                        spp = calculate_spp(price_before, price_for_buyer)
+                        if spp > 0:
+                            spp_data[offer_id] = spp
+
+            print(f"  📊 Собрано СПП для {len(spp_data)} товаров")
 
             if not spp_data:
                 print("  ⚠️ Нет данных СПП для сохранения")
                 return False
 
-            # Получаем существующие данные
             existing_data = safe_get_values(spp_history_sheet)
 
-            # Если данных нет, создаем структуру
             if not existing_data or len(existing_data) == 0:
                 existing_data = [['Артикул', 'Среднее СПП']]
                 safe_update_cell(spp_history_sheet, "A1", [['Артикул', 'Среднее СПП']],
@@ -381,7 +563,6 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
 
             current_headers = existing_data[0] if len(existing_data) > 0 else ['Артикул', 'Среднее СПП']
 
-            # Проверяем, есть ли уже колонка с этой датой
             date_exists = False
             date_col_index = None
             for idx, header in enumerate(current_headers):
@@ -390,16 +571,155 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
                     date_col_index = idx
                     break
 
-            # Если дата уже существует, просто обновляем значения
             if date_exists:
                 col_letter = get_column_letter(date_col_index + 1)
                 print(f"  📅 Колонка с датой {current_date_str} уже существует (столбец {col_letter})")
 
-                # Обновляем значения
                 product_row_map = {}
                 for row_idx, row in enumerate(existing_data[1:], start=2):
                     if row and len(row) > 0 and row[0] and str(row[0]).strip() and row[0] not in ['Артикул', '']:
                         product_row_map[str(row[0])] = row_idx
+
+                products_to_add = []
+                for offer_id in all_offer_ids_from_dashboard:
+                    if offer_id not in product_row_map and offer_id in spp_data:
+                        products_to_add.append(offer_id)
+
+                if products_to_add:
+                    print(f"  ➕ Добавляем {len(products_to_add)} новых товаров в историю")
+
+                    for offer_id in products_to_add:
+                        new_row = len(existing_data) + 1
+                        total_cols = len(existing_data[0]) if existing_data and len(existing_data) > 0 else 3
+                        new_row_data = [offer_id] + [""] * (total_cols - 1)
+
+                        while len(new_row_data) <= date_col_index:
+                            new_row_data.append("")
+
+                        new_row_data[date_col_index] = round(spp_data.get(offer_id, 0), 2)
+
+                        safe_update_cell(spp_history_sheet, f"A{new_row}", [new_row_data],
+                                         value_input_option='USER_ENTERED')
+
+                        product_row_map[offer_id] = new_row
+                        existing_data.append(new_row_data)
+
+                    print(f"  ✅ Добавлено {len(products_to_add)} новых товаров")
+
+                values_to_write = []
+                updated_count = 0
+
+                for offer_id, spp_value in spp_data.items():
+                    if offer_id in product_row_map:
+                        row_num = product_row_map[offer_id]
+                        try:
+                            current_value = safe_get_values(spp_history_sheet, f"{col_letter}{row_num}")
+                            if not current_value or not current_value[0] or current_value[0][0] != round(spp_value, 2):
+                                values_to_write.append({
+                                    'range': f"{col_letter}{row_num}",
+                                    'values': [[round(spp_value, 2)]]
+                                })
+                                updated_count += 1
+                        except:
+                            values_to_write.append({
+                                'range': f"{col_letter}{row_num}",
+                                'values': [[round(spp_value, 2)]]
+                            })
+                            updated_count += 1
+
+                if values_to_write:
+                    for item in values_to_write:
+                        try:
+                            safe_update_cell(spp_history_sheet, item['range'], item['values'],
+                                             value_input_option='USER_ENTERED')
+                            time.sleep(0.2)
+                        except Exception as e:
+                            print(f"  ⚠️ Ошибка обновления {item['range']}: {e}")
+
+                update_average_formulas(spp_history_sheet)
+
+                print(
+                    f"  ✅ История СПП обновлена: {updated_count} товаров обновлено, {len(products_to_add)} добавлено за {current_date_str}")
+                return True
+
+            try:
+                print(f"  📝 Вставляем новую колонку для даты: {current_date_str}")
+
+                sheet_id = spp_history_sheet.id
+
+                body = {
+                    "requests": [
+                        {
+                            "insertRange": {
+                                "range": {
+                                    "sheetId": sheet_id,
+                                    "startColumnIndex": 2,
+                                    "endColumnIndex": 3,
+                                    "startRowIndex": 0,
+                                    "endRowIndex": spp_history_sheet.row_count
+                                },
+                                "shiftDimension": "COLUMNS"
+                            }
+                        }
+                    ]
+                }
+                safe_api_call(spp_history_sheet.spreadsheet.batch_update, body)
+                time.sleep(1)
+
+                col_letter = "C"
+
+                safe_update_cell(spp_history_sheet, f"{col_letter}1", [[current_date_str]],
+                                 value_input_option='USER_ENTERED')
+
+                try:
+                    safe_format_range(
+                        spp_history_sheet, f"{col_letter}1",
+                        CellFormat(
+                            textFormat=TextFormat(bold=True, fontSize=10),
+                            backgroundColor=Color(0.9, 0.95, 0.9),
+                            horizontalAlignment='CENTER'
+                        )
+                    )
+                except:
+                    pass
+
+                try:
+                    safe_api_call(set_column_width, spp_history_sheet, col_letter, 80)
+                except:
+                    pass
+
+                print(f"  ✅ Добавлена новая колонка {col_letter} для даты: {current_date_str}")
+
+                time.sleep(1)
+                existing_data = safe_get_values(spp_history_sheet)
+
+                product_row_map = {}
+                for row_idx, row in enumerate(existing_data[1:], start=2):
+                    if row and len(row) > 0 and row[0] and str(row[0]).strip() and row[0] not in ['Артикул', '']:
+                        product_row_map[str(row[0])] = row_idx
+
+                products_to_add = []
+                for offer_id in all_offer_ids_from_dashboard:
+                    if offer_id not in product_row_map and offer_id in spp_data:
+                        products_to_add.append(offer_id)
+
+                if products_to_add:
+                    print(f"  ➕ Добавляем {len(products_to_add)} новых товаров в историю...")
+
+                    for offer_id in products_to_add:
+                        new_row = len(existing_data) + 1
+                        total_cols = len(existing_data[0]) if existing_data and len(existing_data) > 0 else 3
+                        new_row_data = [offer_id] + [""] * (total_cols - 1)
+
+                        while len(new_row_data) <= 2:
+                            new_row_data.append("")
+                        new_row_data[2] = round(spp_data.get(offer_id, 0), 2)
+
+                        safe_update_cell(spp_history_sheet, f"A{new_row}", [new_row_data],
+                                         value_input_option='USER_ENTERED')
+                        product_row_map[offer_id] = new_row
+
+                    print(f"  ✅ Добавлено {len(products_to_add)} новых товаров")
 
                 values_to_write = []
                 updated_count = 0
@@ -422,197 +742,60 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
                         except Exception as e:
                             print(f"  ⚠️ Ошибка обновления {item['range']}: {e}")
 
-                # Обновляем средние значения
                 update_average_formulas(spp_history_sheet)
 
-                print(f"  ✅ История СПП обновлена: {updated_count} товаров за {current_date_str}")
+                print(
+                    f"  ✅ История СПП обновлена: {updated_count} товаров сохранено, {len(products_to_add)} добавлено за {current_date_str}")
                 return True
 
-            # Если даты нет - пытаемся вставить новую колонку
-            insert_col_index = 3  # Колонка C
-            col_letter = get_column_letter(insert_col_index)
-
-            # Пытаемся вставить колонку, если не получается - удаляем старую и пробуем снова
-            max_delete_attempts = 10  # Максимум удалений за одну операцию
-            delete_attempts = 0
-
-            while delete_attempts < max_delete_attempts:
-                try:
-                    print(f"  📝 Пытаемся вставить новую колонку {col_letter} для даты: {current_date_str}")
-
-                    # Пробуем вставить колонку
-                    try:
-                        spp_history_sheet.insert_cols(insert_col_index, 1)
-                    except TypeError:
-                        try:
-                            spp_history_sheet.insert_cols(insert_col_index)
-                        except:
-                            body = {
-                                "requests": [{
-                                    "insertRange": {
-                                        "range": {
-                                            "sheetId": spp_history_sheet.id,
-                                            "startColumnIndex": insert_col_index - 1,
-                                            "endColumnIndex": insert_col_index,
-                                            "startRowIndex": 0,
-                                            "endRowIndex": spp_history_sheet.row_count
-                                        },
-                                        "shiftDimension": "COLUMNS"
-                                    }
-                                }]
-                            }
-                            safe_api_call(spp_history_sheet.spreadsheet.batch_update, body)
-
-                    # Если вставка прошла успешно - выходим из цикла
-                    break
-
-                except Exception as e:
-                    error_str = str(e)
-                    # Проверяем, связана ли ошибка с лимитом ячеек
-                    if 'limit of 10000000 cells' in error_str or 'increase the number of cells' in error_str:
-                        print(f"  ⚠️ Достигнут лимит ячеек. Удаляем самую старую колонку...")
-
-                        # Получаем актуальные данные
-                        time.sleep(1)
-                        existing_data = safe_get_values(spp_history_sheet)
-                        if not existing_data or len(existing_data) == 0:
-                            print("  ❌ Нет данных для удаления колонки")
-                            return False
-
+            except Exception as e:
+                error_str = str(e)
+                if '10000000 cells' in error_str or 'limit of cells' in error_str:
+                    print(f"  ⚠️ Достигнут лимит ячеек. Удаляем самую старую колонку...")
+                    existing_data = safe_get_values(spp_history_sheet)
+                    if existing_data and len(existing_data) > 0:
                         current_headers = existing_data[0]
-
-                        # Находим самую старую колонку с датой (крайнюю правую)
                         oldest_col_index = None
-                        oldest_date = None
-
-                        for idx in range(len(current_headers) - 1, 1, -1):  # Идем справа налево, начиная с колонки C
+                        for idx in range(len(current_headers) - 1, 1, -1):
                             header = current_headers[idx]
                             if header and header != '' and header not in ['Артикул', 'Среднее СПП']:
-                                try:
-                                    # Пытаемся распарсить дату
-                                    date_obj = datetime.strptime(header, '%Y-%m-%d')
-                                    if oldest_date is None or date_obj < oldest_date:
-                                        oldest_date = date_obj
-                                        oldest_col_index = idx
-                                except:
-                                    # Если не дата, просто берем первую найденную
-                                    if oldest_col_index is None:
-                                        oldest_col_index = idx
+                                oldest_col_index = idx
+                                break
 
-                        if oldest_col_index is None:
-                            print("  ❌ Не найдено колонок для удаления")
-                            return False
-
-                        # Удаляем самую старую колонку
-                        oldest_col_letter = get_column_letter(oldest_col_index + 1)
-                        print(
-                            f"  🗑️ Удаляем старую колонку {oldest_col_letter} (дата: {current_headers[oldest_col_index]})")
-
-                        try:
-                            spp_history_sheet.delete_cols(oldest_col_index + 1)
-                            time.sleep(1)
-                            delete_attempts += 1
-                            print(f"  ✅ Колонка {oldest_col_letter} удалена (попытка {delete_attempts})")
-                            continue  # Пробуем вставить снова
-                        except Exception as del_error:
-                            print(f"  ❌ Ошибка удаления колонки: {del_error}")
-                            return False
-                    else:
-                        # Другая ошибка
-                        print(f"  ❌ Ошибка при вставке колонки: {e}")
-                        raise e
-
-            if delete_attempts >= max_delete_attempts:
-                print(f"  ❌ Превышено максимальное количество попыток удаления ({max_delete_attempts})")
-                return False
-
-            # После успешной вставки колонки, записываем заголовок
-            time.sleep(1)
-            safe_update_cell(spp_history_sheet, f"{col_letter}1", [[current_date_str]],
-                             value_input_option='USER_ENTERED')
-
-            # Форматируем заголовок
-            try:
-                safe_format_range(
-                    spp_history_sheet, f"{col_letter}1",
-                    CellFormat(
-                        textFormat=TextFormat(bold=True, fontSize=10),
-                        backgroundColor=Color(0.9, 0.95, 0.9),
-                        horizontalAlignment='CENTER'
-                    )
-                )
-            except:
-                pass
-
-            # Устанавливаем ширину колонки
-            try:
-                safe_api_call(set_column_width, spp_history_sheet, col_letter, 80)
-            except:
-                pass
-
-            print(f"  ✅ Добавлена новая колонка {col_letter} для даты: {current_date_str}")
-            date_col_index = insert_col_index - 1
-
-            # Обновляем existing_data после вставки колонки
-            time.sleep(1)
-            existing_data = safe_get_values(spp_history_sheet)
-
-            # Получаем существующие артикулы и их строки
-            product_row_map = {}
-            for row_idx, row in enumerate(existing_data[1:], start=2):
-                if row and len(row) > 0 and row[0] and str(row[0]).strip() and row[0] not in ['Артикул', '']:
-                    product_row_map[str(row[0])] = row_idx
-
-            # Обновляем значения
-            values_to_write = []
-            updated_count = 0
-
-            for offer_id, spp_value in spp_data.items():
-                if offer_id in product_row_map:
-                    row_num = product_row_map[offer_id]
-                    values_to_write.append({
-                        'range': f"{col_letter}{row_num}",
-                        'values': [[round(spp_value, 2)]]
-                    })
-                    updated_count += 1
+                        if oldest_col_index is not None:
+                            print(f"  🗑️ Удаляем старую колонку (индекс {oldest_col_index + 1})")
+                            try:
+                                body = {
+                                    "requests": [
+                                        {
+                                            "deleteRange": {
+                                                "range": {
+                                                    "sheetId": spp_history_sheet.id,
+                                                    "startColumnIndex": oldest_col_index,
+                                                    "endColumnIndex": oldest_col_index + 1,
+                                                    "startRowIndex": 0,
+                                                    "endRowIndex": spp_history_sheet.row_count
+                                                },
+                                                "shiftDimension": "COLUMNS"
+                                            }
+                                        }
+                                    ]
+                                }
+                                safe_api_call(spp_history_sheet.spreadsheet.batch_update, body)
+                                time.sleep(1)
+                                return save_spp_to_history(spreadsheet, campaigns_data, current_date_str)
+                            except Exception as del_error:
+                                print(f"  ❌ Ошибка удаления колонки: {del_error}")
+                                return False
                 else:
-                    # Добавляем новый артикул
-                    new_row = len(existing_data) + 1
-                    total_cols = len(existing_data[0]) if existing_data and len(existing_data) > 0 else 3
-                    new_row_data = [offer_id, ""] + [""] * (total_cols - 2)
-
-                    while len(new_row_data) <= date_col_index:
-                        new_row_data.append("")
-                    new_row_data[date_col_index] = round(spp_value, 2)
-
-                    safe_update_cell(spp_history_sheet, f"A{new_row}", [new_row_data],
-                                     value_input_option='USER_ENTERED')
-                    product_row_map[offer_id] = new_row
-                    updated_count += 1
-                    print(f"  ➕ Добавлен новый артикул: {offer_id}")
-
-            # Обновляем значения через batch_update
-            if values_to_write:
-                for item in values_to_write:
-                    try:
-                        safe_update_cell(spp_history_sheet, item['range'], item['values'],
-                                         value_input_option='USER_ENTERED')
-                        time.sleep(0.2)
-                    except Exception as e:
-                        print(f"  ⚠️ Ошибка обновления {item['range']}: {e}")
-
-            # Обновляем средние значения
-            update_average_formulas(spp_history_sheet)
-
-            print(f"  ✅ История СПП обновлена: {updated_count} товаров за {current_date_str}")
-            print(f"     📅 Дата в колонке {col_letter}")
-            return True
+                    print(f"  ❌ Ошибка при вставке колонки: {e}")
+                    return False
 
         except Exception as e:
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1)
-                print(f"  ⏳ Квота API превышена. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                print(f"  ⏳ Квота API. Пауза {wait_time} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue
             else:
@@ -624,38 +807,10 @@ def save_spp_to_history(spreadsheet, campaigns_data: Dict, current_date_str: str
     return False
 
 
-def update_average_formulas(spp_history_sheet):
-    """Обновляет формулы среднего значения в колонке B"""
-    try:
-        time.sleep(1)
-        updated_data = safe_get_values(spp_history_sheet)
-
-        if len(updated_data) > 0 and len(updated_data[0]) > 2:
-            last_data_col = len(updated_data[0]) - 1
-            last_col_letter = get_column_letter(last_data_col + 1)
-
-            for row_num in range(2, len(updated_data) + 1):
-                row_data = updated_data[row_num - 1] if row_num - 1 < len(updated_data) else []
-                if row_data and row_data[0] and str(row_data[0]).strip() and row_data[0] not in ['Артикул', '']:
-                    formula = f"=СРЗНАЧ(C{row_num}:{last_col_letter}{row_num})"
-                    try:
-                        safe_update_cell(spp_history_sheet, f"B{row_num}", [[formula]],
-                                         value_input_option='USER_ENTERED')
-                        time.sleep(0.1)
-                    except:
-                        pass
-
-            print(f"  📊 Обновлены формулы среднего значения")
-    except Exception as e:
-        print(f"  ⚠️ Ошибка при обновлении формул: {e}")
-
 def safe_update_cell(sheet, range_name, values, value_input_option='USER_ENTERED', max_retries=MAX_QUOTA_RETRIES):
-    """
-    Безопасное обновление ячейки с обработкой 429
-    """
+    """Безопасное обновление ячейки с обработкой 429"""
     for attempt in range(max_retries):
         try:
-            # Используем правильный порядок аргументов: values, range_name
             return sheet.update(values=values, range_name=range_name, value_input_option=value_input_option)
         except Exception as e:
             error_str = str(e)
@@ -669,29 +824,49 @@ def safe_update_cell(sheet, range_name, values, value_input_option='USER_ENTERED
     raise Exception(f"Не удалось выполнить update после {max_retries} попыток")
 
 
-def get_or_create_sheet(spreadsheet, title: str, rows=1000, cols=30):
-    """Получает существующий лист или создает новый с обработкой 429"""
+def get_or_create_sheet(spreadsheet, title: str, rows=100, cols=15):
+    """Получает существующий лист или создает новый с минимальным размером"""
     title = title.strip()
 
     print(f"  🔍 Поиск листа: '{title}'")
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
-            # Список всех существующих листов
             all_sheets = spreadsheet.worksheets()
-            print(f"  📋 Существующие листы: {[s.title for s in all_sheets]}")
 
-            # Ищем точное совпадение
             for sheet in all_sheets:
                 if sheet.title == title:
                     print(f"  ✅ Найден лист: '{title}'")
                     return sheet
 
-            # Если не найден - создаем
-            print(f"  🆕 Создание нового листа: '{title}'")
-            new_sheet = spreadsheet.add_worksheet(title=title, rows=rows, cols=cols)
+            print(f"  🆕 Создание нового листа: '{title}' (размер: {rows}×{cols})")
 
-            # Проверяем, что создался именно тот лист
+            # Ограничиваем размеры
+            rows = min(rows, 200)
+            cols = min(cols, 20)
+
+            try:
+                new_sheet = spreadsheet.add_worksheet(title=title, rows=rows, cols=cols)
+            except Exception as e:
+                error_str = str(e)
+                if '10000000 cells' in error_str or 'limit of cells' in error_str or 'exceeded the limit' in error_str:
+                    print(f"  ⚠️ Достигнут лимит ячеек при создании листа '{title}'!")
+                    print(f"  🔧 Очищаем старые данные для освобождения места...")
+
+                    handle_cell_limit_error(spreadsheet, title)
+                    time.sleep(2)
+
+                    try:
+                        new_sheet = spreadsheet.add_worksheet(title=title, rows=50, cols=10)
+                    except Exception as e2:
+                        if '10000000 cells' in str(e2):
+                            print(f"  ⚠️ Все еще лимит, пробуем минимальный размер...")
+                            new_sheet = spreadsheet.add_worksheet(title=title, rows=30, cols=8)
+                        else:
+                            raise
+                else:
+                    raise
+
             time.sleep(2)
             created_sheet = spreadsheet.worksheet(title)
             print(f"  ✅ Создан лист: '{created_sheet.title}' (id: {created_sheet.id})")
@@ -702,7 +877,8 @@ def get_or_create_sheet(spreadsheet, title: str, rows=1000, cols=30):
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1) + random.uniform(0, 5)
-                print(f"  ⏳ Квота API при получении/создании листа. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                print(
+                    f"  ⏳ Квота API при получении/создании листа. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue
             else:
@@ -710,35 +886,31 @@ def get_or_create_sheet(spreadsheet, title: str, rows=1000, cols=30):
 
     raise Exception(f"Не удалось получить/создать лист {title} после {MAX_QUOTA_RETRIES} попыток")
 
+
 def format_numeric_columns(dashboard):
     """Форматирует числовые колонки DASHBOARD"""
     try:
-        # Колонка B (Сумма продаж) - валюта
         safe_format_range(
             dashboard, "B:B",
             CellFormat(numberFormat={'type': 'CURRENCY', 'pattern': '#,##0.00 ₽'})
         )
 
-        # Колонка C (Количество продаж) - целое число
         safe_format_range(
             dashboard, "C:C",
             CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0'})
         )
 
-        # Колонки D, E, F (ДРР) - проценты
         for col in ['D', 'E', 'F']:
             safe_format_range(
                 dashboard, f"{col}:{col}",
                 CellFormat(numberFormat={'type': 'PERCENT', 'pattern': '#,##0.00%'})
             )
 
-        # Колонка G (ЧП) - валюта
         safe_format_range(
             dashboard, "G:G",
             CellFormat(numberFormat={'type': 'CURRENCY', 'pattern': '#,##0.00 ₽'})
         )
 
-        # Колонка H (СПП) - проценты
         safe_format_range(
             dashboard, "H:H",
             CellFormat(numberFormat={'type': 'PERCENT', 'pattern': '#,##0.00%'})
@@ -748,13 +920,11 @@ def format_numeric_columns(dashboard):
     except Exception as e:
         print(f"  ⚠️ Ошибка форматирования: {e}")
 
+
 # ================= УНИВЕРСАЛЬНЫЕ ФУНКЦИИ ДЛЯ ОБРАБОТКИ 429 =================
 
 def safe_api_call(func, *args, max_retries=MAX_QUOTA_RETRIES, **kwargs):
-    """
-    Универсальная обертка для безопасного вызова API с обработкой ошибки 429.
-    При ошибке 429 ждет с экспоненциальной задержкой и повторяет запрос.
-    """
+    """Универсальная обертка для безопасного вызова API с обработкой ошибки 429."""
     last_exception = None
 
     for attempt in range(max_retries):
@@ -764,37 +934,30 @@ def safe_api_call(func, *args, max_retries=MAX_QUOTA_RETRIES, **kwargs):
             error_str = str(e)
             last_exception = e
 
-            # Проверяем на ошибку квоты 429
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1) + random.uniform(0, 5)
                 print(f"  ⏳ Превышена квота API. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
                 continue
             else:
-                # Другие ошибки не требуют повторных попыток
                 raise
 
-    # Если все попытки исчерпаны
     raise last_exception if last_exception else Exception(f"Не удалось выполнить операцию после {max_retries} попыток")
 
 
 def safe_batch_update(sheet, batch_data, value_input_option='USER_ENTERED', max_retries=MAX_QUOTA_RETRIES):
-    """
-    Безопасное выполнение batch_update с обработкой 429
-    Исправленная версия - правильный формат для gspread
-    """
-    # Дополнительная проверка: не пишем ли мы в первый лист?
+    """Безопасное выполнение batch_update с обработкой 429"""
     spreadsheet = sheet.spreadsheet
     all_sheets = spreadsheet.worksheets()
     if all_sheets and all_sheets[0].id == sheet.id:
-        if sheet.title not in ["DASHBOARD", "ТЕХНИЧЕСКИЙ ЛИСТ", "ЧП_товары_общая", "ЧП_товары_ДРР", "История ДРР", "История DASHBOARD"]:
+        if sheet.title not in ["DASHBOARD", "ТЕХНИЧЕСКИЙ ЛИСТ", "ЧП_товары_общая", "ЧП_товары_ДРР", "История ДРР",
+                               "История DASHBOARD"]:
             print(f"  🚫 КРИТИЧЕСКАЯ ЗАЩИТА (batch_update): Попытка записи в первый лист '{sheet.title}'")
             print(f"     Данные не будут записаны. Блокировано {len(batch_data)} операций.")
             return None
 
     for attempt in range(max_retries):
         try:
-            # Правильный формат для gspread batch_update
             body = {
                 'valueInputOption': value_input_option,
                 'data': batch_data
@@ -804,7 +967,8 @@ def safe_batch_update(sheet, batch_data, value_input_option='USER_ENTERED', max_
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1) + random.uniform(0, 5)
-                print(f"  ⏳ Квота API при batch_update. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{max_retries})")
+                print(
+                    f"  ⏳ Квота API при batch_update. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
                 continue
             else:
@@ -813,9 +977,7 @@ def safe_batch_update(sheet, batch_data, value_input_option='USER_ENTERED', max_
 
 
 def safe_get_values(sheet, range_name=None, max_retries=MAX_QUOTA_RETRIES):
-    """
-    Безопасное получение значений с обработкой 429
-    """
+    """Безопасное получение значений с обработкой 429"""
     for attempt in range(max_retries):
         try:
             if range_name:
@@ -836,9 +998,7 @@ def safe_get_values(sheet, range_name=None, max_retries=MAX_QUOTA_RETRIES):
 
 
 def safe_format_range(sheet, range_name, cell_format, max_retries=MAX_QUOTA_RETRIES):
-    """
-    Безопасное форматирование диапазона с обработкой 429
-    """
+    """Безопасное форматирование диапазона с обработкой 429"""
     for attempt in range(max_retries):
         try:
             return format_cell_range(sheet, range_name, cell_format)
@@ -863,7 +1023,7 @@ def update_total_chp_formula(sheet, start_date_col: int):
             return
 
         start_col_letter = get_column_letter(start_date_col)
-        end_col_letter = get_column_letter(100)  # До колонки CV (100)
+        end_col_letter = get_column_letter(100)
 
         num_rows = len(all_data)
 
@@ -888,7 +1048,6 @@ def add_date_column_to_chp_sheet(sheet, date_str: str) -> int:
             headers = sheet.row_values(1)
             date_column_index = None
 
-            # Ищем существующую колонку с этой датой
             for idx, header in enumerate(headers):
                 if header == date_str:
                     date_column_index = idx + 1
@@ -896,7 +1055,6 @@ def add_date_column_to_chp_sheet(sheet, date_str: str) -> int:
                         f"  📅 Колонка с датой {date_str} существует (столбец {get_column_letter(date_column_index)}), будет обновлена")
                     return date_column_index
 
-            # Если колонки нет - создаем новую
             insert_col_index = 3
             first_date_col = None
 
@@ -914,7 +1072,6 @@ def add_date_column_to_chp_sheet(sheet, date_str: str) -> int:
 
             col_letter = get_column_letter(insert_col_index)
 
-            # Вставляем новую колонку с обработкой 429
             try:
                 sheet.insert_cols(insert_col_index, 1)
             except TypeError:
@@ -939,10 +1096,8 @@ def add_date_column_to_chp_sheet(sheet, date_str: str) -> int:
 
             time.sleep(2)
 
-            # Записываем заголовок даты
             safe_update_cell(sheet, f"{col_letter}1", [[date_str]], value_input_option='USER_ENTERED')
 
-            # Форматируем заголовок даты
             safe_format_range(
                 sheet, f"{col_letter}1",
                 CellFormat(
@@ -984,7 +1139,8 @@ def get_or_create_chp_sheet(spreadsheet, config: Dict) -> gspread.Worksheet:
         return sheet
     except gspread.exceptions.WorksheetNotFound:
         print(f"  🆕 Создание нового листа {sheet_title}...")
-        sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=10000, cols=100)
+        # Минимальный размер: 500 строк, 20 колонок
+        sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=500, cols=20)
         time.sleep(2)
 
         safe_update_cell(sheet, "A1", [["Артикул"]], value_input_option='USER_ENTERED')
@@ -1084,9 +1240,10 @@ def batch_update_sheet(sheet, data: List[List], start_cell: str = "A1"):
 
 
 def setup_drr_total_sheet(spreadsheet):
-    """Настраивает лист ДРР ОБЩИЙ"""
+    """Настраивает лист ДРР ОБЩИЙ с минимальным размером"""
     print("\n📊 НАСТРОЙКА ЛИСТА ДРР ОБЩИЙ")
-    drr_sheet = get_or_create_sheet(spreadsheet, DRR_TOTAL_CONFIG["sheet_name"], rows=10000, cols=100)
+    # Минимальный размер: 500 строк, 50 колонок
+    drr_sheet = get_or_create_sheet(spreadsheet, DRR_TOTAL_CONFIG["sheet_name"], rows=500, cols=50)
     all_values = safe_get_values(drr_sheet)
 
     if len(all_values) < 2 or (len(all_values) > 0 and all_values[0][0] != "Артикул"):
@@ -1140,7 +1297,6 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
             product = row[0].strip()
             drr_raw = row[5] if len(row) > 5 else 0
 
-            # Заменяем None, '-', '', '—' на 0
             if drr_raw is None or drr_raw == '-' or drr_raw == '' or drr_raw == '—':
                 drr_total = 0.0
             else:
@@ -1158,7 +1314,6 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
         drr_sheet = setup_drr_total_sheet(spreadsheet)
         existing_data = safe_get_values(drr_sheet)
 
-        # Ищем существующую колонку с этой датой (в строке 3)
         date_column_index = None
         if len(existing_data) > 2:
             headers_row = existing_data[2] if len(existing_data) > 2 else []
@@ -1167,13 +1322,10 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                     date_column_index = idx
                     break
 
-        # Если колонки нет - вставляем новую колонку на позицию 2 (после Артикула, без пустой колонки)
         if date_column_index is None:
-            # Вставляем новую колонку на позицию 2 (сразу после Артикула)
             insert_col_index = 2
             col_letter = get_column_letter(insert_col_index)
 
-            # Вставляем новую колонку на позицию 2
             try:
                 drr_sheet.insert_cols(insert_col_index, 1)
             except TypeError:
@@ -1198,7 +1350,6 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
 
             time.sleep(1)
 
-            # Записываем заголовок даты
             safe_update_cell(drr_sheet, f"{col_letter}3", [[current_date_str]], value_input_option='USER_ENTERED')
             safe_format_range(
                 drr_sheet, f"{col_letter}3",
@@ -1207,13 +1358,12 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                            horizontalAlignment='CENTER')
             )
             safe_api_call(set_column_width, drr_sheet, col_letter, 100)
-            date_column_index = insert_col_index - 1  # Индекс после вставки (0-based)
+            date_column_index = insert_col_index - 1
 
             print(f"  🆕 Добавлена новая колонка для даты: {current_date_str} (столбец {col_letter})")
 
         col_letter = get_column_letter(date_column_index + 1)
 
-        # Подготавливаем обновления
         batch_data = []
         current_row = 4
 
@@ -1227,19 +1377,16 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
                         break
 
             if product_row_index:
-                # Всегда записываем значение (0 если было None)
                 value = round(drr_data[product], 2)
                 batch_data.append({
                     'range': f"{col_letter}{product_row_index}",
                     'values': [[value]]
                 })
             else:
-                # Новая строка: только артикул и значение ДРР (без пустой колонки)
                 row_data = [product, round(drr_data[product], 2)]
                 safe_update_cell(drr_sheet, f"A{current_row}", [row_data], value_input_option='USER_ENTERED')
                 current_row += 1
 
-        # Обновляем данные через batch_update
         if batch_data:
             for item in batch_data:
                 try:
@@ -1256,8 +1403,6 @@ def update_drr_total_sheet_from_dashboard(spreadsheet, dashboard, current_date_s
 
         print(f"  ✅ Лист ДРР ОБЩИЙ обновлен (дата: {current_date_str})")
         print(f"     - Артикулов: {len(sorted_products)}")
-        print(f"     - Пустые значения заменены на 0")
-        print(f"     - Даты: новые даты добавляются слева")
 
         return True
 
@@ -1282,6 +1427,7 @@ def setup_markup_sheet(spreadsheet):
     except gspread.exceptions.WorksheetNotFound:
         print(f"  🆕 Создание листа '{sheet_title}'...")
 
+        # Минимальный размер: 100 строк, 5 колонок
         sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=100, cols=5)
         time.sleep(2)
 
@@ -1331,7 +1477,6 @@ def setup_logistics_price_sheet(spreadsheet):
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
-            # Пытаемся получить существующий лист
             try:
                 sheet = spreadsheet.worksheet(sheet_title)
                 print("  📄 Лист стоимости логистики уже существует")
@@ -1339,17 +1484,20 @@ def setup_logistics_price_sheet(spreadsheet):
             except gspread.exceptions.WorksheetNotFound:
                 print("  🆕 Создание листа стоимости логистики...")
 
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=100, cols=10)
+                # Минимальный размер: 50 строк, 10 колонок
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=50, cols=10)
                 time.sleep(2)
 
-                safe_api_call(sheet.update, "A1", [["📊 ТАБЛИЦА СТОИМОСТИ ЛОГИСТИКИ ОЗОН"]], value_input_option='USER_ENTERED')
+                safe_api_call(sheet.update, "A1", [["📊 ТАБЛИЦА СТОИМОСТИ ЛОГИСТИКИ ОЗОН"]],
+                              value_input_option='USER_ENTERED')
                 headers = [h['name'] for h in LOGISTICS_PRICE_CONFIG["headers"]]
                 safe_api_call(sheet.update, "A2", [headers], value_input_option='USER_ENTERED')
-                safe_api_call(sheet.update, "A3", LOGISTICS_PRICE_CONFIG["default_data"], value_input_option='USER_ENTERED')
+                safe_api_call(sheet.update, "A3", LOGISTICS_PRICE_CONFIG["default_data"],
+                              value_input_option='USER_ENTERED')
 
                 note_row = 3 + len(LOGISTICS_PRICE_CONFIG["default_data"]) + 1
                 safe_api_call(sheet.update, f"A{note_row}", [[LOGISTICS_PRICE_CONFIG["note"]]],
-                             value_input_option='USER_ENTERED')
+                              value_input_option='USER_ENTERED')
 
                 time.sleep(1)
 
@@ -1380,7 +1528,8 @@ def setup_logistics_price_sheet(spreadsheet):
             error_str = str(e)
             if '429' in error_str or 'Quota exceeded' in error_str:
                 wait_time = QUOTA_RETRY_DELAY * (attempt + 1) + random.uniform(0, 5)
-                print(f"  ⏳ Квота API при настройке листа логистики. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
+                print(
+                    f"  ⏳ Квота API при настройке листа логистики. Пауза {wait_time:.1f} сек... (попытка {attempt + 1}/{MAX_QUOTA_RETRIES})")
                 time.sleep(wait_time)
                 continue
             else:
@@ -1456,7 +1605,7 @@ def get_logistics_price_by_volume(volume_liters: float, product_price: float, lo
 
 
 def setup_technical_sheet(spreadsheet):
-    """Настраивает Технический лист (создает если нет) с обработкой 429"""
+    """Настраивает Технический лист с минимальным размером"""
     print("\n📋 НАСТРОЙКА ТЕХНИЧЕСКОГО ЛИСТА")
 
     sheet_title = TECHNICAL_SHEET_CONFIG["sheet_name"]
@@ -1467,30 +1616,25 @@ def setup_technical_sheet(spreadsheet):
                 tech_sheet = spreadsheet.worksheet(sheet_title)
                 print("  📄 Технический лист уже существует")
 
-                # Проверяем и добавляем недостающие столбцы, если лист существует
                 all_values = safe_get_values(tech_sheet)
                 if len(all_values) > 0 and len(all_values[0]) < len(TECHNICAL_SHEET_CONFIG["products_headers"]):
                     print("  🔧 Добавление недостающих столбцов...")
-                    # Находим блок товаров
                     products_start_row = 8
                     for idx, row in enumerate(all_values):
                         if row and len(row) > 0 and "ТОВАРЫ В ПРОДАЖЕ" in str(row[0]):
                             products_start_row = idx + 3
                             break
 
-                    # Добавляем новые заголовки
                     headers_row = products_start_row + 1
                     current_headers = all_values[headers_row - 1] if len(all_values) >= headers_row else []
 
                     if len(current_headers) < len(TECHNICAL_SHEET_CONFIG["products_headers"]):
-                        # Добавляем недостающие заголовки
                         for i in range(len(current_headers), len(TECHNICAL_SHEET_CONFIG["products_headers"])):
                             col_letter = get_column_letter(i + 1)
                             header_name = TECHNICAL_SHEET_CONFIG["products_headers"][i]["name"]
                             safe_update_cell(tech_sheet, f"{col_letter}{headers_row}", [[header_name]],
                                              value_input_option='USER_ENTERED')
 
-                            # Устанавливаем ширину
                             if 'width' in TECHNICAL_SHEET_CONFIG["products_headers"][i]:
                                 safe_api_call(set_column_width, tech_sheet, col_letter,
                                               TECHNICAL_SHEET_CONFIG["products_headers"][i]['width'])
@@ -1511,12 +1655,12 @@ def setup_technical_sheet(spreadsheet):
             except gspread.exceptions.WorksheetNotFound:
                 print("  🆕 Технический лист не найден, создаем новый...")
 
-                tech_sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=5000, cols=50)
+                # Минимальный размер: 300 строк, 20 колонок
+                tech_sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=300, cols=20)
                 time.sleep(2)
                 safe_api_call(tech_sheet.clear)
                 time.sleep(1)
 
-                # Блок настроек
                 print("  🔍 Настройка блока настроек...")
 
                 safe_update_cell(tech_sheet, "A1", [["⚙️ НАСТРОЙКИ КАЛЬКУЛЯТОРА"]], value_input_option='USER_ENTERED')
@@ -1539,7 +1683,6 @@ def setup_technical_sheet(spreadsheet):
                 ]
                 safe_update_cell(tech_sheet, "A3", settings_data, value_input_option='USER_ENTERED')
 
-                # Установка ширины колонок настроек
                 for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["settings_headers"], start=1):
                     col_letter = get_column_letter(idx)
                     if 'width' in header:
@@ -1547,14 +1690,13 @@ def setup_technical_sheet(spreadsheet):
 
                 time.sleep(1)
 
-                # Блок товаров
                 products_start_row = 8
                 print("  🔍 Настройка блока товаров...")
 
                 safe_update_cell(tech_sheet, f"A{products_start_row}", [["📊 ТОВАРЫ В ПРОДАЖЕ"]],
                                  value_input_option='USER_ENTERED')
                 safe_format_range(
-                    tech_sheet, f"A{products_start_row}:K{products_start_row}",  # Изменено с I на K
+                    tech_sheet, f"A{products_start_row}:K{products_start_row}",
                     CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=Color(0.8, 0.9, 1))
                 )
 
@@ -1568,7 +1710,6 @@ def setup_technical_sheet(spreadsheet):
                     CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.85, 0.95, 0.85))
                 )
 
-                # Установка ширины колонок товаров
                 for idx, header in enumerate(TECHNICAL_SHEET_CONFIG["products_headers"], start=1):
                     col_letter = get_column_letter(idx)
                     if 'width' in header:
@@ -1576,7 +1717,6 @@ def setup_technical_sheet(spreadsheet):
 
                 safe_api_call(set_frozen, tech_sheet, rows=products_start_row + 1)
 
-                # Примечание
                 note_row = products_start_row + 2
                 safe_update_cell(tech_sheet, f"A{note_row}", [[
                     "💡 Примечание: Стоимость логистики берется из листа 'Стоимость логистики'. "
@@ -1677,12 +1817,7 @@ def update_technical_sheet(tech_sheet, campaigns_data: Dict, products_start_row:
 # ================= НОВЫЙ ФУНКЦИОНАЛ ПО ТЗ =================
 
 def get_commission_rate(commission_str: str) -> float:
-    """
-    Парсит комиссию FBO из строки вида:
-    - "39" (просто число)
-    - "1 588–2 179 43%–59%" (диапазон)
-    Возвращает комиссию в процентах
-    """
+    """Парсит комиссию FBO из строки"""
     if not commission_str or commission_str == '—':
         return 0
 
@@ -1764,21 +1899,7 @@ def calculate_acquiring(price_before: float, acquiring_rate: float) -> float:
 def calculate_chp(price_before: float, commission_percent: float, logistics: float,
                   tax: float, cost_price: float, acquiring: float, drr_percent: float,
                   offer_id: str = None, verbose: bool = False) -> float:
-    """
-    Рассчитывает чистую прибыль (ЧП) с детальным логированием
-
-    Формула:
-    ЧП = X – (X * Y/100) – L – N – S – E – (X * ДРР_общ/100)
-
-    где:
-    X = price_before (цена до скидки)
-    Y = commission_percent (комиссия FBO в процентах)
-    L = logistics (стоимость логистики)
-    N = tax (налог)
-    S = cost_price (себестоимость)
-    E = acquiring (эквайринг)
-    ДРР_общ = drr_percent (общий ДРР в процентах)
-    """
+    """Рассчитывает чистую прибыль (ЧП) с детальным логированием"""
     commission_amount = price_before * (commission_percent / 100)
     drr_amount = price_before * (drr_percent / 100)
     chp = price_before - commission_amount - logistics - tax - cost_price - acquiring - drr_amount
@@ -1806,14 +1927,13 @@ def calculate_chp(price_before: float, commission_percent: float, logistics: flo
 
 
 def setup_chp_common_sheet(spreadsheet):
-    """Настраивает страницу ЧП_товары_общая"""
+    """Настраивает страницу ЧП_товары_общая с минимальным размером"""
     print("\n💰 НАСТРОЙКА ЛИСТА ЧП_товары_общая")
 
     sheet_title = CHP_COMMON_CONFIG["sheet_name"]
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
-            # Сначала проверяем, существует ли лист
             try:
                 sheet = spreadsheet.worksheet(sheet_title)
                 print(f"  📄 Лист {sheet_title} уже существует")
@@ -1821,11 +1941,10 @@ def setup_chp_common_sheet(spreadsheet):
             except gspread.exceptions.WorksheetNotFound:
                 print(f"  🆕 Создание нового листа {sheet_title}...")
 
-                # УМЕНЬШАЕМ РАЗМЕР: 5000 строк, 20 колонок = 100,000 ячеек вместо 500,000
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=5000, cols=20)
+                # Минимальный размер: 500 строк, 15 колонок
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=500, cols=15)
                 time.sleep(2)
 
-                # Формируем заголовки
                 safe_update_cell(sheet, "A1", [CHP_COMMON_CONFIG["headers"]], value_input_option='USER_ENTERED')
 
                 end_col = get_column_letter(len(CHP_COMMON_CONFIG["headers"]))
@@ -1835,7 +1954,6 @@ def setup_chp_common_sheet(spreadsheet):
                                backgroundColor=Color(0.85, 0.95, 0.85))
                 )
 
-                # Устанавливаем ширину колонок
                 for idx, header in enumerate(CHP_COMMON_CONFIG["headers"], start=1):
                     col_letter = get_column_letter(idx)
                     try:
@@ -1855,26 +1973,13 @@ def setup_chp_common_sheet(spreadsheet):
                 time.sleep(wait_time)
                 continue
             elif '10000000 cells' in error_str:
-                # Специальная обработка: пробуем создать лист с МЕНЬШИМ размером
-                print(f"  ⚠️ Лимит ячеек превышен для 5000x20, пробуем 2000x15...")
+                print(f"  ⚠️ Лимит ячеек, пробуем создать с минимальным размером...")
                 try:
-                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=2000, cols=15)
+                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=200, cols=10)
                     time.sleep(2)
-
                     safe_update_cell(sheet, "A1", [CHP_COMMON_CONFIG["headers"]], value_input_option='USER_ENTERED')
-
-                    end_col = get_column_letter(len(CHP_COMMON_CONFIG["headers"]))
-                    safe_format_range(
-                        sheet, f"A1:{end_col}1",
-                        CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
-                                   backgroundColor=Color(0.85, 0.95, 0.85))
-                    )
-
-                    safe_api_call(set_frozen, sheet, rows=1)
-                    print("  ✅ Лист ЧП_товары_общая создан с уменьшенным размером")
                     return sheet
-                except Exception as e2:
-                    print(f"  ❌ Не удалось создать лист даже с уменьшенным размером: {e2}")
+                except:
                     raise
             else:
                 print(f"  ❌ Ошибка при настройке ЧП_товары_общая: {e}")
@@ -1884,14 +1989,13 @@ def setup_chp_common_sheet(spreadsheet):
 
 
 def setup_chp_drr_sheet(spreadsheet):
-    """Настраивает страницу ЧП_товары_ДРР"""
+    """Настраивает страницу ЧП_товары_ДРР с минимальным размером"""
     print("\n💰 НАСТРОЙКА ЛИСТА ЧП_товары_ДРР")
 
     sheet_title = CHP_DRR_CONFIG["sheet_name"]
 
     for attempt in range(MAX_QUOTA_RETRIES):
         try:
-            # Сначала проверяем, существует ли лист
             try:
                 sheet = spreadsheet.worksheet(sheet_title)
                 print(f"  📄 Лист {sheet_title} уже существует")
@@ -1899,11 +2003,10 @@ def setup_chp_drr_sheet(spreadsheet):
             except gspread.exceptions.WorksheetNotFound:
                 print(f"  🆕 Создание нового листа {sheet_title}...")
 
-                # УМЕНЬШАЕМ РАЗМЕР: 5000 строк, 20 колонок
-                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=5000, cols=20)
+                # Минимальный размер: 500 строк, 15 колонок
+                sheet = safe_api_call(spreadsheet.add_worksheet, title=sheet_title, rows=500, cols=15)
                 time.sleep(2)
 
-                # Формируем заголовки
                 safe_update_cell(sheet, "A1", [CHP_DRR_CONFIG["headers"]], value_input_option='USER_ENTERED')
 
                 end_col = get_column_letter(len(CHP_DRR_CONFIG["headers"]))
@@ -1913,7 +2016,6 @@ def setup_chp_drr_sheet(spreadsheet):
                                backgroundColor=Color(0.85, 0.95, 0.85))
                 )
 
-                # Устанавливаем ширину колонок
                 for idx, header in enumerate(CHP_DRR_CONFIG["headers"], start=1):
                     col_letter = get_column_letter(idx)
                     try:
@@ -1933,26 +2035,13 @@ def setup_chp_drr_sheet(spreadsheet):
                 time.sleep(wait_time)
                 continue
             elif '10000000 cells' in error_str:
-                # Специальная обработка: пробуем создать лист с МЕНЬШИМ размером
-                print(f"  ⚠️ Лимит ячеек превышен для 5000x20, пробуем 2000x15...")
+                print(f"  ⚠️ Лимит ячеек, пробуем создать с минимальным размером...")
                 try:
-                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=2000, cols=15)
+                    sheet = spreadsheet.add_worksheet(title=sheet_title, rows=200, cols=10)
                     time.sleep(2)
-
                     safe_update_cell(sheet, "A1", [CHP_DRR_CONFIG["headers"]], value_input_option='USER_ENTERED')
-
-                    end_col = get_column_letter(len(CHP_DRR_CONFIG["headers"]))
-                    safe_format_range(
-                        sheet, f"A1:{end_col}1",
-                        CellFormat(textFormat=TextFormat(bold=True, fontSize=11),
-                                   backgroundColor=Color(0.85, 0.95, 0.85))
-                    )
-
-                    safe_api_call(set_frozen, sheet, rows=1)
-                    print("  ✅ Лист ЧП_товары_ДРР создан с уменьшенным размером")
                     return sheet
-                except Exception as e2:
-                    print(f"  ❌ Не удалось создать лист даже с уменьшенным размером: {e2}")
+                except:
                     raise
             else:
                 print(f"  ❌ Ошибка при настройке ЧП_товары_ДРР: {e}")
@@ -1964,7 +2053,7 @@ def setup_chp_drr_sheet(spreadsheet):
 def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_start_row: int,
                                     logistics_price_sheet, current_date_str: str, tech_dict: Dict = None,
                                     spreadsheet=None):
-    """Расширенное обновление Технического листа - ОДНИМ ЗАПРОСОМ"""
+    """Расширенное обновление Технического листа"""
     print("\n📊 РАСШИРЕННОЕ ОБНОВЛЕНИЕ ТЕХНИЧЕСКОГО ЛИСТА")
 
     logistics_prices = load_logistics_prices_from_sheet(logistics_price_sheet)
@@ -2028,18 +2117,18 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
         acquiring = calculate_acquiring(price_before, acquiring_rate)
         logistics = calculate_logistics_cost(volume_l, price_before, logistics_prices,
                                              local_sales_percent, markup_percent)
-        spp = calculate_spp(price_before, price_for_buyer)  # РАСЧЕТ СПП
+        spp = calculate_spp(price_before, price_for_buyer)
         tax = calculate_tax(price_for_buyer, tax_rate)
 
-        # Добавляем СПП и себестоимость в данные
         all_products_data.append([
             offer_id, sku, price_before, price_for_buyer, acquiring,
             stock_balance, commission_percent, volume_l, logistics,
-            spp,           # НОВОЕ: СПП (%)
-            cost_price     # НОВОЕ: Себестоимость (₽)
+            spp,
+            cost_price
         ])
 
-        print(f"  📦 {offer_id}: цена={price_before:.2f}, логистика={logistics:.2f}, СПП={spp:.2f}%, себестоимость={cost_price:.2f}")
+        print(
+            f"  📦 {offer_id}: цена={price_before:.2f}, логистика={logistics:.2f}, СПП={spp:.2f}%, себестоимость={cost_price:.2f}")
 
     if all_products_data:
         print(f"\n  📝 Запись {len(all_products_data)} товаров одним запросом...")
@@ -2054,13 +2143,12 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
 
         last_row = products_start_row + len(all_products_data) - 1
 
-        # Обновляем форматирование для новых столбцов
         for col, color, bold in [('C', Color(0.95, 0.9, 1), True),
                                  ('D', Color(0.9, 1, 0.9), True),
                                  ('E', Color(1, 0.95, 0.8), False),
                                  ('I', Color(0.7, 0.85, 1), False),
-                                 ('J', Color(0.85, 0.9, 1), False),   # НОВОЕ: СПП
-                                 ('K', Color(1, 0.85, 0.85), False)]:  # НОВОЕ: Себестоимость
+                                 ('J', Color(0.85, 0.9, 1), False),
+                                 ('K', Color(1, 0.85, 0.85), False)]:
             try:
                 fmt = CellFormat(backgroundColor=color)
                 if bold:
@@ -2070,7 +2158,6 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
             except:
                 pass
 
-        # Форматирование СПП как процент
         try:
             safe_format_range(
                 tech_sheet, f"J{products_start_row}:J{last_row}",
@@ -2079,7 +2166,6 @@ def update_technical_sheet_advanced(tech_sheet, campaigns_data: Dict, products_s
         except:
             pass
 
-        # Форматирование себестоимости как валюта
         try:
             safe_format_range(
                 tech_sheet, f"K{products_start_row}:K{last_row}",
@@ -2130,11 +2216,9 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
 
     logistics_prices = load_logistics_prices_from_sheet(logistics_price_sheet)
 
-    # Получаем листы
-    chp_common_sheet = get_or_create_sheet(spreadsheet, "ЧП_товары_общая", rows=1000, cols=50)
-    chp_drr_sheet = get_or_create_sheet(spreadsheet, "ЧП_товары_ДРР", rows=1000, cols=50)
+    chp_common_sheet = get_or_create_sheet(spreadsheet, "ЧП_товары_общая", rows=500, cols=15)
+    chp_drr_sheet = get_or_create_sheet(spreadsheet, "ЧП_товары_ДРР", rows=500, cols=15)
 
-    # Убеждаемся что есть заголовки
     headers_common = safe_get_values(chp_common_sheet, "A1:B1")
     if not headers_common or not headers_common[0] or headers_common[0][0] != "Артикул":
         safe_update_cell(chp_common_sheet, "A1", [["Артикул"]], value_input_option='USER_ENTERED')
@@ -2153,7 +2237,6 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
         safe_api_call(set_column_width, chp_drr_sheet, "A", 200)
         safe_api_call(set_column_width, chp_drr_sheet, "B", 150)
 
-    # Получаем существующие заголовки (строка 1)
     try:
         common_headers_raw = safe_get_values(chp_common_sheet, "1:1")
         if common_headers_raw and len(common_headers_raw) > 0:
@@ -2175,13 +2258,10 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
         print(f"  ⚠️ Ошибка получения заголовков: {e}")
         existing_headers_drr = []
 
-    # Проверяем, есть ли колонка с датой
-    date_col_index = 3  # Колонка C
+    date_col_index = 3
     col_letter = "C"
 
-    # Если даты нет, добавляем заголовок в существующую колонку C (не вставляем новую)
     if current_date_str not in existing_headers_common:
-        # Просто записываем заголовок в колонку C, не вставляя новую колонку
         safe_update_cell(chp_common_sheet, f"{col_letter}1", [[current_date_str]], value_input_option='USER_ENTERED')
         safe_format_range(chp_common_sheet, f"{col_letter}1",
                           CellFormat(textFormat=TextFormat(bold=True), backgroundColor=Color(0.9, 0.95, 0.9)))
@@ -2199,11 +2279,9 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
     else:
         print(f"  📅 Колонка с датой {current_date_str} уже существует в ЧП_товары_ДРР")
 
-    # Получаем существующие данные
     existing_data_common = safe_get_values(chp_common_sheet)
     existing_data_drr = safe_get_values(chp_drr_sheet)
 
-    # Создаем карту артикул -> номер строки (начиная со строки 2)
     product_row_map_common = {}
     for row_idx, row in enumerate(existing_data_common[1:], start=2):
         if row and len(row) > 0 and row[0] and row[0] != 'Артикул':
@@ -2214,7 +2292,6 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
         if row and len(row) > 0 and row[0] and row[0] != 'Артикул':
             product_row_map_drr[row[0]] = row_idx
 
-    # Подготавливаем данные
     print(f"\n  📝 ПОДГОТОВКА ДАННЫХ ДЛЯ {len(campaigns_data)} ТОВАРОВ...")
 
     common_values = {}
@@ -2265,27 +2342,21 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
 
     print(f"\n  💾 ЗАПИСЬ ДАННЫХ:")
 
-    # Обновляем существующие строки
     for offer_id, value in common_values.items():
         row_num = product_row_map_common.get(offer_id)
         if row_num:
-            # Обновляем существующую строку
             safe_update_cell(chp_common_sheet, f"{col_letter}{row_num}", [[value]], value_input_option='USER_ENTERED')
             time.sleep(0.2)
 
-    # Добавляем новые артикулы (только если их нет)
     new_rows_common = []
     for offer_id, value in common_values.items():
         if offer_id not in product_row_map_common:
-            # Находим первую свободную строку после существующих данных
             next_row = len(existing_data_common) + 1
-            # Записываем артикул, пустую ячейку для суммы, значение
             safe_update_cell(chp_common_sheet, f"A{next_row}", [[offer_id]], value_input_option='USER_ENTERED')
             safe_update_cell(chp_common_sheet, f"C{next_row}", [[value]], value_input_option='USER_ENTERED')
             product_row_map_common[offer_id] = next_row
             print(f"     ➕ Добавлен новый артикул: {offer_id}")
 
-    # Для ЧП_товары_ДРР
     for offer_id, value in drr_values.items():
         row_num = product_row_map_drr.get(offer_id)
         if row_num:
@@ -2301,7 +2372,6 @@ def update_chp_sheets(spreadsheet, campaigns_data: Dict, logistics_price_sheet,
             product_row_map_drr[offer_id] = next_row
             print(f"     ➕ Добавлен новый артикул: {offer_id}")
 
-    # Форматирование числовых колонок
     try:
         safe_format_range(
             chp_common_sheet, f"{col_letter}2:{col_letter}{len(existing_data_common) + len(new_rows_common) + 5}",
@@ -2332,18 +2402,15 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
             dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
             tech_sheet = get_or_create_sheet(spreadsheet, TECHNICAL_SHEET_CONFIG["sheet_name"])
 
-            # Принудительно устанавливаем ЧП / в день в колонку G (7)
             chp_col_index = 6
             col_letter = get_column_letter(chp_col_index + 1)
 
-            # Получаем текущие заголовки
             headers_row = safe_get_values(dashboard, "A1:Z1")
             if headers_row and len(headers_row) > 0:
                 current_headers = headers_row[0]
             else:
                 current_headers = []
 
-            # Проверяем и устанавливаем правильный заголовок в колонку G
             if len(current_headers) <= chp_col_index or current_headers[chp_col_index] != "ЧП / в день":
                 safe_update_cell(dashboard, f"{col_letter}1", [["ЧП / в день"]], value_input_option='USER_ENTERED')
                 safe_format_range(
@@ -2355,7 +2422,6 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
             else:
                 print(f"  📄 Столбец 'ЧП / в день' уже существует (столбец {col_letter})")
 
-            # Читаем настройки из технического листа
             try:
                 tax_rate_cell = safe_api_call(tech_sheet.acell, 'B3').value
                 tax_rate = float(tax_rate_cell) if tax_rate_cell and str(tax_rate_cell) not in ['—', ''] else 6.0
@@ -2383,7 +2449,6 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                 logistics_prices = {}
                 markup_percent = 8.0
 
-            # Получаем данные дашборда
             dashboard_data = safe_get_values(dashboard)
 
             if len(dashboard_data) < 2:
@@ -2393,7 +2458,6 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
             start_row = 2
             end_row = len(dashboard_data)
 
-            # Очищаем старые данные в столбце G
             if end_row > 1:
                 try:
                     clear_range = f"{col_letter}2:{col_letter}{end_row + 5}"
@@ -2403,7 +2467,6 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                 except Exception as e:
                     print(f"     ⚠️ Ошибка очистки: {e}")
 
-            # Подготавливаем значения ЧП
             chp_values = []
             for row_idx, row in enumerate(dashboard_data[1:], start=2):
                 if not row or len(row) < 1:
@@ -2424,19 +2487,16 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                     volume_l = clean_numeric_value(first_campaign.get('item_volume_l', 0))
                     commission_str = str(first_campaign.get('commission_fbo', '0'))
 
-                    # Получаем ДРР из drr_for_products (уже обработанный для ЧП)
                     drr_total_for_chp = 0
                     ad_expenses = 0
                     if drr_for_products and offer_id in drr_for_products:
                         drr_data = drr_for_products[offer_id]
                         if isinstance(drr_data, dict):
-                            drr_total_for_chp = drr_data.get('drr_total', 0)  # Это уже 0 если был отрицательный
+                            drr_total_for_chp = drr_data.get('drr_total', 0)
                             ad_expenses = drr_data.get('total_ad_expenses', 0)
 
-                    # Альтернативно, берем из строки дашборда (колонка F, индекс 5)
                     drr_from_row = clean_numeric_value(row[5]) if len(row) > 5 else 0
 
-                    # Если ДРР из строки отрицательный, используем 0 для ЧП
                     if drr_from_row < 0:
                         drr_total_for_chp = 0
                     elif drr_total_for_chp == 0 and drr_from_row > 0:
@@ -2448,16 +2508,12 @@ def add_chp_per_day_column(spreadsheet, campaigns_data: Dict, current_date_str: 
                                                          local_sales_percent, markup_percent)
                     tax = calculate_tax(price_for_buyer, tax_rate)
 
-                    # Если ДРР = 0, то ЧП считается без вычета ДРР, но расходы уже не вычитаются отдельно
-                    # потому что формула ЧП: price_before - комиссия - логистика - налог - себестоимость - эквайринг - (price_before * ДРР/100)
-                    # Если ДРР = 0, то слагаемое с ДРР просто отсутствует
                     chp = calculate_chp(price_before, commission_percent, logistics, tax,
                                         cost_price, acquiring, drr_total_for_chp, offer_id, verbose=False)
                     chp_values.append([chp])
                 else:
                     chp_values.append([""])
 
-            # Записываем значения
             if chp_values:
                 range_name = f"{col_letter}{start_row}:{col_letter}{start_row + len(chp_values) - 1}"
                 safe_update_cell(dashboard, range_name, chp_values, value_input_option='USER_ENTERED')
@@ -2496,21 +2552,16 @@ def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
         try:
             dashboard = get_or_create_sheet(spreadsheet, "DASHBOARD")
 
-            # Принудительно устанавливаем СПП в колонку H (8)
-            # 0-based индекс = 7, колонка H
             spp_col_index = 7
             col_letter = get_column_letter(spp_col_index + 1)
 
-            # Получаем текущие заголовки
             headers_row = safe_get_values(dashboard, "A1:Z1")
             if headers_row and len(headers_row) > 0:
                 current_headers = headers_row[0]
             else:
                 current_headers = []
 
-            # Проверяем и устанавливаем правильный заголовок в колонку H
             if len(current_headers) <= spp_col_index or current_headers[spp_col_index] != "СПП":
-                # Устанавливаем заголовок
                 safe_update_cell(dashboard, f"{col_letter}1", [["СПП"]], value_input_option='USER_ENTERED')
                 safe_format_range(
                     dashboard, f"{col_letter}1",
@@ -2521,7 +2572,6 @@ def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
             else:
                 print(f"  📄 Столбец 'СПП' уже существует (столбец {col_letter})")
 
-            # Получаем данные дашборда
             dashboard_data = safe_get_values(dashboard)
 
             if len(dashboard_data) < 2:
@@ -2531,7 +2581,6 @@ def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
             start_row = 2
             end_row = len(dashboard_data)
 
-            # Очищаем старые данные в столбце H
             if end_row > 1:
                 try:
                     clear_range = f"{col_letter}2:{col_letter}{end_row + 5}"
@@ -2541,7 +2590,6 @@ def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
                 except Exception as e:
                     print(f"     ⚠️ Ошибка очистки: {e}")
 
-            # Подготавливаем значения СПП
             spp_values = []
             for row in dashboard_data[1:]:
                 if not row or len(row) < 1:
@@ -2562,7 +2610,6 @@ def add_spp_column_to_dashboard(spreadsheet, campaigns_data: Dict):
                 else:
                     spp_values.append([""])
 
-            # Записываем значения
             if spp_values:
                 range_name = f"{col_letter}{start_row}:{col_letter}{start_row + len(spp_values) - 1}"
                 safe_update_cell(dashboard, range_name, spp_values, value_input_option='USER_ENTERED')
@@ -2659,6 +2706,7 @@ def test_google_sheets_connection():
                 print(f"  ❌ Не удалось подключиться после {max_attempts} попыток")
                 raise
 
+
 def get_column_letter(col_num: int) -> str:
     result = ""
     while col_num > 0:
@@ -2696,19 +2744,15 @@ def setup_sheet_headers(sheet, config: Dict, start_row: int = 1):
 
 
 def clear_old_dashboard_data(dashboard, current_total_rows: int, max_rows_to_keep: int = 1000):
-    """
-    Очищает старые данные в DASHBOARD, оставляя только нужное количество строк
-    """
+    """Очищает старые данные в DASHBOARD, оставляя только нужное количество строк"""
     if current_total_rows <= 1:
         return
 
-    # Если строк слишком много - удаляем старые
     if current_total_rows > max_rows_to_keep:
         rows_to_delete = current_total_rows - max_rows_to_keep
         print(f"  🗑️ Удаляем {rows_to_delete} старых строк из DASHBOARD (оставляем {max_rows_to_keep})")
 
         try:
-            # Удаляем строки с конца (начиная с max_rows_to_keep + 1)
             for i in range(rows_to_delete):
                 row_to_delete = max_rows_to_keep + 1
                 if row_to_delete > 1:
@@ -2717,7 +2761,6 @@ def clear_old_dashboard_data(dashboard, current_total_rows: int, max_rows_to_kee
             print(f"  ✅ Удалено {rows_to_delete} старых строк")
         except Exception as e:
             print(f"  ⚠️ Ошибка при удалении строк: {e}")
-            # Альтернативный метод - очистка данных
             try:
                 end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
                 clear_range = f"A{max_rows_to_keep + 1}:{end_col}{current_total_rows}"
@@ -2726,7 +2769,6 @@ def clear_old_dashboard_data(dashboard, current_total_rows: int, max_rows_to_kee
             except Exception as clear_error:
                 print(f"  ❌ Ошибка при очистке данных: {clear_error}")
     else:
-        # Очищаем только данные (не удаляем строки)
         try:
             if current_total_rows > 1:
                 end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
@@ -2776,21 +2818,15 @@ def monitor_sheet_usage(spreadsheet):
 
 
 def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10, max_rows: int = 1000):
-    """
-    Обеспечивает достаточное количество строк в листе.
-    Если лимит ячеек превышен - удаляет старые строки.
-    """
+    """Обеспечивает достаточное количество строк в листе"""
     try:
-        # Получаем текущее количество строк
         current_data = safe_get_values(sheet)
         current_rows = len(current_data)
 
-        # Если строк достаточно - ничего не делаем
         if current_rows >= required_rows + buffer_rows:
             print(f"  ✅ Строк достаточно: {current_rows} >= {required_rows + buffer_rows}")
             return True
 
-        # Пытаемся добавить строки
         rows_to_add = (required_rows + buffer_rows) - current_rows
         print(f"  ➕ Пытаемся добавить {rows_to_add} новых строк...")
 
@@ -2800,31 +2836,26 @@ def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10, max_rows
             return True
         except Exception as e:
             error_str = str(e)
-            # Проверяем, связана ли ошибка с лимитом ячеек
             if '10000000 cells' in error_str or 'limit of cells' in error_str:
                 print(f"  ⚠️ Достигнут лимит ячеек. Удаляем старые строки...")
 
-                # Удаляем старые строки, оставляя только необходимые
                 rows_to_keep = required_rows + buffer_rows
                 rows_to_delete = current_rows - rows_to_keep
 
                 if rows_to_delete > 0:
                     print(f"  🗑️ Удаляем {rows_to_delete} старых строк (оставляем {rows_to_keep})")
 
-                    # Удаляем строки с конца (самые старые)
-                    # Начинаем с последней строки и идем вверх
                     for i in range(rows_to_delete):
                         row_to_delete = current_rows - i
-                        if row_to_delete > 1:  # Не удаляем заголовок
+                        if row_to_delete > 1:
                             try:
                                 sheet.delete_rows(row_to_delete)
-                                time.sleep(0.2)  # Небольшая пауза между удалениями
+                                time.sleep(0.2)
                             except Exception as del_error:
                                 print(f"     ⚠️ Ошибка удаления строки {row_to_delete}: {del_error}")
 
                     print(f"  ✅ Удалено {rows_to_delete} старых строк")
 
-                    # Проверяем, достаточно ли теперь строк
                     new_data = safe_get_values(sheet)
                     new_rows = len(new_data)
 
@@ -2832,7 +2863,6 @@ def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10, max_rows
                         print(f"  ✅ Теперь строк достаточно: {new_rows}")
                         return True
                     else:
-                        # Если все еще не хватает, пробуем добавить
                         rows_still_needed = (required_rows + buffer_rows) - new_rows
                         if rows_still_needed > 0:
                             print(f"  ➕ Добавляем еще {rows_still_needed} строк...")
@@ -2847,7 +2877,6 @@ def ensure_sheet_rows(sheet, required_rows: int, buffer_rows: int = 10, max_rows
                     print(f"  ⚠️ Недостаточно строк для удаления")
                     return False
             else:
-                # Другая ошибка
                 print(f"  ❌ Ошибка при добавлении строк: {e}")
                 return False
 
@@ -2943,26 +2972,22 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
 
         drr_search = calculate_drr(expenses_search, max(0, selled_search))
 
-        # Считаем общие расходы по всем рекламным кампаниям
         total_ad_expenses = 0.0
         for campaign in offer_campaigns:
             expense = clean_numeric_value(campaign.get('expense', 0))
             expense_model = clean_numeric_value(campaign.get('expense_model', 0))
             total_ad_expenses += expense + expense_model
 
-        # НОВАЯ ЛОГИКА ДЛЯ drr_total
         if drr_cpo == 0 or money_spent == 0:
-            # Если ДРР = 0, то для отображения используем расходы со знаком минус
             drr_total_display = -total_ad_expenses if total_ad_expenses > 0 else 0
-            # ДЛЯ РАСЧЕТА ЧП используем 0 (так как расходы уже учтены отдельно?)
             drr_total_for_chp = 0
         else:
             drr_total_display = calculate_drr(money_spent, total_revenue_item)
             drr_total_for_chp = drr_total_display
 
         drr_for_products[offer_id] = {
-            'drr_total': drr_total_for_chp,  # Для ЧП - 0 если отрицательный или 0
-            'drr_total_display': drr_total_display,  # Для отображения на дашборде
+            'drr_total': drr_total_for_chp,
+            'drr_total_display': drr_total_display,
             'drr_cpo': drr_cpo,
             'drr_search': drr_search,
             'money_spent': money_spent if money_spent > 0 else total_ad_expenses,
@@ -2996,35 +3021,27 @@ def prepare_dashboard_data(all_items_dict: Dict, campaigns_data: Dict,
 
 
 def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
-    """
-    Обновляет лист DASHBOARD с сохранением форматирования.
-    Перезаписывает данные, не удаляя строки, чтобы сохранить условное форматирование.
-    """
+    """Обновляет лист DASHBOARD с сохранением форматирования"""
     print("  📊 ОБНОВЛЕНИЕ DASHBOARD С СОХРАНЕНИЕМ ФОРМАТИРОВАНИЯ")
 
-    # Получаем текущие данные
     current_data = safe_get_values(dashboard)
     current_total_rows = len(current_data)
 
-    # Проверяем и устанавливаем правильные заголовки если нужно
     expected_headers = [h['name'] for h in DASHBOARD_CONFIG['headers']]
     if len(current_data) == 0 or (len(current_data) > 0 and current_data[0] != expected_headers):
         setup_sheet_headers(dashboard, DASHBOARD_CONFIG, start_row=1)
         current_data = safe_get_values(dashboard)
         current_total_rows = len(current_data)
 
-    # Подготавливаем данные с итогами
     if dashboard_data:
         total_revenue = sum(max(0, row[1]) for row in dashboard_data)
         total_orders = sum(max(0, row[2]) for row in dashboard_data)
 
-        # Добавляем пустую строку и итоги
         dashboard_data.append([""] * len(DASHBOARD_CONFIG['headers']))
         dashboard_data.append(["ИТОГО", total_revenue, total_orders, 0, 0, 0])
 
-    rows_needed = len(dashboard_data) + 1  # +1 для заголовка
+    rows_needed = len(dashboard_data) + 1
 
-    # Проверяем, достаточно ли строк в листе
     if current_total_rows < rows_needed:
         rows_to_add = rows_needed - current_total_rows
         print(f"  ➕ Добавляем {rows_to_add} новых строк (сохраняя форматирование)...")
@@ -3035,10 +3052,7 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
             if '10000000 cells' in str(e) or 'limit of cells' in str(e):
                 print(f"  ⚠️ Достигнут лимит ячеек. Очищаем старые данные (сохраняя форматирование)...")
 
-                # Вместо удаления строк - очищаем старые данные в существующих строках
-                # Оставляем только нужное количество строк с данными
                 if current_total_rows > 1000:
-                    # Очищаем данные в старых строках (начиная с 1000-й)
                     end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
                     clear_range = f"A1001:{end_col}{current_total_rows}"
                     try:
@@ -3047,7 +3061,6 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
                     except:
                         pass
 
-                # Пробуем добавить строки снова
                 current_data_after = safe_get_values(dashboard)
                 current_rows_after = len(current_data_after)
                 if current_rows_after < rows_needed:
@@ -3058,23 +3071,19 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
                 print(f"  ❌ Ошибка при добавлении строк: {e}")
                 raise
 
-    # ПЕРЕЗАПИСЫВАЕМ ДАННЫЕ (не удаляем строки, чтобы сохранить форматирование)
     print(f"  📝 Перезапись {len(dashboard_data)} строк данных...")
     try:
-        # Записываем данные, начиная со строки 2 (после заголовка)
         safe_update_cell(dashboard, "A2", dashboard_data, value_input_option='USER_ENTERED')
         print(f"  ✅ Перезаписано {len(dashboard_data)} строк данных")
         time.sleep(1)
     except Exception as e:
         if "10000000 cells" in str(e):
             print(f"  ⚠️ Лимит ячеек при записи. Очищаем старые данные...")
-            # Очищаем данные в старых строках
             end_col = get_column_letter(len(DASHBOARD_CONFIG['headers']))
             clear_range = f"A100:{end_col}{current_total_rows}"
             try:
                 dashboard.batch_clear([clear_range])
                 print(f"  🗑️ Очищены данные в строках 100-{current_total_rows}")
-                # Повторяем запись
                 safe_update_cell(dashboard, "A2", dashboard_data, value_input_option='USER_ENTERED')
                 print(f"  ✅ Перезаписано {len(dashboard_data)} строк данных после очистки")
             except Exception as clear_error:
@@ -3083,14 +3092,11 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
         else:
             raise
 
-    # Форматируем только строку ИТОГО (условное форматирование сохранится)
     if dashboard_data:
         last_row = len(dashboard_data) + 1
-        # Проверяем, есть ли строка ИТОГО
         if len(dashboard_data) >= 2 and dashboard_data[-1] and dashboard_data[-1][0] == "ИТОГО":
             format_totals_row(dashboard, last_row, len(DASHBOARD_CONFIG['headers']))
 
-        # Делаем артикулы жирным шрифтом
         safe_format_range(dashboard, f"A2:A{last_row}",
                           CellFormat(textFormat=TextFormat(bold=True)))
 
@@ -3101,9 +3107,10 @@ def update_dashboard_sheet(dashboard, dashboard_data: List[List]):
 # ================= НОВАЯ ФУНКЦИЯ ДЛЯ ИСТОРИИ DASHBOARD =================
 
 def setup_history_dashboard_sheet(spreadsheet):
-    """Настраивает лист истории DASHBOARD (числовые значения, не проценты)"""
+    """Настраивает лист истории DASHBOARD с минимальным размером"""
     print("\n📜 НАСТРОЙКА ЛИСТА ИСТОРИИ DASHBOARD")
-    history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=100000, cols=20)
+    # Минимальный размер: 500 строк, 20 колонок
+    history_sheet = get_or_create_sheet(spreadsheet, HISTORY_DASHBOARD_CONFIG["sheet_name"], rows=500, cols=20)
     all_values = safe_get_values(history_sheet)
 
     if len(all_values) < 2 or (len(all_values) > 0 and all_values[0][0] != "Дата"):
@@ -3128,20 +3135,16 @@ def setup_history_dashboard_sheet(spreadsheet):
             CellFormat(textFormat=TextFormat(italic=True, fontSize=9), backgroundColor=Color(0.95, 0.95, 0.9))
         )
 
-        # Форматирование колонок как ЧИСЛА (не проценты)
-        # Колонка C (Сумма продаж) - валюта
         safe_format_range(
             history_sheet, "C:C",
             CellFormat(numberFormat={'type': 'CURRENCY', 'pattern': '#,##0.00 ₽'})
         )
 
-        # Колонка D (Количество продаж) - целое число
         safe_format_range(
             history_sheet, "D:D",
             CellFormat(numberFormat={'type': 'NUMBER', 'pattern': '#,##0'})
         )
 
-        # Колонки E, F, G (ДРР) - ОБЫЧНЫЕ ЧИСЛА (не проценты)
         for col in ['E', 'F', 'G']:
             safe_format_range(
                 history_sheet, f"{col}:{col}",
@@ -3149,10 +3152,9 @@ def setup_history_dashboard_sheet(spreadsheet):
             )
 
         safe_api_call(set_frozen, history_sheet, rows=2)
-        print("  ✅ Структура листа истории настроена (ДРР как обычные числа)")
+        print("  ✅ Структура листа истории настроена")
     else:
         print("  📄 Лист истории уже существует")
-        # Дополнительно проверяем форматирование существующих колонок
         try:
             for col in ['E', 'F', 'G']:
                 safe_format_range(
@@ -3167,7 +3169,7 @@ def setup_history_dashboard_sheet(spreadsheet):
 
 
 def save_dashboard_to_history(spreadsheet, current_date: str):
-    """Сохраняет текущие данные из листа DASHBOARD в историю (вставка сверху с заменой данных за текущую дату)"""
+    """Сохраняет текущие данные из листа DASHBOARD в историю"""
     print("\n💾 СОХРАНЕНИЕ DASHBOARD В ИСТОРИЮ")
 
     for attempt in range(MAX_QUOTA_RETRIES):
@@ -3184,12 +3186,11 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
 
             history_sheet = setup_history_dashboard_sheet(spreadsheet)
 
-            # ===== ФОРМИРУЕМ новые строки из DASHBOARD =====
             history_rows = []
             total_sales = 0
             total_quantity = 0
 
-            for row in dashboard_data[1:]:  # Пропускаем заголовок
+            for row in dashboard_data[1:]:
                 if not row or len(row) == 0:
                     continue
 
@@ -3218,10 +3219,8 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                     drr_total
                 ])
 
-            # Сортируем по убыванию количества
             history_rows.sort(key=lambda x: x[3], reverse=True)
 
-            # Добавляем строку ИТОГО
             totals_row = [
                 current_date,
                 "ИТОГО",
@@ -3238,38 +3237,31 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             print(f"\n  📊 ПОДГОТОВЛЕНО {len(history_rows)} ЗАПИСЕЙ:")
             print(f"     ИТОГО: сумма = {total_sales:,.2f} ₽, количество = {total_quantity} шт")
 
-            # ===== ПОЛУЧАЕМ ВСЕ СУЩЕСТВУЮЩИЕ ДАННЫЕ =====
             existing_history = safe_get_values(history_sheet)
 
-            # Сохраняем ВСЕ строки, которые НЕ относятся к текущей дате
             preserved_rows = []
             if len(existing_history) > 2:
                 for idx in range(2, len(existing_history)):
                     row = existing_history[idx] if idx < len(existing_history) else []
                     if row and len(row) > 0:
-                        # Сохраняем строки с другими датами
                         if row[0] != current_date:
                             preserved_rows.append(row)
 
             print(f"  📋 Сохранено {len(preserved_rows)} строк с другими датами")
 
-            # ===== ОЧИЩАЕМ ВСЕ ДАННЫЕ ПОСЛЕ ШАПКИ =====
             end_col = get_column_letter(len(HISTORY_DASHBOARD_CONFIG["headers"]))
 
-            # Определяем максимальный диапазон для очистки
             max_rows_to_clear = len(history_rows) + len(preserved_rows) + 100
             clear_range = f"A3:{end_col}{max_rows_to_clear}"
 
             try:
-                # ОЧИЩАЕМ И ДАННЫЕ, И ФОРМАТИРОВАНИЕ
-                # Используем batch_clear с дополнительным запросом на очистку форматов
                 body = {
                     "requests": [
                         {
                             "updateCells": {
                                 "range": {
                                     "sheetId": history_sheet.id,
-                                    "startRowIndex": 2,  # Строка 3 (0-based индекс 2)
+                                    "startRowIndex": 2,
                                     "endRowIndex": max_rows_to_clear,
                                     "startColumnIndex": 0,
                                     "endColumnIndex": len(HISTORY_DASHBOARD_CONFIG["headers"])
@@ -3281,11 +3273,10 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 }
                 safe_api_call(history_sheet.spreadsheet.batch_update, body)
                 print(f"  🗑️ Очищены данные и форматирование в диапазоне A3:{end_col}{max_rows_to_clear}")
-                time.sleep(2)  # Пауза после очистки
+                time.sleep(2)
 
             except Exception as e:
                 print(f"  ⚠️ Ошибка очистки через batch_update: {e}")
-                # Fallback: очищаем только данные
                 try:
                     history_sheet.batch_clear([clear_range])
                     print(f"  🗑️ Очищена область {clear_range} (только данные)")
@@ -3293,7 +3284,6 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 except Exception as e2:
                     print(f"  ⚠️ Ошибка очистки: {e2}")
 
-            # ===== ЗАПИСЫВАЕМ: НОВЫЕ ДАННЫЕ + СОХРАНЕННЫЕ СТАРЫЕ =====
             all_rows_to_write = history_rows + preserved_rows
 
             if all_rows_to_write:
@@ -3301,13 +3291,10 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 safe_update_cell(history_sheet, range_name, all_rows_to_write, value_input_option='USER_ENTERED')
                 print(f"  📝 Записано {len(all_rows_to_write)} строк (новые + сохраненные)")
 
-            # ===== ПРИМЕНЯЕМ ФОРМАТИРОВАНИЕ ТОЛЬКО К ЗАПИСАННЫМ ДАННЫМ =====
             end_row = 3 + len(all_rows_to_write) - 1
 
-            # Небольшая пауза перед форматированием
             time.sleep(1)
 
-            # Форматируем ВСЕ строки с данными (только что записанные)
             try:
                 safe_format_range(
                     history_sheet, f"C3:C{end_row}",
@@ -3336,7 +3323,6 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
                 except Exception as e:
                     print(f"  ⚠️ Ошибка форматирования колонки {col}: {e}")
 
-            # Выделяем строки ИТОГО (все, где во второй колонке "ИТОГО")
             try:
                 all_data = safe_get_values(history_sheet)
                 for row_num in range(3, len(all_data) + 1):
@@ -3354,7 +3340,6 @@ def save_dashboard_to_history(spreadsheet, current_date: str):
             print(f"     - Добавлено/обновлено {len(history_rows)} записей за {current_date}")
             print(f"     - Сохранено {len(preserved_rows)} записей за другие даты")
             print(f"     - Данные за {current_date} теперь вверху таблицы")
-            print(f"     - Форматирование применено только к новым данным")
 
             return True
 
@@ -3390,10 +3375,33 @@ def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
     end_col = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + len(headers_list) - 1)
     updates.append((f"{ANALYTICS_CONFIG['start_column']}6:{end_col}6", [headers_list]))
 
+    # Используем колонку J (10) для ДРР, а не дальше
     drr_col_letter = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + 9)
     updates.append((f"SET_COLUMN_WIDTH_{drr_col_letter}", None))
 
-    for block_config in CAMPAIGN_CONFIGS.values():
+    # Обновляем конфигурации - используем колонки с меньшими индексами
+    campaign_configs_updated = {
+        "search": {
+            "title": "РЕКЛАМА — ПОИСК",
+            "start_column": "K",  # Было L
+            "headers": CAMPAIGN_CONFIGS["search"]["headers"],
+            "color": CAMPAIGN_CONFIGS["search"]["color"]
+        },
+        "recommendations": {
+            "title": "РЕКЛАМА — ПОИСК И РЕКОМЕНДАЦИИ",
+            "start_column": "P",  # Было Z
+            "headers": CAMPAIGN_CONFIGS["recommendations"]["headers"],
+            "color": CAMPAIGN_CONFIGS["recommendations"]["color"]
+        },
+        "cpo": {
+            "title": "РЕКЛАМА — ОПЛАТА ЗА ЗАКАЗ",
+            "start_column": "U",  # Было AN
+            "headers": CAMPAIGN_CONFIGS["cpo"]["headers"],
+            "color": CAMPAIGN_CONFIGS["cpo"]["color"]
+        }
+    }
+
+    for block_config in campaign_configs_updated.values():
         col_letter = block_config['start_column']
         updates.append((f"{col_letter}5", [[block_config['title']]]))
         headers_list = [h['name'] for h in block_config['headers']]
@@ -3402,25 +3410,40 @@ def setup_product_sheet_structure(sheet, offer_id: str, skus_list: List[str]):
 
     for range_name, values in updates:
         if values is not None:
-            safe_update_cell(sheet, range_name, values, value_input_option='USER_ENTERED')
-            time.sleep(0.3)
+            try:
+                safe_update_cell(sheet, range_name, values, value_input_option='USER_ENTERED')
+                time.sleep(0.3)
+            except Exception as e:
+                if 'exceeds grid limits' in str(e):
+                    print(f"    ⚠️ Пропускаем запись в {range_name} (выходит за пределы листа)")
+                else:
+                    raise
 
     drr_col_letter = get_column_letter(get_column_index(ANALYTICS_CONFIG['start_column']) + 9)
-    safe_api_call(set_column_width, sheet, drr_col_letter, 100)
+    try:
+        safe_api_call(set_column_width, sheet, drr_col_letter, 100)
+    except:
+        pass
 
     safe_format_range(
         sheet, f"{ANALYTICS_CONFIG['start_column']}5",
         CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=ANALYTICS_CONFIG['block_color'])
     )
 
-    for block_config in CAMPAIGN_CONFIGS.values():
+    for block_config in campaign_configs_updated.values():
         col_letter = block_config['start_column']
-        safe_format_range(
-            sheet, f"{col_letter}5",
-            CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=block_config['color'])
-        )
+        try:
+            safe_format_range(
+                sheet, f"{col_letter}5",
+                CellFormat(textFormat=TextFormat(bold=True, fontSize=12), backgroundColor=block_config['color'])
+            )
+        except:
+            pass
 
-    safe_api_call(set_frozen, sheet, rows=6)
+    try:
+        safe_api_call(set_frozen, sheet, rows=6)
+    except:
+        pass
     time.sleep(1)
 
 
@@ -3543,7 +3566,6 @@ def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_dat
     all_data = safe_get_values(sheet)
     existing_row_index = None
 
-    # Ищем существующую строку с этой датой
     for i, row in enumerate(all_data[6:], start=7):
         if len(row) > 0 and row[0] == current_date_str:
             existing_row_index = i
@@ -3554,13 +3576,11 @@ def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_dat
     for attempt in range(max_retries):
         try:
             if existing_row_index:
-                # Обновляем существующую строку (перезаписываем)
                 print(f"  🔄 Обновление строки {existing_row_index} за {current_date_str}")
                 safe_update_cell(sheet, f"A{existing_row_index}", [full_row], value_input_option='USER_ENTERED')
                 print(f"  ✅ Обновлена строка за {current_date_str}")
                 break
             else:
-                # Добавляем новую строку (вставляем после заголовков)
                 print(f"  📝 Добавление новой строки за {current_date_str}")
                 safe_api_call(sheet.insert_row, full_row, index=7)
                 print(f"  ✅ Добавлена строка за {current_date_str}")
@@ -3568,25 +3588,49 @@ def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_dat
         except Exception as e:
             error_str = str(e)
 
-            if 'limit of 10000000 cells' in error_str or 'exceeded the limit' in error_str:
+            if '10000000 cells' in error_str or 'exceeded the limit' in error_str or 'limit of cells' in error_str:
+                print(f"  ⚠️ Достигнут лимит ячеек при обновлении {offer_id}!")
+
+                try:
+                    all_data = safe_get_values(sheet)
+                    if len(all_data) > 30:
+                        rows_to_delete = len(all_data) - 30
+                        for i in range(rows_to_delete):
+                            try:
+                                sheet.delete_rows(7)
+                                time.sleep(0.1)
+                            except:
+                                pass
+                        print(f"  ✅ Удалено {rows_to_delete} старых строк из {offer_id}")
+
+                        if existing_row_index:
+                            safe_update_cell(sheet, f"A{existing_row_index}", [full_row],
+                                             value_input_option='USER_ENTERED')
+                        else:
+                            safe_api_call(sheet.insert_row, full_row, index=7)
+                        print(f"  ✅ Данные добавлены после очистки")
+                        break
+                except Exception as clean_error:
+                    print(f"  ❌ Ошибка очистки: {clean_error}")
+
+                    try:
+                        handle_cell_limit_error(sheet.spreadsheet, offer_id)
+                        if existing_row_index:
+                            safe_update_cell(sheet, f"A{existing_row_index}", [full_row],
+                                             value_input_option='USER_ENTERED')
+                        else:
+                            safe_api_call(sheet.insert_row, full_row, index=7)
+                        print(f"  ✅ Данные добавлены после глобальной очистки")
+                        break
+                    except:
+                        pass
+
                 if attempt < max_retries - 1:
-                    # Если лимит - очищаем старые строки (начиная с 7-й)
-                    current_rows = len(safe_get_values(sheet))
-                    if current_rows > 100:
-                        rows_to_delete = current_rows - 50
-                        # Очищаем данные, не удаляя строки (сохраняем форматирование)
-                        end_col = get_column_letter(len(full_row))
-                        clear_range = f"A{current_rows - rows_to_delete + 1}:{end_col}{current_rows}"
-                        try:
-                            sheet.batch_clear([clear_range])
-                            print(f"  🗑️ Очищены старые данные ({rows_to_delete} строк)")
-                            time.sleep(1)
-                            continue
-                        except:
-                            pass
-                    raise
+                    time.sleep(2)
+                    continue
                 else:
                     raise
+
             elif '429' in error_str or 'Quota exceeded' in error_str:
                 if attempt < max_retries - 1:
                     wait_time = 30 * (attempt + 1)
@@ -3602,7 +3646,7 @@ def update_product_sheet_batch(sheet, offer_id: str, full_row: List, current_dat
     time.sleep(1)
 
 
-def enforce_sheet_size_limit(sheet, max_rows: int = 500):
+def enforce_sheet_size_limit(sheet, max_rows: int = 300):
     current_rows = len(safe_get_values(sheet))
     if current_rows > max_rows:
         rows_to_delete = current_rows - max_rows
@@ -3621,7 +3665,6 @@ def enforce_sheet_size_limit(sheet, max_rows: int = 500):
 def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
     """Записывает ошибку в лист и отправляет уведомление в Telegram"""
 
-    # Отправляем уведомление в Telegram с повторными попытками
     try:
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         tg_message = f"❌ <b>ОШИБКА В ПАРСЕРЕ OZON</b>\n\n📅 Время: {timestamp}\n📝 Ошибка: {error_message[:500]}"
@@ -3629,7 +3672,6 @@ def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
     except Exception as e:
         print(f"  ⚠️ Ошибка отправки уведомления: {e}")
 
-    # Записываем в лист Google Sheets
     for attempt in range(3):
         try:
             client = get_google_sheets_client()
@@ -3638,14 +3680,12 @@ def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
 
             try:
                 sheet = spreadsheet.worksheet(sheet_name)
-                # Ограничиваем размер листа ошибок
                 current_rows = len(safe_get_values(sheet))
                 if current_rows > 1000:
-                    # Удаляем старые записи
                     rows_to_delete = current_rows - 900
                     for i in range(rows_to_delete):
                         try:
-                            sheet.delete_rows(2)  # Удаляем вторую строку (после заголовка)
+                            sheet.delete_rows(2)
                         except:
                             pass
             except gspread.exceptions.WorksheetNotFound:
@@ -3654,13 +3694,12 @@ def write_error_to_sheet(error_message: str, sheet_name: str = "ERROR"):
                              value_input_option='USER_ENTERED')
 
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            full_error = error_message[:500]  # Ограничиваем длину
+            full_error = error_message[:500]
 
             import traceback
             tb = traceback.format_exc()
             tb_short = tb[:500] if tb else ""
 
-            # Добавляем новую строку с ошибкой
             sheet.append_row([timestamp, full_error, tb_short], value_input_option='USER_ENTERED')
 
             print(f"✅ Ошибка записана в лист {sheet_name}")
@@ -3741,30 +3780,26 @@ def upload_to_google_sheets(all_items_dict: Dict, campaigns_data: Optional[Dict]
             print(f"\n🔄 Обработка товара {idx + 1}/{len(all_items_dict)}: {offer_id}")
             print(f"   SKU: {', '.join(skus_list)}")
 
-            # Обновляем позицию товара
             position_category = update_position_data(item, positions_data)
             item['avg_position_category'] = position_category
 
-            # Получаем или создаем лист товара
             try:
                 sheet = execute_with_exponential_backoff(spreadsheet.worksheet, offer_id)
                 need_setup = False
             except gspread.exceptions.WorksheetNotFound:
+                # Минимальный размер для листа товара: 100 строк, 20 колонок
                 sheet = execute_with_exponential_backoff(
-                    spreadsheet.add_worksheet, title=offer_id, rows=2000, cols=60
+                    spreadsheet.add_worksheet, title=offer_id, rows=100, cols=30
                 )
                 need_setup = True
                 time.sleep(2)
 
-            # Настраиваем структуру листа если нужно
             if need_setup:
                 setup_product_sheet_structure(sheet, offer_id, skus_list)
 
-            # Подготавливаем и обновляем данные - передаём drr_for_products
             full_row = prepare_product_row(item, campaigns_data, drr_for_products, current_date_str)
             update_product_sheet_batch(sheet, offer_id, full_row, current_date_str)
 
-            # Пауза для соблюдения лимитов
             if (idx + 1) % 5 == 0:
                 print(f"\n⏸️ Обработано {idx + 1} товаров, пауза 5 секунд...")
                 time.sleep(5)
@@ -3878,11 +3913,11 @@ def test_technical_sheet_with_saved_data(custom_date: str = None):
             missing_files.append(f"{name} ({path})")
 
     if missing_files:
-        print("\nё")
+        print("\n⚠️ Отсутствуют файлы с данными:")
         for f in missing_files:
             print(f"   - {f}")
         print("\n💡 Сначала запустите main.py в обычном режиме, чтобы сохранить данные")
-        pass
+        return False
 
     print("\n📂 ЗАГРУЗКА ДАННЫХ ИЗ ФАЙЛОВ:")
 
